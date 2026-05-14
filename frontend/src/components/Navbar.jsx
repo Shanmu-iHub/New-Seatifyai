@@ -28,12 +28,12 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop nav */}
-          {user && (
+          {user ? (
             <div className="hidden md:flex items-center gap-6">
-              <Link to="/courses" className={`text-sm font-medium transition-colors ${location.pathname === '/courses' ? 'text-indigo-400' : 'text-gray-400 hover:text-white'}`}>
+              <Link to="/courses" className={`text-sm font-medium transition-colors ${location.pathname === '/courses' || location.pathname === '/' ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-900'}`}>
                 Courses
               </Link>
-              <Link to="/profile" className={`text-sm font-medium transition-colors ${location.pathname === '/profile' ? 'text-indigo-400' : 'text-gray-400 hover:text-white'}`}>
+              <Link to="/profile" className={`text-sm font-medium transition-colors ${location.pathname === '/profile' ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-900'}`}>
                 Profile
               </Link>
               <div className="flex items-center gap-3 pl-4" style={{ borderLeft: '1px solid var(--card-border)' }}>
@@ -41,31 +41,45 @@ export default function Navbar() {
                   style={{ background: 'var(--primary)' }}>
                   {user.name ? user.name[0].toUpperCase() : 'S'}
                 </div>
-                <span className="text-sm text-gray-300">{user.name || user.email}</span>
-                <button onClick={handleLogout} className="text-gray-500 hover:text-red-400 transition-colors ml-1">
+                <span className="text-sm text-gray-700 font-medium">{user.name || user.email}</span>
+                <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 transition-colors ml-1">
                   <LogOut size={16} />
                 </button>
               </div>
             </div>
+          ) : (
+            <div className="hidden md:flex items-center gap-4">
+              <Link to="/login" className="px-5 py-2 rounded-xl text-sm font-bold text-white transition-all hover:scale-105 active:scale-95 shadow-lg shadow-indigo-200"
+                style={{ background: 'var(--primary)' }}>
+                Sign In
+              </Link>
+            </div>
           )}
 
-          {/* Mobile hamburger */}
-          {user && (
-            <button className="md:hidden text-gray-400" onClick={() => setMenuOpen(!menuOpen)}>
-              {menuOpen ? <X size={22} /> : <Menu size={22} />}
-            </button>
-          )}
+          {/* Mobile toggle */}
+          <button className="md:hidden text-gray-500" onClick={() => setMenuOpen(!menuOpen)}>
+            {menuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
 
         {/* Mobile menu */}
-        {menuOpen && user && (
-          <div className="md:hidden py-4 border-t" style={{ borderColor: 'var(--card-border)' }}>
+        {menuOpen && (
+          <div className="md:hidden py-4 border-t animate-fade-up" style={{ borderColor: 'var(--card-border)' }}>
             <div className="flex flex-col gap-4 px-2">
-              <Link to="/courses" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white py-2">Courses</Link>
-              <Link to="/profile" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white py-2">Profile</Link>
-              <button onClick={handleLogout} className="text-left text-red-400 hover:text-red-300 py-2 flex items-center gap-2">
-                <LogOut size={16} /> Logout
-              </button>
+              <Link to="/courses" onClick={() => setMenuOpen(false)} className="text-gray-600 font-medium py-2">Courses</Link>
+              {user ? (
+                <>
+                  <Link to="/profile" onClick={() => setMenuOpen(false)} className="text-gray-600 font-medium py-2">Profile</Link>
+                  <button onClick={handleLogout} className="text-left text-red-500 font-medium py-2 flex items-center gap-2">
+                    <LogOut size={16} /> Logout
+                  </button>
+                </>
+              ) : (
+                <Link to="/login" onClick={() => setMenuOpen(false)} className="inline-block px-5 py-3 rounded-xl text-center font-bold text-white"
+                  style={{ background: 'var(--primary)' }}>
+                  Sign In
+                </Link>
+              )}
             </div>
           </div>
         )}

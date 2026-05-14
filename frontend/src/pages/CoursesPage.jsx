@@ -224,12 +224,12 @@ export default function CoursesPage() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className="flex-shrink-0 px-5 py-2 rounded-full text-sm font-semibold transition-all"
+              className="flex-shrink-0 px-6 py-2.5 rounded-full text-sm font-bold transition-all transform active:scale-95"
               style={{
-                background: activeTab === tab ? 'var(--primary)' : '#fff',
+                background: activeTab === tab ? 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)' : '#fff',
                 color: activeTab === tab ? '#fff' : 'var(--text-muted)',
-                border: '1px solid var(--card-border)',
-                boxShadow: activeTab === tab ? '0 4px 12px rgba(59,130,246,0.25)' : 'none'
+                border: activeTab === tab ? 'none' : '1px solid var(--card-border)',
+                boxShadow: activeTab === tab ? '0 8px 20px rgba(59,130,246,0.3)' : 'none'
               }}>
               {tab}
             </button>

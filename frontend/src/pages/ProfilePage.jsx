@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { User, BookOpen, CreditCard, FileText, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 
-const TABS = ['Overview', 'Academic', 'Documents', 'Admissions'];
+const TABS = ['Overview', 'Admissions'];
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -119,39 +119,7 @@ export default function ProfilePage() {
             </>
           )}
 
-          {activeTab === 'Academic' && (
-            <>
-              <h2 className="text-lg font-bold mb-5 flex items-center gap-2" style={{ fontFamily: 'Clash Display' }}>
-                <BookOpen size={18} style={{ color: 'var(--primary)' }} /> Academic Details
-              </h2>
-              {profile?.prevSchool ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field label="Previous School/College" value={profile.prevSchool} />
-                  <Field label="Last Qualification" value={profile.qualification} />
-                  <Field label="Board / University" value={profile.board} />
-                  <Field label="Year of Passing" value={profile.yearOfPassing} />
-                  <Field label="Percentage / CGPA" value={profile.percentage} />
-                </div>
-              ) : (
-                <div className="text-center py-8" style={{ color: 'var(--text-muted)' }}>
-                  <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
-                  <p>No academic details available yet.</p>
-                </div>
-              )}
-            </>
-          )}
 
-          {activeTab === 'Documents' && (
-            <>
-              <h2 className="text-lg font-bold mb-5 flex items-center gap-2" style={{ fontFamily: 'Clash Display' }}>
-                <FileText size={18} style={{ color: 'var(--primary)' }} /> Uploaded Documents
-              </h2>
-              <div className="text-center py-8" style={{ color: 'var(--text-muted)' }}>
-                <FileText size={40} className="mx-auto mb-3 opacity-30" />
-                <p>Documents will appear here after application submission.</p>
-              </div>
-            </>
-          )}
 
           {activeTab === 'Admissions' && (
             <>

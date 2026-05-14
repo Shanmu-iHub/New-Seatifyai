@@ -26,7 +26,7 @@ const AppRoutes = () => {
     <div className={user ? "pb-24 md:pb-0" : ""}>
       <Navbar />
       <Routes>
-        <Route path="/" element={<Navigate to="/courses" />} />
+        <Route path="/" element={<CoursesPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/courses" element={<CoursesPage />} />
         <Route path="/apply/:courseId" element={<ProtectedRoute><ApplicationForm /></ProtectedRoute>} />

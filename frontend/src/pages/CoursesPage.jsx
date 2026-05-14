@@ -122,6 +122,8 @@ export default function CoursesPage() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [hasCompletedApplication, setHasCompletedApplication] = useState(false);
+  const [showWarningModal, setShowWarningModal] = useState(false);
 
   const navigate = useNavigate();
 
@@ -131,12 +133,19 @@ export default function CoursesPage() {
       navigate('/login', { state: { from: `/apply/${course._id}`, course, program } });
       return;
     }
+    if (hasCompletedApplication) {
+      setShowWarningModal(true);
+      return;
+    }
     navigate(`/apply/${course._id}`, { state: { course, program } });
   };
 
   useEffect(() => {
     fetchCourses();
-  }, []);
+    if (user) {
+      checkCompletedApplication();
+    }
+  }, [user]);
 
   const fetchCourses = async () => {
     try {
@@ -147,6 +156,20 @@ export default function CoursesPage() {
       setCourses(MOCK_COURSES);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkCompletedApplication = async () => {
+    try {
+      const res = await axios.get('/api/applications/my');
+      const currentYear = new Date().getFullYear();
+      const academicYear = `${currentYear}-${currentYear + 1}`;
+      const hasCompleted = res.data.some(
+        app => app.paymentStatus === 'completed' && app.academicYear === academicYear
+      );
+      setHasCompletedApplication(hasCompleted);
+    } catch (err) {
+      console.error('Error checking completed applications:', err);
     }
   };
 
@@ -348,6 +371,25 @@ export default function CoursesPage() {
           </div>
         )}
       </div>
+
+      {/* Warning Modal */}
+      {showWarningModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="rounded-2xl p-6 max-w-md mx-4" style={{ background: 'var(--card)', border: '1px solid var(--card-border)' }}>
+            <h3 className="text-xl font-bold mb-3" style={{ fontFamily: 'Clash Display', letterSpacing: '2px' }}>Application Limit Reached</h3>
+            <p className="text-sm mb-6" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
+              You have already enrolled for this academic year. Please wait until the next academic year to apply again.
+            </p>
+            <button
+              onClick={() => setShowWarningModal(false)}
+              className="w-full py-3 rounded-xl font-semibold text-sm"
+              style={{ background: 'var(--primary)', color: '#fff' }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

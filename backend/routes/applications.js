@@ -98,18 +98,38 @@ router.post('/', auth, upload.fields(docFields), async (req, res) => {
         });
 
         if (filesToUpload.length > 0) {
-          const axios = require('axios');
-          const driveRes = await axios.post(GOOGLE_DRIVE_SCRIPT_URL, {
-            action: 'uploadFiles',
-            studentName: req.body.fullName || 'Unknown Student',
-            files: filesToUpload
-          });
-          
-          if (driveRes.data && driveRes.data.success) {
-            Object.assign(docs, driveRes.data.fileUrls);
-            docs.driveFolder = driveRes.data.folderUrl;
-          } else {
-            throw new Error('Google Drive Upload Failed: ' + (driveRes.data.error || 'Unknown error'));
+          try {
+            const axios = require('axios');
+            const driveRes = await axios.post(GOOGLE_DRIVE_SCRIPT_URL, {
+              action: 'uploadFiles',
+              studentName: req.body.fullName || 'Unknown Student',
+              files: filesToUpload
+            });
+            
+            if (driveRes.data && driveRes.data.success) {
+              Object.assign(docs, driveRes.data.fileUrls);
+              docs.driveFolder = driveRes.data.folderUrl;
+            } else {
+              console.error('Google Drive Upload Failed:', driveRes.data.error || 'Unknown error');
+              console.log('Falling back to local storage');
+              // Fallback to local storage
+              Object.entries(req.files).forEach(([key, files]) => {
+                const docKey = key.replace('doc_', '');
+                if (files[0]) {
+                  docs[docKey] = files[0].location || `/uploads/${files[0].filename}`;
+                }
+              });
+            }
+          } catch (err) {
+            console.error('Google Drive Upload Error:', err.message);
+            console.log('Falling back to local storage');
+            // Fallback to local storage
+            Object.entries(req.files).forEach(([key, files]) => {
+              const docKey = key.replace('doc_', '');
+              if (files[0]) {
+                docs[docKey] = files[0].location || `/uploads/${files[0].filename}`;
+              }
+            });
           }
         }
       } else {

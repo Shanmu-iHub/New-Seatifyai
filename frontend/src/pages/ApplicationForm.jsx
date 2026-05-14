@@ -70,7 +70,7 @@ export default function ApplicationForm() {
 
   const handleNext = () => {
     if (step === 1) {
-      const requiredFields = ['fullName', 'dob', 'gender', 'email', 'mobile'];
+      const requiredFields = ['fullName', 'dob', 'admissionType', 'email', 'mobile'];
       const missing = requiredFields.filter(f => !formData[f]);
       if (missing.length > 0) {
         toast.error('Please fill all required fields');

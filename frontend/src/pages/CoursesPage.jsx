@@ -172,8 +172,18 @@ export default function CoursesPage() {
   const getNameColor = (name) => NAME_COLOR[name] || NAME_COLOR['default'];
 
   return (
-    <div className="min-h-screen pb-24" style={{ background: 'var(--bg)' }}>
-      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-10 pb-4">
+    <div className="min-h-screen pb-24 relative overflow-hidden" style={{ background: '#F8FAFC' }}>
+      {/* Decorative Background Elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full opacity-20 blur-[120px]" 
+          style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)' }} />
+        <div className="absolute top-[20%] -right-[5%] w-[30%] h-[30%] rounded-full opacity-10 blur-[100px]" 
+          style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2DD4BF 100%)' }} />
+        <div className="absolute -bottom-[10%] left-[20%] w-[35%] h-[35%] rounded-full opacity-10 blur-[120px]" 
+          style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #EF4444 100%)' }} />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-10 pb-4 relative" style={{ zIndex: 1 }}>
 
         {/* Header */}
         <div className="text-center mb-10 animate-fade-up">

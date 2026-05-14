@@ -8,10 +8,13 @@ const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString()
 
 // Email transporter
 const getTransporter = () => nodemailer.createTransport({
-  host: process.env.MAIL_HOST || 'smtp.gmail.com',
-  port: Number(process.env.MAIL_PORT) || 587,
+  host: process.env.SES_SMTP_HOST || process.env.MAIL_HOST || 'smtp.gmail.com',
+  port: Number(process.env.SES_SMTP_PORT || process.env.MAIL_PORT) || 587,
   secure: false,
-  auth: { user: process.env.MAIL_USER, pass: process.env.MAIL_PASS },
+  auth: { 
+    user: process.env.SES_SMTP_USERNAME || process.env.MAIL_USER, 
+    pass: process.env.SES_SMTP_PASSWORD || process.env.MAIL_PASS 
+  },
 });
 
 const sendEmailOTP = async (email, otp) => {

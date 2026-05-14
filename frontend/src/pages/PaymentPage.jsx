@@ -57,13 +57,15 @@ export default function PaymentPage() {
       const res = await axios.post('/api/payment/create-order', { amount: fee, applicationId });
       orderId = res.data.orderId;
       razorpayKeyId = res.data.keyId;
+      const razorpayTitle = res.data.title;
+      const razorpayDesc = res.data.description;
 
       const options = {
         key: razorpayKeyId,
         amount: fee * 100,
         currency: 'INR',
-        name: 'Seatifyai',
-        description: `${course?.name} — ${program?.name}`,
+        name: razorpayTitle,
+        description: razorpayDesc,
         order_id: orderId,
         prefill: {
           name: application?.fullName || user?.name,

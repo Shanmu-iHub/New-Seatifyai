@@ -43,6 +43,8 @@ router.post('/create-order', auth, async (req, res) => {
       amount: order.amount,
       currency: order.currency,
       keyId: process.env.RAZORPAY_KEY_ID,
+      title: process.env.RAZORPAY_TITLE || 'Seatifyai',
+      description: process.env.RAZORPAY_DESCRIPTION || 'Secure Payment',
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -95,9 +97,13 @@ router.post('/verify', auth, async (req, res) => {
       try {
         const nodemailer = require('nodemailer');
         const transporter = nodemailer.createTransport({
-          host: process.env.MAIL_HOST || 'smtp.gmail.com',
-          port: 587, secure: false,
-          auth: { user: process.env.MAIL_USER, pass: process.env.MAIL_PASS },
+          host: process.env.SES_SMTP_HOST || process.env.MAIL_HOST || 'smtp.gmail.com',
+          port: Number(process.env.SES_SMTP_PORT || process.env.MAIL_PORT) || 587,
+          secure: false,
+          auth: { 
+            user: process.env.SES_SMTP_USERNAME || process.env.MAIL_USER, 
+            pass: process.env.SES_SMTP_PASSWORD || process.env.MAIL_PASS 
+          },
         });
         await transporter.sendMail({
           from: process.env.MAIL_FROM || 'Seatifyai <noreply@seatifyai.com>',

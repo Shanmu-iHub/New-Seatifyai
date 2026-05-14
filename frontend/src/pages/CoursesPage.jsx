@@ -124,13 +124,13 @@ export default function CoursesPage() {
 
   const navigate = useNavigate();
 
-  const handleApply = (courseId) => {
+  const handleApply = (course, program) => {
     if (!user) {
       toast('Please login to start your application', { icon: '👋' });
-      navigate('/login', { state: { from: `/apply/${courseId}` } });
+      navigate('/login', { state: { from: `/apply/${course._id}`, course, program } });
       return;
     }
-    navigate(`/apply/${courseId}`);
+    navigate(`/apply/${course._id}`, { state: { course, program } });
   };
 
   useEffect(() => {
@@ -295,7 +295,7 @@ export default function CoursesPage() {
                             </span>
                             <div className="flex gap-2">
                               <button
-                                onClick={() => handleApply(course._id)}
+                                onClick={() => handleApply(course, program)}
                                 className="flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold text-white transition-all transform hover:scale-105"
                                 style={{ background: 'var(--primary)' }}
                               >

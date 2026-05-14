@@ -53,7 +53,12 @@ export default function LoginPage() {
       toast.success('Welcome to Seatifyai!');
       
       const destination = location.state?.from || '/courses';
-      navigate(destination);
+      navigate(destination, { 
+        state: { 
+          course: location.state?.course, 
+          program: location.state?.program 
+        } 
+      });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Invalid OTP');
     } finally {

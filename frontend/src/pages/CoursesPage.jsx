@@ -303,6 +303,7 @@ export default function CoursesPage() {
                           </div>
                           <div className="flex items-center justify-between ml-4">
                             <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                              <span style={{ color: 'var(--text-muted)', fontWeight: 'normal', fontSize: '0.85em', marginRight: '4px' }}>Pre Registration Amount:</span>
                               {formatFullFee(program.fee)}
                             </span>
                             <div className="flex gap-2">

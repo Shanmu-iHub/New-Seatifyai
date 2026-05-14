@@ -9,6 +9,7 @@ import ApplicationForm from './pages/ApplicationForm';
 import PaymentPage from './pages/PaymentPage';
 import ConfirmationPage from './pages/ConfirmationPage';
 import ProfilePage from './pages/ProfilePage';
+import WhatsAppButton from './components/WhatsAppButton';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -34,6 +35,7 @@ const AppRoutes = () => {
         <Route path="/confirmation/:applicationId" element={<ProtectedRoute><ConfirmationPage /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       </Routes>
+      <WhatsAppButton />
     </div>
   );
 };

@@ -101,7 +101,7 @@ router.post('/verify', auth, async (req, res) => {
             paymentId: razorpay_payment_id,
             date: new Date().toLocaleString('en-IN')
           });
-          console.log(`✅ Order details logged to Google Sheets`);
+          console.log(`✅ Order details logged and seat reduced in Google Sheets`);
         } catch (sheetErr) {
           console.warn('❌ Google Sheets logging failed:', sheetErr.message);
         }

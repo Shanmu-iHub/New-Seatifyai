@@ -2,13 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { CheckCircle, Download, User, Home, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { useAuth } from '../context/AuthContext';
 
 import { logoBase64 } from '../assets/logoBase64';
 
 export default function ConfirmationPage() {
   const { applicationId } = useParams();
+  const { user } = useAuth();
   const { state } = useLocation();
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
@@ -20,6 +22,13 @@ export default function ConfirmationPage() {
 
   useEffect(() => {
     setTimeout(() => setVisible(true), 100);
+    
+    // Automatically trigger download after 2 seconds
+    const timer = setTimeout(() => {
+      handleDownloadReceipt();
+    }, 2000);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const now = new Date();
@@ -27,8 +36,9 @@ export default function ConfirmationPage() {
   const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
   const details = [
+    ['Institution Name', application?.collegeName || course?.collegeName || 'SNS Institutions'],
     ['Application ID', applicationId],
-    ['Student Name', application?.fullName || 'N/A'],
+    ['Student Name', application?.fullName || user?.name || 'Student'],
     ['Course', course?.name || 'N/A'],
     ['Program', program?.name || 'N/A'],
     ['Amount Paid', `₹${((program?.fee || 0) + 1).toLocaleString('en-IN')}`],
@@ -40,67 +50,117 @@ export default function ConfirmationPage() {
   const handleDownloadReceipt = async () => {
     try {
       const doc = new jsPDF();
+      const studentName = application?.fullName || user?.name || 'Student';
       
-      // Header Section (Safe Text-based Header)
+      // 1. Sidebar Accent (Yellow)
+      doc.setFillColor(252, 211, 77); 
+      doc.rect(0, 0, 5, 297, 'F');
+
+      // 2. Header Block (Black)
+      doc.setFillColor(31, 41, 55); 
+      doc.rect(5, 10, 200, 30, 'F');
+      
       doc.setFontSize(24);
-      doc.setTextColor(59, 130, 246); // Seatify Blue
+      doc.setTextColor(255, 255, 255); 
       doc.setFont("helvetica", "bold");
-      doc.text("Seatify", 15, 22);
+      doc.text("Seatify", 15, 30);
       
       doc.setFontSize(10);
-      doc.setTextColor(150, 150, 150);
+      doc.setTextColor(252, 211, 77); 
       doc.setFont("helvetica", "normal");
-      doc.text("Smart Admission Portal", 15, 28);
+      doc.text("Smart Admission Portal", 15, 36);
 
-      doc.setFontSize(20);
-      doc.setTextColor(0, 0, 0);
-      doc.setFont("helvetica", "bold");
-      doc.text("Admission Receipt", 120, 22);
+      doc.setFontSize(18);
+      doc.setTextColor(255, 255, 255);
+      doc.text("OFFICIAL RECEIPT", 140, 30);
       
-      doc.setDrawColor(200, 200, 200);
-      doc.line(15, 35, 195, 35);
+      // 3. Info Section
+      doc.setFontSize(10);
+      doc.setTextColor(75, 85, 99); 
+      doc.text(`ISSUED ON: ${dateStr || 'N/A'} at ${timeStr || 'N/A'}`, 15, 55);
+      doc.text(`APPLICATION ID: ${applicationId || 'N/A'}`, 150, 55);
       
-      // Attempt to add logo if available (non-blocking)
-      try {
-        if (logoBase64) {
-          const fullLogoData = `data:image/webp;base64,${logoBase64}`;
-          // We'll skip adding it for now to ensure reliability until a PNG is provided
-          // doc.addImage(fullLogoData, 'WEBP', 15, 10, 35, 12);
-        }
-      } catch (e) {
-        console.warn("Logo rendering skipped");
-      }
+      // 4. Data Table
+      const tableData = [
+        ['INSTITUTION NAME', application?.collegeName || course?.collegeName || 'SNS Institutions'],
+        ['APPLICATION ID', applicationId || 'N/A'],
+        ['STUDENT NAME', studentName.toUpperCase()],
+        ['COURSE', (course?.name || 'N/A').toUpperCase()],
+        ['PROGRAM', (program?.name || 'N/A').toUpperCase()],
+        ['AMOUNT PAID', `INR ${((program?.fee || 0) + 1).toLocaleString('en-IN')}`],
+        ['PAYMENT ID', paymentId || 'N/A'],
+        ['DATE & TIME', `${dateStr || 'N/A'} at ${timeStr || 'N/A'}`],
+        ['STATUS', 'CONFIRMED ✓']
+      ];
       
-      // Details
-      doc.setFontSize(12);
-      doc.setTextColor(0, 0, 0);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Date: ${dateStr}`, 15, 45);
-      doc.text(`Time: ${timeStr}`, 15, 52);
-      
-      doc.autoTable({
+      autoTable(doc, {
         startY: 65,
-        head: [['Description', 'Details']],
-        body: details.map(([label, val]) => [label, val]),
-        theme: 'striped',
-        headStyles: { fillStyle: [59, 130, 246], textColor: [255, 255, 255] },
-        styles: { fontSize: 10, cellPadding: 5 }
+        head: [['DESCRIPTION', 'DETAILS']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { 
+          fillColor: [31, 41, 55], 
+          textColor: [252, 211, 77], 
+          fontSize: 10, 
+          fontStyle: 'bold',
+          halign: 'left'
+        },
+        bodyStyles: { 
+          fontSize: 9, 
+          cellPadding: 6,
+          textColor: [31, 41, 55]
+        },
+        columnStyles: {
+          0: { cellWidth: 60, fontStyle: 'bold', fillColor: [249, 250, 251] },
+          1: { cellWidth: 'auto' }
+        },
+        styles: {
+          lineColor: [229, 231, 235],
+          lineWidth: 0.1
+        }
       });
       
-      const finalY = doc.lastAutoTable.finalY || 150;
+      const finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) || 180;
       
-      // Footer
-      doc.setFontSize(10);
-      doc.setTextColor(150, 150, 150);
-      doc.text("This is a computer-generated receipt and does not require a signature.", 15, finalY + 20);
-      doc.setTextColor(59, 130, 246);
-      doc.text("www.seatifyai.com", 15, finalY + 30);
+      // 5. Verification Badge
+      doc.setFillColor(245, 245, 245);
+      doc.rect(15, finalY + 10, 180, 22, 'F');
+      doc.setFontSize(9);
+      doc.setTextColor(31, 41, 55);
+      doc.setFont("helvetica", "bold");
+      doc.text("VERIFIED ENROLLMENT ✓", 20, finalY + 23);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.text("This receipt confirms your seat reservation and initial fee payment in our system.", 65, finalY + 23);
+
+      // 6. Policy Note (Requested)
+      doc.setFillColor(254, 252, 232); // Light yellow
+      doc.setDrawColor(252, 211, 77); // Yellow border
+      doc.rect(15, finalY + 40, 180, 25, 'FD');
       
-      doc.save(`Seatify_Receipt_${applicationId}.pdf`);
-      toast.success("Receipt downloaded successfully!");
+      doc.setFontSize(9);
+      doc.setTextColor(31, 41, 55);
+      doc.setFont("helvetica", "bold");
+      doc.text("NOTE:", 20, finalY + 50);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      const noteText = "This is a temporary seat confirmation only. Students are required to visit the college campus directly to verify and confirm their course admission.";
+      const splitNote = doc.splitTextToSize(noteText, 150);
+      doc.text(splitNote, 35, finalY + 50);
+
+      // 7. Footer
+      doc.setFontSize(8);
+      doc.setTextColor(156, 163, 175);
+      doc.text("This is a digital receipt issued by SeatifyAI Admission System.", 15, 280);
+      doc.text("For support, visit www.seatifyai.com", 15, 285);
+      doc.text("Page 1 of 1", 185, 285);
+      
+      doc.save(`Seatify_Receipt_${applicationId || 'Admission'}.pdf`);
+      toast.success("Receipt generated!");
     } catch (err) {
       console.error("PDF Error:", err);
-      toast.error("Receipt generation failed. Please try again.");
+      toast.error("Download failed. Try again.");
     }
   };
 
@@ -136,7 +196,7 @@ export default function ConfirmationPage() {
             Success!
           </h1>
           <p className="text-gray-500 font-medium px-4">
-            Your admission for <span className="text-gray-900 font-bold">{program?.name || 'the program'}</span> has been successfully registered.
+            Your admission for <span className="text-gray-900 font-bold">{program?.name || 'the program'}</span> at <span className="text-gray-900 font-bold">{application?.collegeName || course?.collegeName || 'SNS Institutions'}</span> has been successfully registered.
           </p>
         </div>
 
@@ -189,7 +249,15 @@ export default function ConfirmationPage() {
         </div>
 
         {/* Note */}
-        <p className="text-center text-xs mt-10 text-gray-400 font-medium">
+        {/* Policy Note (UI) */}
+        <div className="mt-8 p-4 rounded-2xl bg-yellow-50 border border-yellow-100">
+          <p className="text-[11px] leading-relaxed text-yellow-800 text-center font-medium">
+            <span className="font-black">NOTE:</span> This is a temporary seat confirmation only. Students are required to visit the college campus directly to verify and confirm their course admission.
+          </p>
+        </div>
+
+        {/* Support link */}
+        <p className="text-center text-xs mt-8 text-gray-400 font-medium">
           Need help? Contact support at <span className="text-blue-600 font-bold">help@seatifyai.com</span>
         </p>
       </div>

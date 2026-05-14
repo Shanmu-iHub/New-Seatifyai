@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
-import { User, BookOpen, CreditCard, FileText, CheckCircle, Clock, AlertCircle, Edit, X, Save } from 'lucide-react';
+import { User, BookOpen, CreditCard, FileText, CheckCircle, Clock, AlertCircle, Edit, X, Save, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const TABS = ['Overview', 'Admissions'];
 
@@ -74,7 +76,107 @@ export default function ProfilePage() {
       setLoading(false);
     }
   };
+  const handleDownloadReceipt = (adm) => {
+    try {
+      const doc = new jsPDF();
+      const studentName = profile?.fullName || user?.name || 'Student';
+      const dateStr = new Date(adm.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      const timeStr = new Date(adm.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
+      // 1. Sidebar Accent (Yellow)
+      doc.setFillColor(252, 211, 77);
+      doc.rect(0, 0, 5, 297, 'F');
+
+      // 2. Header Block (Black)
+      doc.setFillColor(31, 41, 55);
+      doc.rect(5, 10, 200, 30, 'F');
+      
+      doc.setFontSize(24);
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.text("Seatify", 15, 30);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(252, 211, 77);
+      doc.text("Smart Admission Portal", 15, 36);
+
+      doc.setFontSize(18);
+      doc.setTextColor(255, 255, 255);
+      doc.text("OFFICIAL RECEIPT", 140, 30);
+      
+      // 3. Info Section
+      doc.setFontSize(10);
+      doc.setTextColor(75, 85, 99);
+      doc.text(`ISSUED ON: ${dateStr} at ${timeStr}`, 15, 55);
+      doc.text(`APPLICATION ID: ${adm.applicationId}`, 150, 55);
+      
+      const tableData = [
+        ['INSTITUTION NAME', adm.collegeName || 'SNS Institutions'],
+        ['APPLICATION ID', adm.applicationId],
+        ['STUDENT NAME', studentName.toUpperCase()],
+        ['COURSE', (adm.courseName || 'N/A').toUpperCase()],
+        ['PROGRAM', (adm.programName || 'N/A').toUpperCase()],
+        ['AMOUNT PAID', `INR ${((adm.fee || 0) + 1).toLocaleString('en-IN')}`],
+        ['PAYMENT ID', adm.paymentId || 'N/A'],
+        ['DATE & TIME', `${dateStr} at ${timeStr}`],
+        ['STATUS', 'CONFIRMED ✓']
+      ];
+
+      autoTable(doc, {
+        startY: 65,
+        head: [['DESCRIPTION', 'DETAILS']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { 
+          fillColor: [31, 41, 45], 
+          textColor: [252, 211, 77], 
+          fontSize: 10, 
+          fontStyle: 'bold' 
+        },
+        bodyStyles: { fontSize: 9, cellPadding: 6 },
+        columnStyles: {
+          0: { cellWidth: 60, fontStyle: 'bold', fillColor: [249, 250, 251] }
+        }
+      });
+      
+      const finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) || 150;
+      
+      doc.setFillColor(245, 245, 245);
+      doc.rect(15, finalY + 10, 180, 22, 'F');
+      doc.setFontSize(9);
+      doc.setTextColor(31, 41, 55);
+      doc.setFont("helvetica", "bold");
+      doc.text("VERIFIED ENROLLMENT ✓", 20, finalY + 23);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.text("This receipt confirms your seat reservation and initial fee payment in our system.", 65, finalY + 23);
+
+      // Policy Note
+      doc.setFillColor(254, 252, 232);
+      doc.setDrawColor(252, 211, 77);
+      doc.rect(15, finalY + 40, 180, 25, 'FD');
+      doc.setFontSize(9);
+      doc.setTextColor(31, 41, 55);
+      doc.setFont("helvetica", "bold");
+      doc.text("NOTE:", 20, finalY + 50);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      const noteText = "This is a temporary seat confirmation only. Students are required to visit the college campus directly to verify and confirm their course admission.";
+      const splitNote = doc.splitTextToSize(noteText, 150);
+      doc.text(splitNote, 35, finalY + 50);
+
+      doc.setFontSize(8);
+      doc.setTextColor(156, 163, 175);
+      doc.text("This is a digital receipt issued by SeatifyAI Admission System.", 15, 280);
+      doc.text("www.seatifyai.com", 15, 285);
+      
+      doc.save(`Seatify_Receipt_${adm.applicationId}.pdf`);
+      toast.success("Receipt downloaded!");
+    } catch (err) {
+      console.error("PDF Error:", err);
+      toast.error("Receipt generation failed.");
+    }
+  };
   const StatusBadge = ({ status }) => {
     const cfg = {
       confirmed: { color: '#10B981', bg: 'rgba(16,185,129,0.12)', icon: CheckCircle, label: 'Confirmed' },
@@ -277,12 +379,20 @@ export default function ProfilePage() {
                         </div>
                         <StatusBadge status={adm.status} />
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-2 mb-3">
                         <Field label="Application ID" value={adm.applicationId} />
                         <Field label="Amount Paid" value={`₹${((adm.fee || 0) + 1).toLocaleString('en-IN')}`} />
                         <Field label="Payment ID" value={adm.paymentId} />
                         <Field label="Date" value={adm.createdAt ? new Date(adm.createdAt).toLocaleDateString('en-IN') : ''} />
                       </div>
+                      {adm.paymentStatus === 'completed' && (
+                        <button
+                          onClick={() => handleDownloadReceipt(adm)}
+                          className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold bg-gray-900 text-white hover:bg-black transition-all"
+                        >
+                          <Download size={14} /> Download Receipt
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>

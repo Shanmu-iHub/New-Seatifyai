@@ -24,6 +24,11 @@ app.use(morgan('dev'));
 // Static uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Health Endpoint
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/courses', require('./routes/courses'));

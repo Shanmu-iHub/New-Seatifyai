@@ -109,6 +109,8 @@ export default function ApplicationForm() {
       });
       fd.append('courseId', course?._id);
       fd.append('courseName', course?.name);
+      fd.append('collegeName', course?.collegeName || 'SNS Institutions');
+      fd.append('category', course?.category);
       fd.append('programId', program?._id);
       fd.append('programName', program?.name);
       fd.append('fee', program?.fee);

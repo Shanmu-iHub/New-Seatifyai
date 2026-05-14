@@ -29,7 +29,7 @@ const NAME_COLOR = {
 // Mock data for demo (backend will serve this)
 const MOCK_COURSES = [
   {
-    _id: '1', name: 'AI & Data Science', type: 'B.E./B.Tech', category: 'Engineering & Tech',
+    _id: '1', name: 'AI & Data Science', type: 'B.E./B.Tech', category: 'Engineering & Tech', collegeName: 'SNS College of Technology',
     programs: [
       { name: 'Artificial Intelligence & Data Science', fee: 120000, seats: 45, _id: 'p1' },
       { name: 'Artificial Intelligence & Machine Learning', fee: 115000, seats: 30, _id: 'p2' },
@@ -37,7 +37,7 @@ const MOCK_COURSES = [
     ]
   },
   {
-    _id: '2', name: 'Computer Science', type: 'B.E./B.Tech', category: 'Engineering & Tech',
+    _id: '2', name: 'Computer Science', type: 'B.E./B.Tech', category: 'Engineering & Tech', collegeName: 'SNS College of Engineering',
     programs: [
       { name: 'Computer Science and Engineering', fee: 125000, seats: 50, _id: 'p4' },
       { name: 'Computer Science and Design', fee: 118000, seats: 40, _id: 'p5' },
@@ -47,7 +47,7 @@ const MOCK_COURSES = [
     ]
   },
   {
-    _id: '3', name: 'Core Engineering', type: 'B.E./B.Tech', category: 'Engineering & Tech',
+    _id: '3', name: 'Core Engineering', type: 'B.E./B.Tech', category: 'Engineering & Tech', collegeName: 'SNS College of Technology',
     programs: [
       { name: 'Mechanical & Mechatronics', fee: 108000, seats: 60, _id: 'p9' },
       { name: 'Mechanical Engineering', fee: 105000, seats: 70, _id: 'p10' },
@@ -57,7 +57,7 @@ const MOCK_COURSES = [
     ]
   },
   {
-    _id: '4', name: 'Specialized Engineering', type: 'B.E./B.Tech', category: 'Engineering & Tech',
+    _id: '4', name: 'Specialized Engineering', type: 'B.E./B.Tech', category: 'Engineering & Tech', collegeName: 'SNS College of Engineering',
     programs: [
       { name: 'Aerospace Engineering', fee: 130000, seats: 20, _id: 'p14' },
       { name: 'Mechatronics Engineering', fee: 115000, seats: 30, _id: 'p15' },
@@ -66,7 +66,7 @@ const MOCK_COURSES = [
     ]
   },
   {
-    _id: '5', name: 'PG Programs', type: 'MBA/MCA', category: 'Engineering & Tech',
+    _id: '5', name: 'PG Programs', type: 'MBA/MCA', category: 'Engineering & Tech', collegeName: 'SNS College of Technology',
     programs: [
       { name: 'MBA', fee: 80000, seats: 60, _id: 'p18' },
       { name: 'MCA', fee: 75000, seats: 50, _id: 'p19' },
@@ -75,7 +75,7 @@ const MOCK_COURSES = [
     ]
   },
   {
-    _id: '6', name: 'Science Stream', type: 'Class 11-12', category: 'K-12',
+    _id: '6', name: 'Science Stream', type: 'Class 11-12', category: 'K-12', collegeName: 'SNS Academy',
     programs: [
       { name: 'Physics, Chemistry, Maths (PCM)', fee: 45000, seats: 80, _id: 'p22' },
       { name: 'Physics, Chemistry, Biology (PCB)', fee: 45000, seats: 80, _id: 'p23' },
@@ -83,14 +83,14 @@ const MOCK_COURSES = [
     ]
   },
   {
-    _id: '7', name: 'Commerce Stream', type: 'Class 11-12', category: 'K-12',
+    _id: '7', name: 'Commerce Stream', type: 'Class 11-12', category: 'K-12', collegeName: 'SNS Academy',
     programs: [
       { name: 'Accountancy, Business Studies, Economics', fee: 40000, seats: 90, _id: 'p25' },
       { name: 'Commerce with Computer Applications', fee: 42000, seats: 70, _id: 'p26' },
     ]
   },
   {
-    _id: '8', name: 'B.Sc Programs', type: 'Bachelor of Science', category: 'Arts & Science',
+    _id: '8', name: 'B.Sc Programs', type: 'Bachelor of Science', category: 'Arts & Science', collegeName: 'SNS College of Arts and Science',
     programs: [
       { name: 'B.Sc Computer Science', fee: 65000, seats: 60, _id: 'p27' },
       { name: 'B.Sc Mathematics', fee: 55000, seats: 70, _id: 'p28' },
@@ -98,14 +98,14 @@ const MOCK_COURSES = [
     ]
   },
   {
-    _id: '9', name: 'Nursing', type: 'B.Sc Nursing', category: 'Paramedical',
+    _id: '9', name: 'Nursing', type: 'B.Sc Nursing', category: 'Paramedical', collegeName: 'SNS College of Nursing',
     programs: [
       { name: 'B.Sc Nursing (4 years)', fee: 95000, seats: 40, _id: 'p30' },
       { name: 'GNM Nursing (3 years)', fee: 70000, seats: 50, _id: 'p31' },
     ]
   },
   {
-    _id: '10', name: 'B.Ed Programs', type: 'Bachelor of Education', category: 'Education',
+    _id: '10', name: 'B.Ed Programs', type: 'Bachelor of Education', category: 'Education', collegeName: 'SNS College of Education',
     programs: [
       { name: 'B.Ed (2 years)', fee: 50000, seats: 100, _id: 'p32' },
       { name: 'B.Ed Special Education', fee: 55000, seats: 60, _id: 'p33' },
@@ -184,6 +184,7 @@ export default function CoursesPage() {
           !searchQuery ||
           (course.name || '').toLowerCase().replace(/\s+/g, '').includes(q) ||
           (course.category || '').toLowerCase().replace(/\s+/g, '').includes(q) ||
+          (course.collegeName || '').toLowerCase().replace(/\s+/g, '').includes(q) ||
           course.programs?.some(p =>
             (p.name || '').toLowerCase().replace(/\s+/g, '').includes(q)
           );
@@ -313,7 +314,12 @@ export default function CoursesPage() {
                       <h3 className="font-bold text-base leading-tight" style={{ color: nameColor, fontFamily: 'Clash Display' }}>
                         {course.name}
                       </h3>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{course.type}</p>
+                      <div className="mt-1 flex flex-col gap-0.5">
+                        <p className="text-[11px] font-medium" style={{ color: 'var(--primary)', opacity: 0.8 }}>
+                          {course.collegeName || 'SNS Institutions'}
+                        </p>
+                        <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>{course.type}</p>
+                      </div>
                     </div>
                   </div>
 

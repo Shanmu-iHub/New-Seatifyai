@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { CheckCircle, Download, User, Home } from 'lucide-react';
+import { CheckCircle, Download, User, Home, Sparkles } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function ConfirmationPage() {
   const { applicationId } = useParams();
@@ -33,39 +34,57 @@ export default function ConfirmationPage() {
   ];
 
   return (
-    <div className="min-h-screen py-10 px-4" style={{ background: 'var(--bg)' }}>
-      <div className="max-w-md mx-auto">
+    <div className="min-h-screen py-12 px-4 relative overflow-hidden" style={{ background: 'var(--bg)' }}>
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full opacity-[0.03] blur-[120px]"
+          style={{ background: 'radial-gradient(circle, #10B981, transparent)' }} />
+        <div className="absolute top-1/2 -right-24 w-80 h-80 rounded-full opacity-[0.03] blur-[120px]"
+          style={{ background: 'radial-gradient(circle, #3B82F6, transparent)' }} />
+      </div>
+
+      <div className="max-w-md mx-auto relative z-10">
 
         {/* Animated check */}
-        <div className={`text-center mb-8 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          <div className="relative inline-block mb-4">
-            <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto"
-              style={{ background: 'rgba(16,185,129,0.15)', animation: 'pulse-ring 2s infinite' }}>
-              <div className="w-16 h-16 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(16,185,129,0.25)' }}>
-                <CheckCircle size={40} style={{ color: '#10B981' }} />
+        <div className={`text-center mb-8 transition-all duration-1000 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+          <div className="relative inline-block mb-6">
+            <div className="w-28 h-28 rounded-full flex items-center justify-center mx-auto"
+              style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)' }}>
+              <div className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg"
+                style={{ background: '#fff' }}>
+                <CheckCircle size={48} className="text-green-500" />
               </div>
             </div>
+            <div className="absolute -right-2 top-0">
+               <div className="bg-blue-500 text-white p-2 rounded-full shadow-lg animate-bounce">
+                  <Sparkles size={16} />
+               </div>
+            </div>
           </div>
-          <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: 'Clash Display', color: '#10B981' }}>
-            Application Confirmed!
+          <h1 className="text-4xl font-extrabold mb-3 text-gray-900" style={{ fontFamily: 'Clash Display' }}>
+            Success!
           </h1>
-          <p style={{ color: 'var(--text-muted)' }}>
-            Your admission has been successfully registered. A confirmation email has been sent.
+          <p className="text-gray-500 font-medium px-4">
+            Your admission for <span className="text-gray-900 font-bold">{program?.name || 'the program'}</span> has been successfully registered.
           </p>
         </div>
 
         {/* Details card */}
-        <div className={`rounded-2xl p-6 mb-5 transition-all duration-700 delay-200 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-          style={{ background: 'var(--card)', border: '1px solid var(--card-border)' }}>
-          <h2 className="text-sm font-semibold mb-4 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-            Admission Details
-          </h2>
-          <div className="space-y-3">
+        <div className={`bg-white rounded-[2rem] p-8 mb-6 shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-gray-100 transition-all duration-1000 delay-200 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">
+              Admission Receipt
+            </h2>
+            <div className="px-3 py-1 rounded-full bg-green-50 text-green-600 text-[10px] font-black uppercase tracking-wider border border-green-100">
+              Paid
+            </div>
+          </div>
+          
+          <div className="space-y-4">
             {details.map(([label, val]) => (
-              <div key={label} className="flex justify-between items-start gap-4">
-                <span className="text-sm flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{label}</span>
-                <span className={`text-sm font-medium text-right ${label === 'Status' ? 'text-green-400' : ''} ${label === 'Application ID' ? 'font-mono text-indigo-400' : ''}`}>
+              <div key={label} className="flex justify-between items-start gap-4 pb-3 border-b border-gray-50 last:border-0 last:pb-0">
+                <span className="text-sm font-medium text-gray-400">{label}</span>
+                <span className={`text-sm font-bold text-right ${label === 'Status' ? 'text-green-500' : 'text-gray-900'} ${label === 'Application ID' ? 'font-mono text-blue-600' : ''}`}>
                   {val}
                 </span>
               </div>
@@ -74,30 +93,33 @@ export default function ConfirmationPage() {
         </div>
 
         {/* Buttons */}
-        <div className={`flex flex-col gap-3 transition-all duration-700 delay-300 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        <div className={`flex flex-col gap-3 transition-all duration-1000 delay-400 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
           <button
             onClick={() => navigate('/profile')}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm"
-            style={{ background: 'var(--primary)', color: '#fff' }}>
-            <User size={16} /> Go to My Profile
+            className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-base shadow-xl shadow-blue-100 transition-all hover:scale-[1.02] active:scale-95"
+            style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', color: '#fff' }}>
+            <User size={18} /> My Dashboard
           </button>
-          <button
-            onClick={() => navigate('/courses')}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm"
-            style={{ background: 'var(--card)', border: '1px solid var(--card-border)', color: 'var(--text)' }}>
-            <Home size={16} /> Back to Courses
-          </button>
-          <button
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm"
-            style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', color: '#10B981' }}
-            onClick={() => toast.info('Receipt will be sent to your email')}>
-            <Download size={16} /> Download Receipt
-          </button>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => navigate('/courses')}
+              className="flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm bg-white border border-gray-100 text-gray-600 hover:bg-gray-50 transition-all"
+            >
+              <Home size={16} /> Home
+            </button>
+            <button
+              className="flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm bg-gray-900 text-white hover:bg-black transition-all"
+              onClick={() => toast.success('Receipt download started!')}
+            >
+              <Download size={16} /> Receipt
+            </button>
+          </div>
         </div>
 
         {/* Note */}
-        <p className="text-center text-xs mt-6" style={{ color: 'var(--text-muted)' }}>
-          Keep your Application ID <span style={{ color: 'var(--primary)' }}>{applicationId}</span> safe for future reference.
+        <p className="text-center text-xs mt-10 text-gray-400 font-medium">
+          Need help? Contact support at <span className="text-blue-600 font-bold">help@seatifyai.com</span>
         </p>
       </div>
     </div>

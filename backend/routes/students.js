@@ -15,6 +15,7 @@ router.get('/profile', auth, async (req, res) => {
         email: latest.email,
         mobile: latest.mobile,
         dob: latest.dob,
+        admissionType: latest.admissionType,
         gender: latest.gender,
         fatherName: latest.fatherName,
         motherName: latest.motherName,

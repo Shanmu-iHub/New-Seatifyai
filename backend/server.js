@@ -13,6 +13,8 @@ app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'https://seatifyai.com',
     'https://seatifyai.com',
+    'https://www.seatifyai.com',
+    'http://seatifyai.com',
     'http://localhost:3000',
     'http://localhost:5173',
   ],

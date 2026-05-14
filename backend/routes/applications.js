@@ -6,7 +6,7 @@ const fs = require('fs');
 const auth = require('../middleware/auth');
 const { Application } = require('../models');
 
-const GOOGLE_DRIVE_SCRIPT_URL = process.env.GOOGLE_DRIVE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbylzIZGJ76BacMewUntlAkAxgnIsNV6LH5QyT695o9Yg2OtuUbsixEdg72ZPiXUFD3a4A/exec';
+const GOOGLE_DRIVE_SCRIPT_URL = process.env.GOOGLE_DRIVE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzV93O99qhhcvSKJ_smlu0q70nlD18IuKhQkZj1bkbSfbMDFQg0cP1_MTKut4PJk4in2w/exec';
 
 // Multer setup
 let storage;

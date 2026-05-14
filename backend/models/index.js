@@ -58,7 +58,7 @@ const applicationSchema = new mongoose.Schema({
   prevSchool: String, qualification: String, board: String,
   yearOfPassing: String, percentage: String,
   // Course
-  courseId: String, courseName: String, collegeName: String, category: String, programId: String, programName: String,
+  courseId: String, courseName: String, admissionType: String, collegeName: String, category: String, programId: String, programName: String,
   fee: Number,
   // Docs
   docs: {

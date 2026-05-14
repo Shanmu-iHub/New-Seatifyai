@@ -18,12 +18,12 @@ const ICON_BG = {
 };
 
 const NAME_COLOR = {
-  'AI & Data Science': '#5B21B6',
-  'Computer Science': '#1E40AF',
-  'Core Engineering': '#B45309',
-  'Specialized Engineering': '#065F46',
-  'PG Programs': '#6B21A8',
-  'default': '#A16207',
+  'AI & Data Science': '#000',
+  'Computer Science': '#000',
+  'Core Engineering': '#000',
+  'Specialized Engineering': '#000',
+  'PG Programs': '#000',
+  'default': '#000',
 };
 
 // Mock data for demo (backend will serve this)

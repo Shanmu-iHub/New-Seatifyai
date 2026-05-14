@@ -23,7 +23,7 @@ const ProtectedRoute = ({ children }) => {
 const AppRoutes = () => {
   const { user } = useAuth();
   return (
-    <>
+    <div className={user ? "pb-24 md:pb-0" : ""}>
       <Navbar />
       <Routes>
         <Route path="/" element={<Navigate to={user ? "/courses" : "/login"} />} />
@@ -34,7 +34,7 @@ const AppRoutes = () => {
         <Route path="/confirmation/:applicationId" element={<ProtectedRoute><ConfirmationPage /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       </Routes>
-    </>
+    </div>
   );
 };
 

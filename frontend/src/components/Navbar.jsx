@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { GraduationCap, User, LogOut, Menu, X } from 'lucide-react';
+import { GraduationCap, User, LogOut, Menu, X, BookOpen } from 'lucide-react';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -64,6 +64,32 @@ export default function Navbar() {
             <Link to="/profile" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white py-2">Profile</Link>
             <button onClick={handleLogout} className="text-left text-red-400 hover:text-red-300 py-2 flex items-center gap-2">
               <LogOut size={16} /> Logout
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Mobile Bottom Nav */}
+      {user && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 px-4 pb-4">
+          <div className="mx-auto max-w-sm rounded-2xl p-1 flex items-center justify-around shadow-2xl"
+            style={{ 
+              background: 'rgba(23,23,28,0.85)', 
+              border: '1px solid rgba(255,255,255,0.08)', 
+              backdropFilter: 'blur(20px)' 
+            }}>
+            <Link to="/courses" className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${location.pathname === '/courses' ? 'text-indigo-400 bg-indigo-500/10' : 'text-gray-400 hover:text-gray-200'}`}>
+              <BookOpen size={20} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider">Courses</span>
+            </Link>
+            
+            <Link to="/profile" className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${location.pathname === '/profile' ? 'text-indigo-400 bg-indigo-500/10' : 'text-gray-400 hover:text-gray-200'}`}>
+              <User size={20} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider">Profile</span>
+            </Link>
+
+            <button onClick={handleLogout} className="flex flex-col items-center gap-1 p-2 rounded-xl text-gray-500 hover:text-red-400 transition-all">
+              <LogOut size={20} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider">Logout</span>
             </button>
           </div>
         </div>

@@ -3,11 +3,11 @@ pipeline {
 
     environment {
         AWS_REGION = 'ap-south-1'
-        ECR_REPO = '864981730114.dkr.ecr.ap-south-1.amazonaws.com/okr/backend'
-        ECS_CLUSTER = 'okr-cluster'
-        ECS_SERVICE = 'okrbackend-dev'
-        TASK_FAMILY = 'okrbackend-dev'
-        CONTAINER_NAME = 'okarbackend'
+        ECR_REPO = 'http://864981730114.dkr.ecr.ap-south-1.amazonaws.com/sns-courseware'
+        ECS_CLUSTER = 'snsihub-cluster-dev'
+        ECS_SERVICE = 'sns-courseware-backend-service'
+        TASK_FAMILY = 'sns-courseware-backend'
+        CONTAINER_NAME = 'sns-courseware'
     }
 
     stages {

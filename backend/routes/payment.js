@@ -85,6 +85,29 @@ router.post('/verify', auth, async (req, res) => {
 
     if (application) {
       console.log(`✅ Payment verified and application updated: ${applicationId}`);
+      
+      // Log to Google Sheets (Order Details)
+      const scriptUrl = process.env.GOOGLE_SCRIPT_URL;
+      if (scriptUrl) {
+        try {
+          const axios = require('axios');
+          await axios.post(scriptUrl, {
+            applicationId: application.applicationId,
+            studentName: application.fullName,
+            email: application.email,
+            mobile: application.mobile,
+            course: application.courseName,
+            program: application.programName,
+            fee: application.fee,
+            paymentId: razorpay_payment_id,
+            date: new Date().toLocaleString('en-IN')
+          });
+          console.log(`✅ Order details logged to Google Sheets`);
+        } catch (sheetErr) {
+          console.warn('❌ Google Sheets logging failed:', sheetErr.message);
+        }
+      }
+
       // Decrement seat
       try {
         const course = await Course.findById(application.courseId);

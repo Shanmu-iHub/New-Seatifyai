@@ -122,6 +122,16 @@ export default function PaymentPage() {
               ['Program', application?.programName || program?.name || 'N/A'],
               ['Academic Year', new Date().getFullYear() + '-' + (new Date().getFullYear() + 1)],
               ['Application ID', applicationId || 'N/A'],
+            ].map(([label, val]) => (
+              <div key={label} className="flex justify-between items-start gap-4">
+                <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{label}</span>
+                <span className="text-sm font-medium text-right">{val}</span>
+              </div>
+            ))}
+
+            <div className="pt-2" />
+
+            {[
               ['Pre Registration Amount', `₹${baseFee.toLocaleString('en-IN')}`],
               ['Platform Fee', `₹${platformFee.toLocaleString('en-IN')}`],
             ].map(([label, val]) => (

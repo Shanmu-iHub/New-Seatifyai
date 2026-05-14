@@ -150,16 +150,7 @@ export default function PaymentPage() {
             </div>
           </div>
 
-          {/* Payment methods */}
-          <div className="grid grid-cols-4 gap-2 mb-5">
-            {paymentMethods.map(({ icon: Icon, label }) => (
-              <div key={label} className="rounded-xl p-2 text-center"
-                style={{ background: '#FAFAFB', border: '1px solid var(--card-border)' }}>
-                <Icon size={16} className="mx-auto mb-1 text-gray-500" />
-                <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{label}</p>
-              </div>
-            ))}
-          </div>
+
 
           <button
             onClick={handlePayment}

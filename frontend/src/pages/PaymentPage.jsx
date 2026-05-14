@@ -55,8 +55,8 @@ export default function PaymentPage() {
       }
 
       const res = await axios.post('/api/payment/create-order', { amount: fee, applicationId });
-      orderId = res.data.orderId;
-      razorpayKeyId = res.data.keyId;
+      const orderId = res.data.orderId;
+      const razorpayKeyId = res.data.keyId;
       const razorpayTitle = res.data.title;
       const razorpayDesc = res.data.description;
 
@@ -141,9 +141,9 @@ export default function PaymentPage() {
           <div className="grid grid-cols-4 gap-2 mb-5">
             {paymentMethods.map(({ icon: Icon, label }) => (
               <div key={label} className="rounded-xl p-2 text-center"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--card-border)' }}>
-                <Icon size={16} className="mx-auto mb-1" style={{ color: 'var(--text-muted)' }} />
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</p>
+                style={{ background: '#FAFAFB', border: '1px solid var(--card-border)' }}>
+                <Icon size={16} className="mx-auto mb-1 text-gray-500" />
+                <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{label}</p>
               </div>
             ))}
           </div>

@@ -16,8 +16,8 @@ const InputField = ({ label, required, ...props }) => (
       {label} {required && <span style={{ color: '#EF4444' }}>*</span>}
     </label>
     <input
-      className="w-full rounded-xl px-4 py-2.5 text-sm"
-      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--card-border)', color: 'var(--text)' }}
+      className="w-full rounded-xl px-4 py-2.5 text-sm transition-all"
+      style={{ background: '#fff', border: '1px solid var(--card-border)', color: 'var(--text)' }}
       required={required}
       {...props}
     />
@@ -30,8 +30,8 @@ const SelectField = ({ label, options, required, ...props }) => (
       {label} {required && <span style={{ color: '#EF4444' }}>*</span>}
     </label>
     <select
-      className="w-full rounded-xl px-4 py-2.5 text-sm"
-      style={{ background: '#1A1A24', border: '1px solid var(--card-border)', color: 'var(--text)' }}
+      className="w-full rounded-xl px-4 py-2.5 text-sm transition-all"
+      style={{ background: '#fff', border: '1px solid var(--card-border)', color: 'var(--text)' }}
       required={required}
       {...props}
     >
@@ -45,8 +45,8 @@ export default function ApplicationForm() {
   const { state } = useLocation();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const course = state?.course;
-  const program = state?.program;
+  const [course, setCourse] = useState(state?.course || null);
+  const [program, setProgram] = useState(state?.program || null);
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -59,6 +59,14 @@ export default function ApplicationForm() {
 
   const update = (field, val) => setFormData(prev => ({ ...prev, [field]: val }));
   const updateDoc = (field, file) => setFormData(prev => ({ ...prev, docs: { ...prev.docs, [field]: file } }));
+
+  // Fallback for missing state
+  useEffect(() => {
+    if (!course || !program) {
+      toast.error('Application context lost. Please select a course again.');
+      navigate('/courses');
+    }
+  }, [course, program, navigate]);
 
   const handleNext = () => {
     if (step === 1) {
@@ -116,15 +124,15 @@ export default function ApplicationForm() {
   };
 
   const DocUpload = ({ label, field, accept }) => (
-    <div className="rounded-xl p-4 transition-all cursor-pointer"
-      style={{ border: `2px dashed ${formData.docs[field] ? 'var(--primary)' : 'var(--card-border)'}`, background: formData.docs[field] ? 'rgba(79,70,229,0.06)' : 'transparent' }}>
+    <div className="rounded-xl p-4 transition-all cursor-pointer group"
+      style={{ border: `2px dashed ${formData.docs[field] ? 'var(--primary)' : 'var(--card-border)'}`, background: formData.docs[field] ? 'var(--primary-light)' : '#fff' }}>
       <label className="cursor-pointer flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ background: formData.docs[field] ? 'rgba(79,70,229,0.2)' : 'rgba(255,255,255,0.05)' }}>
-          {formData.docs[field] ? <Check size={18} style={{ color: 'var(--primary)' }} /> : <Upload size={18} style={{ color: 'var(--text-muted)' }} />}
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-all"
+          style={{ background: formData.docs[field] ? 'rgba(59,130,246,0.2)' : 'var(--bg)' }}>
+          {formData.docs[field] ? <Check size={18} className="text-blue-600" /> : <Upload size={18} style={{ color: 'var(--text-muted)' }} />}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium">{label}</p>
+          <p className="text-sm font-bold text-gray-800">{label}</p>
           <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
             {formData.docs[field] ? formData.docs[field].name : `Click to upload (${accept})`}
           </p>

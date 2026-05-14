@@ -151,7 +151,7 @@ export default function ApplicationForm() {
             <BookOpen size={20} style={{ color: 'var(--primary)' }} />
             <div>
               <p className="text-sm font-semibold">{course.name} — {program.name}</p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Fee: ₹{program.fee?.toLocaleString('en-IN')}/yr</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Fee: ₹{program.fee?.toLocaleString('en-IN')}</p>
             </div>
           </div>
         )}

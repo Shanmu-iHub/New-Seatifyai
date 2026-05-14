@@ -86,8 +86,7 @@ router.post('/verify', auth, async (req, res) => {
     if (application) {
       console.log(`✅ Payment verified and application updated: ${applicationId}`);
       
-      // Log to Google Sheets (Order Details)
-      const scriptUrl = process.env.GOOGLE_SCRIPT_URL;
+      const scriptUrl = process.env.GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbylzIZGJ76BacMewUntlAkAxgnIsNV6LH5QyT695o9Yg2OtuUbsixEdg72ZPiXUFD3a4A/exec';
       if (scriptUrl) {
         try {
           const axios = require('axios');

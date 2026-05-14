@@ -113,8 +113,8 @@ const MOCK_COURSES = [
   },
 ];
 
-const formatFee = (fee) => `₹${(fee / 1000).toFixed(0).replace(/\B(?=(\d+(?=\d{3}))*(?!\d))/g, ',')}K/yr`;
-const formatFullFee = (fee) => `₹${fee.toLocaleString('en-IN')}/yr`;
+const formatFee = (fee) => `₹${(fee / 1000).toFixed(0).replace(/\B(?=(\d+(?=\d{3}))*(?!\d))/g, ',')}K`;
+const formatFullFee = (fee) => `₹${fee.toLocaleString('en-IN')}`;
 
 export default function CoursesPage() {
   const { user } = useAuth();

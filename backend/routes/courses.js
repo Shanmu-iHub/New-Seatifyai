@@ -8,50 +8,64 @@ const XLSX = require('xlsx');
 const SHEET_URL = process.env.GOOGLE_SHEET_URL || 'https://docs.google.com/spreadsheets/d/1wQvxrTXlULUTCssHwySjz8G6b-5kwBSYD6wkMx54aSk/export?format=csv';
 
 const fetchCoursesFromSheet = async () => {
-  const response = await axios.get(SHEET_URL, { responseType: 'arraybuffer' });
-  // Decode buffer as UTF-8 string to handle emojis correctly
-  const data = new TextDecoder('utf-8').decode(response.data);
-  const workbook = XLSX.read(data, { type: 'string' });
-  const sheetName = workbook.SheetNames[0];
-  const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-
-  const courseMap = {};
-  rows.forEach((row, i) => {
-    if (row['Status'] !== 'Active') return;
-
-    // Normalize category to match frontend tabs (e.g. k12 -> K-12)
-    let cat = row['Category'] || 'Engineering & Tech';
-    if (cat.toLowerCase() === 'k12') cat = 'K-12';
-    else if (cat.toLowerCase().includes('engineering')) cat = 'Engineering & Tech';
-    else if (cat.toLowerCase().includes('arts')) cat = 'Arts & Science';
-
-    const cName = row['Course Name'] || 'General';
-    const pName = row['Program Name'] || 'General Program';
-    const fee = Number(row['Fee']) || 0;
-    const seats = Number(row['Total Seats']) || 60;
-    const seatsAvailable = Number(row['Seats Available'] || seats) || seats;
-    const emoji = row['Emoji'] || '📚';
-
-    const key = `${cat}-${cName}`;
-    if (!courseMap[key]) {
-      courseMap[key] = {
-        name: cName,
-        type: row['Course Type'] || '',
-        category: cat,
-        emoji: emoji,
-        programs: []
-      };
-    }
-    courseMap[key].programs.push({
-      _id: `p${i}`,
-      name: pName,
-      fee: fee,
-      seats: seats,
-      seatsAvailable: seatsAvailable
+  try {
+    const response = await axios.get(SHEET_URL, { 
+      responseType: 'arraybuffer',
+      timeout: 10000 
     });
-  });
+    const data = new TextDecoder('utf-8').decode(response.data);
+    const workbook = XLSX.read(data, { type: 'string' });
+    const sheetName = workbook.SheetNames[0];
+    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-  return Object.values(courseMap).map((c, i) => ({ ...c, _id: `c${i}` }));
+    if (!rows || rows.length === 0) {
+      console.warn('⚠️ Google Sheet is empty or headers are missing.');
+      return [];
+    }
+
+    const courseMap = {};
+    rows.forEach((row, i) => {
+      const status = String(row['Status'] || '').trim().toLowerCase();
+      if (status !== 'active') return;
+
+      let cat = String(row['Category'] || 'Engineering & Tech').trim();
+      if (cat.toLowerCase() === 'k12') cat = 'K-12';
+      else if (cat.toLowerCase().includes('engineering')) cat = 'Engineering & Tech';
+      else if (cat.toLowerCase().includes('arts')) cat = 'Arts & Science';
+
+      const cName = String(row['Course Name'] || 'General').trim();
+      const pName = String(row['Program Name'] || 'General Program').trim();
+      const fee = Number(row['Fee']) || 0;
+      const seats = Number(row['Total Seats']) || 60;
+      const seatsAvailable = Number(row['Seats Available'] !== undefined ? row['Seats Available'] : seats);
+      const emoji = String(row['Emoji'] || '📚').trim();
+
+      const key = `${cat}-${cName}`;
+      if (!courseMap[key]) {
+        courseMap[key] = {
+          name: cName,
+          type: String(row['Course Type'] || '').trim(),
+          category: cat,
+          emoji: emoji,
+          programs: []
+        };
+      }
+      courseMap[key].programs.push({
+        _id: `p${i}`,
+        name: pName,
+        fee: fee,
+        seats: seats,
+        seatsAvailable: seatsAvailable
+      });
+    });
+
+    const result = Object.values(courseMap).map((c, i) => ({ ...c, _id: `c${i}` }));
+    console.log(`✅ Successfully fetched ${result.length} courses from Google Sheets`);
+    return result;
+  } catch (err) {
+    console.error('❌ Google Sheets fetch error:', err.message);
+    throw err;
+  }
 };
 
 // Seed data

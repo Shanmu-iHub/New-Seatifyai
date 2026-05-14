@@ -23,7 +23,7 @@ export default function Navbar() {
             <img 
               src="http://k12.seatifyai.com/wp-content/uploads/2025/04/Logo-Seatifyai-scaled.webp" 
               alt="Seatifyai" 
-              style={{ height: '48px', width: 'auto' }}
+              style={{ height: '68px', width: 'auto' }}
             />
           </Link>
 

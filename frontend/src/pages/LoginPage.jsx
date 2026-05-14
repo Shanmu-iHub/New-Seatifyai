@@ -83,7 +83,7 @@ export default function LoginPage() {
             src="http://k12.seatifyai.com/wp-content/uploads/2025/04/Logo-Seatifyai-scaled.webp" 
             alt="Seatifyai" 
             className="mx-auto mb-4"
-            style={{ height: '90px', width: 'auto' }}
+            style={{ height: '126px', width: 'auto' }}
           />
           <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
             Smart Admission Portal — Secure & Simple

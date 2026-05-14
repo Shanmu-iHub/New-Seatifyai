@@ -40,16 +40,15 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ message: err.message || 'Internal Server Error' });
 });
 
-// Connect DB and start
+// Connect DB — runs immediately (works in both serverless and traditional server)
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/seatifyai')
-  .then(() => {
-    console.log('✅ MongoDB connected');
-    app.listen(PORT, () => console.log(`🚀 Seatifyai server running on port ${PORT}`));
-  })
-  .catch(err => {
-    console.error('❌ MongoDB connection failed:', err.message);
-    console.log('💡 Starting server without DB (limited functionality)');
-    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT} (no DB)`));
-  });
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => console.error('❌ MongoDB connection failed:', err.message));
+
+// Only bind a port when NOT running on Vercel (local dev or VPS)
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => console.log(`🚀 Seatifyai server running on port ${PORT}`));
+}
 
 module.exports = app;

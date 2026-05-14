@@ -23,7 +23,6 @@ if (process.env.S3_BUCKET) {
   storage = multerS3({
     s3,
     bucket: process.env.S3_BUCKET,
-    acl: 'public-read',
     key: (req, file, cb) => {
       const ext = path.extname(file.originalname);
       cb(null, `applications/${Date.now()}-${Math.random().toString(36).substr(2, 6)}${ext}`);

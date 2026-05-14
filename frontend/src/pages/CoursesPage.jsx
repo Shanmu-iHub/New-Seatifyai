@@ -179,8 +179,6 @@ export default function CoursesPage() {
           style={{ background: 'radial-gradient(circle, #3B82F6, transparent)' }} />
         <div className="absolute top-1/2 -right-24 w-80 h-80 rounded-full opacity-[0.03] blur-[120px]"
           style={{ background: 'radial-gradient(circle, #8B5CF6, transparent)' }} />
-        <div className="absolute -bottom-24 left-1/3 w-96 h-96 rounded-full opacity-[0.02] blur-[120px]"
-          style={{ background: 'radial-gradient(circle, #3B82F6, transparent)' }} />
       </div>
 
       <div className="relative z-10">
@@ -234,43 +232,42 @@ export default function CoursesPage() {
             {filteredCourses.flatMap(course => 
               course.programs.map(program => (
                 <div key={`${course._id}-${program._id}`} 
-                  className="bg-white rounded-[2rem] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(59,130,246,0.12)] transition-all duration-500 flex flex-col overflow-hidden group">
+                  className="bg-white rounded-[2rem] border border-gray-50 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(59,130,246,0.08)] transition-all duration-500 flex flex-col p-8 group">
                   
-                  {/* Card Top */}
-                  <div className="p-8">
-                    <div className="flex items-center gap-5 mb-6">
-                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-sm transition-transform group-hover:scale-110"
-                        style={{ background: ICON_BG[course.name]?.bg || ICON_BG.default.bg }}>
-                        {ICON_BG[course.name]?.emoji || ICON_BG.default.emoji}
-                      </div>
-                      <h3 className="text-2xl font-bold text-[#111827] leading-tight" style={{ fontFamily: 'Clash Display' }}>
-                        {program.name}
-                      </h3>
+                  {/* Card Header: Icon and Title */}
+                  <div className="flex items-center gap-5 mb-8">
+                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                      style={{ background: '#FFFBF0', border: '1px solid #FEF3C7' }}>
+                      {ICON_BG[course.name]?.emoji || ICON_BG.default.emoji}
                     </div>
-
-                    <div className="flex items-center gap-2 mb-6">
-                      <div className="w-2 h-2 rounded-full bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.5)]" />
-                      <span className="text-sm font-medium text-gray-400">{course.name}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between mt-8">
-                      <div>
-                        <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-1">Fee</p>
-                        <p className="text-2xl font-black text-[#111827]">₹{program.fee?.toLocaleString('en-IN')}/yr</p>
-                      </div>
-                      <button
-                        onClick={() => handleApply(course, program)}
-                        className="px-6 py-3 rounded-xl text-sm font-bold border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-2 group-hover:shadow-lg shadow-blue-100"
-                      >
-                        Apply Now <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
-                      </button>
-                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 leading-tight">
+                      {program.name}
+                    </h3>
                   </div>
 
-                  {/* Card Bottom Bar */}
-                  <div className="bg-[#EFF6FF] px-8 py-4 border-t border-[#DBEAFE] mt-auto flex items-center gap-3 text-blue-700">
-                    <Users size={16} />
-                    <span className="text-xs font-bold tracking-wide">
+                  {/* Category with Dot */}
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                    <span className="text-base font-medium text-gray-400">{course.name}</span>
+                  </div>
+
+                  {/* Price and Apply Button */}
+                  <div className="flex items-center justify-between mb-8">
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">₹{program.fee?.toLocaleString('en-IN')}/yr</p>
+                    </div>
+                    <button
+                      onClick={() => handleApply(course, program)}
+                      className="px-8 py-4 rounded-full text-base font-bold border border-blue-500 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-2 group-hover:shadow-lg shadow-blue-50"
+                    >
+                      Apply Now <ChevronRight size={18} className="transition-transform group-hover:translate-x-1" />
+                    </button>
+                  </div>
+
+                  {/* Seats Pill Bar */}
+                  <div className="bg-[#F8FAFF] px-6 py-4 rounded-full flex items-center gap-3 text-[#4B6CB7] mt-auto">
+                    <Users size={18} />
+                    <span className="text-sm font-bold">
                       {program.seatsAvailable || program.seats} seats available across 1 programs
                     </span>
                   </div>

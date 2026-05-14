@@ -2,79 +2,90 @@ pipeline {
     agent any
 
     tools {
-        nodejs "NodeJS_18"  // Make sure this is the exact name in Jenkins global tool config
+        nodejs "NodeJS_18"
     }
 
-   environment {
-        /* ===============================
-           AWS + CloudFront
-        =============================== */
+    environment {
+
         AWS_REGION = "ap-south-1"
         S3_BUCKET  = "seatifyai.com"
         CLOUDFRONT_DISTRIBUTION_ID = "E1PUT3P1605C1O"
-
     }
 
-
     stages {
-        stage('Check Node.js & npm Versions') {
+
+        stage('Clone Repository') {
+            steps {
+                git branch: 'main',
+                url: 'https://github.com/Shanmu-iHub/New-Seatifyai.git'
+            }
+        }
+
+        stage('Check Node & npm') {
             steps {
                 sh 'node -v'
                 sh 'npm -v'
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Install Frontend Dependencies') {
             steps {
-                sh 'npm install'
-            }
-        }
 
-        stage('Check Node.js Compatibility') {
-            steps {
-                script {
-                    def nodeVersion = sh(script: "node -v", returnStdout: true).trim().replace("v", "")
-                    def majorVersion = nodeVersion.tokenize('.')[0].toInteger()
-                    if (majorVersion < 20) {
-                        echo ":warning: Warning: React Router 7.5.0 recommends Node.js >= 20. You're using v${nodeVersion}."
-                    }
+                dir('frontend') {
+
+                    sh '''
+                    npm install
+                    '''
                 }
             }
         }
 
-        stage('Build React App') {
+        stage('Build Frontend') {
             steps {
-                sh 'CI=false npm run build'
-            }
-        }
 
-        stage('Upload Build to S3') {
-            steps {
-                script {
-                    sh """
-                    aws s3 sync dist s3://$S3_BUCKET/ --region $AWS_REGION --delete
-                    """
+                dir('frontend') {
+
+                    sh '''
+                    CI=false npm run build
+                    '''
                 }
             }
         }
 
-        stage('Invalidate CloudFront Cache') {
+        stage('Upload to S3') {
             steps {
-                script {
-                    sh """
-                    aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
-                    """
+
+                dir('frontend') {
+
+                    sh '''
+                    aws s3 sync build s3://$S3_BUCKET/ \
+                    --region $AWS_REGION \
+                    --delete
+                    '''
                 }
+            }
+        }
+
+        stage('Invalidate CloudFront') {
+            steps {
+
+                sh '''
+                aws cloudfront create-invalidation \
+                --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
+                --paths "/*"
+                '''
             }
         }
     }
 
     post {
+
         success {
-            echo ':white_check_mark: Deployment Successful! :tada:'
+            echo ':white_check_mark: Frontend Deployment Successful!'
         }
+
         failure {
-            echo ':x: Deployment Failed!'
+            echo ':x: Frontend Deployment Failed!'
         }
     }
 }

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { CheckCircle, Download, User, Home, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 export default function ConfirmationPage() {
   const { applicationId } = useParams();
@@ -32,6 +34,47 @@ export default function ConfirmationPage() {
     ['Date & Time', `${dateStr} at ${timeStr}`],
     ['Status', 'Confirmed ✓'],
   ];
+
+  const handleDownloadReceipt = () => {
+    const doc = new jsPDF();
+    const logoUrl = "http://k12.seatifyai.com/wp-content/uploads/2025/04/Logo-Seatifyai-scaled.webp";
+    
+    // Header
+    doc.addImage(logoUrl, 'WEBP', 15, 10, 40, 15);
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("Admission Receipt", 120, 22);
+    
+    doc.setDrawColor(200, 200, 200);
+    doc.line(15, 35, 195, 35);
+    
+    // Details
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Date: ${dateStr}`, 15, 45);
+    doc.text(`Time: ${timeStr}`, 15, 52);
+    
+    doc.autoTable({
+      startY: 65,
+      head: [['Description', 'Details']],
+      body: details.map(([label, val]) => [label, val]),
+      theme: 'striped',
+      headStyles: { fillStyle: '#3B82F6', textColor: '#FFFFFF' },
+      styles: { fontSize: 10, cellPadding: 5 }
+    });
+    
+    const finalY = doc.lastAutoTable.finalY || 150;
+    
+    // Footer
+    doc.setFontSize(10);
+    doc.setTextColor(150, 150, 150);
+    doc.text("This is a computer-generated receipt and does not require a signature.", 15, finalY + 20);
+    doc.setTextColor(59, 130, 246);
+    doc.text("www.seatifyai.com", 15, finalY + 30);
+    
+    doc.save(`Seatify_Receipt_${applicationId}.pdf`);
+    toast.success("Receipt downloaded successfully!");
+  };
 
   return (
     <div className="min-h-screen py-12 px-4 relative overflow-hidden" style={{ background: 'var(--bg)' }}>
@@ -110,7 +153,7 @@ export default function ConfirmationPage() {
             </button>
             <button
               className="flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm bg-gray-900 text-white hover:bg-black transition-all"
-              onClick={() => toast.success('Receipt download started!')}
+              onClick={handleDownloadReceipt}
             >
               <Download size={16} /> Receipt
             </button>

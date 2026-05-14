@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { GraduationCap, Mail, Phone, ArrowRight, RefreshCw } from 'lucide-react';
@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [name, setName] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
@@ -50,7 +51,9 @@ export default function LoginPage() {
       const res = await axios.post('/api/auth/verify-otp', { contact, type: mode, otp: otpStr, name: isNewUser ? name : undefined });
       login(res.data.user, res.data.token);
       toast.success('Welcome to Seatifyai!');
-      navigate('/courses');
+      
+      const destination = location.state?.from || '/courses';
+      navigate(destination);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Invalid OTP');
     } finally {

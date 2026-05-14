@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, Users, IndianRupee, ChevronRight, Plus, Check, ShoppingCart, Sparkles, Search, X } from 'lucide-react';
 import axios from 'axios';
-import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 const CATEGORIES = ['All', 'K-12', 'Engineering & Tech', 'Arts & Science', 'Paramedical', 'Education'];
 
@@ -116,12 +116,22 @@ const formatFee = (fee) => `₹${(fee / 1000).toFixed(0).replace(/\B(?=(\d+(?=\d
 const formatFullFee = (fee) => `₹${fee.toLocaleString('en-IN')}/yr`;
 
 export default function CoursesPage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('All');
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
   const navigate = useNavigate();
+
+  const handleApply = (courseId) => {
+    if (!user) {
+      toast('Please login to start your application', { icon: '👋' });
+      navigate('/login', { state: { from: `/apply/${courseId}` } });
+      return;
+    }
+    navigate(`/apply/${courseId}`);
+  };
 
   useEffect(() => {
     fetchCourses();
@@ -285,9 +295,10 @@ export default function CoursesPage() {
                             </span>
                             <div className="flex gap-2">
                               <button
-                                onClick={() => handleApplyNow(course, program)}
-                                className="flex items-center gap-1 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-105 active:scale-95"
-                                style={{ background: 'var(--primary)', color: '#fff' }}>
+                                onClick={() => handleApply(course._id)}
+                                className="flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold text-white transition-all transform hover:scale-105"
+                                style={{ background: 'var(--primary)' }}
+                              >
                                 Apply Now <ChevronRight size={14} />
                               </button>
                             </div>

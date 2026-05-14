@@ -26,9 +26,9 @@ const AppRoutes = () => {
     <div className={user ? "pb-24 md:pb-0" : ""}>
       <Navbar />
       <Routes>
-        <Route path="/" element={<Navigate to={user ? "/courses" : "/login"} />} />
-        <Route path="/login" element={user ? <Navigate to="/courses" /> : <LoginPage />} />
-        <Route path="/courses" element={<ProtectedRoute><CoursesPage /></ProtectedRoute>} />
+        <Route path="/" element={<Navigate to="/courses" />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/courses" element={<CoursesPage />} />
         <Route path="/apply/:courseId" element={<ProtectedRoute><ApplicationForm /></ProtectedRoute>} />
         <Route path="/payment/:applicationId" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
         <Route path="/confirmation/:applicationId" element={<ProtectedRoute><ConfirmationPage /></ProtectedRoute>} />

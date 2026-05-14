@@ -6,7 +6,7 @@ const axios = require('axios');
 const XLSX = require('xlsx');
 
 const SHEET_URL = process.env.GOOGLE_SHEET_URL || 'https://docs.google.com/spreadsheets/d/1wQvxrTXlULUTCssHwySjz8G6b-5kwBSYD6wkMx54aSk/export?format=csv';
-const SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbylzIZGJ76BacMewUntlAkAxgnIsNV6LH5QyT695o9Yg2OtuUbsixEdg72ZPiXUFD3a4A/exec';
+const SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbyKinsCYrjUHBu7g2KVILk50SJGoYyOmoauxIPxThln2c3oSBCNFSIdEWiWkeofThC9Wg/exec';
 
 const fetchCoursesFromSheet = async () => {
   try {

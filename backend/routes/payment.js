@@ -90,7 +90,7 @@ router.post('/verify', auth, async (req, res) => {
       if (scriptUrl) {
         try {
           const axios = require('axios');
-          await axios.post(scriptUrl, {
+          const sheetRes = await axios.post(scriptUrl, {
             applicationId: application.applicationId,
             studentName: application.fullName,
             email: application.email,
@@ -101,9 +101,10 @@ router.post('/verify', auth, async (req, res) => {
             paymentId: razorpay_payment_id,
             date: new Date().toLocaleString('en-IN')
           });
-          console.log(`✅ Order details logged and seat reduced in Google Sheets`);
+          console.log(`✅ Google Sheet Response:`, sheetRes.data);
+          console.log(`✅ Order details logged and seat sync triggered`);
         } catch (sheetErr) {
-          console.warn('❌ Google Sheets logging failed:', sheetErr.message);
+          console.warn('❌ Google Sheets sync failed:', sheetErr.message);
         }
       }
 

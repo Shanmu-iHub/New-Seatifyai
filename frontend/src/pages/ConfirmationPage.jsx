@@ -35,45 +35,79 @@ export default function ConfirmationPage() {
     ['Status', 'Confirmed ✓'],
   ];
 
-  const handleDownloadReceipt = () => {
-    const doc = new jsPDF();
-    const logoUrl = "http://k12.seatifyai.com/wp-content/uploads/2025/04/Logo-Seatifyai-scaled.webp";
-    
-    // Header
-    doc.addImage(logoUrl, 'WEBP', 15, 10, 40, 15);
-    doc.setFontSize(20);
-    doc.setFont("helvetica", "bold");
-    doc.text("Admission Receipt", 120, 22);
-    
-    doc.setDrawColor(200, 200, 200);
-    doc.line(15, 35, 195, 35);
-    
-    // Details
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Date: ${dateStr}`, 15, 45);
-    doc.text(`Time: ${timeStr}`, 15, 52);
-    
-    doc.autoTable({
-      startY: 65,
-      head: [['Description', 'Details']],
-      body: details.map(([label, val]) => [label, val]),
-      theme: 'striped',
-      headStyles: { fillStyle: '#3B82F6', textColor: '#FFFFFF' },
-      styles: { fontSize: 10, cellPadding: 5 }
-    });
-    
-    const finalY = doc.lastAutoTable.finalY || 150;
-    
-    // Footer
-    doc.setFontSize(10);
-    doc.setTextColor(150, 150, 150);
-    doc.text("This is a computer-generated receipt and does not require a signature.", 15, finalY + 20);
-    doc.setTextColor(59, 130, 246);
-    doc.text("www.seatifyai.com", 15, finalY + 30);
-    
-    doc.save(`Seatify_Receipt_${applicationId}.pdf`);
-    toast.success("Receipt downloaded successfully!");
+  const handleDownloadReceipt = async () => {
+    try {
+      const doc = new jsPDF();
+      const logoUrl = "http://k12.seatifyai.com/wp-content/uploads/2025/04/Logo-Seatifyai-scaled.webp";
+      
+      // Helper to load image as base64
+      const getBase64Image = (url) => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.setAttribute('crossOrigin', 'anonymous');
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+            const dataURL = canvas.toDataURL("image/png");
+            resolve(dataURL);
+          };
+          img.onerror = (error) => reject(error);
+          img.src = url;
+        });
+      };
+
+      let base64Logo = null;
+      try {
+        base64Logo = await getBase64Image(logoUrl);
+      } catch (e) {
+        console.error("Logo load failed", e);
+      }
+
+      // Header
+      if (base64Logo) {
+        doc.addImage(base64Logo, 'PNG', 15, 10, 40, 15);
+      }
+      
+      doc.setFontSize(20);
+      doc.setFont("helvetica", "bold");
+      doc.text("Admission Receipt", 120, 22);
+      
+      doc.setDrawColor(200, 200, 200);
+      doc.line(15, 35, 195, 35);
+      
+      // Details
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Date: ${dateStr}`, 15, 45);
+      doc.text(`Time: ${timeStr}`, 15, 52);
+      
+      doc.autoTable({
+        startY: 65,
+        head: [['Description', 'Details']],
+        body: details.map(([label, val]) => [label, val]),
+        theme: 'striped',
+        headStyles: { fillStyle: '#3B82F6', textColor: '#FFFFFF' },
+        styles: { fontSize: 10, cellPadding: 5 }
+      });
+      
+      const finalY = doc.lastAutoTable.finalY || 150;
+      
+      // Footer
+      doc.setFontSize(10);
+      doc.setTextColor(150, 150, 150);
+      doc.text("This is a computer-generated receipt and does not require a signature.", 15, finalY + 20);
+      doc.setTextColor(59, 130, 246);
+      doc.text("www.seatifyai.com", 15, finalY + 30);
+      
+      doc.save(`Seatify_Receipt_${applicationId}.pdf`);
+      toast.success("Receipt downloaded successfully!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to generate PDF. Please try again.");
+    }
   };
 
   return (

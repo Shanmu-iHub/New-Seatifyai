@@ -7,16 +7,40 @@ const auth = require('../middleware/auth');
 const { Application } = require('../models');
 
 // Multer setup
-const uploadDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+let storage;
+if (process.env.S3_BUCKET) {
+  const { S3Client } = require('@aws-sdk/client-s3');
+  const multerS3 = require('multer-s3');
+  
+  const s3 = new S3Client({
+    region: process.env.AWS_REGION || 'ap-south-1',
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    }
+  });
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${Date.now()}-${Math.random().toString(36).substr(2, 6)}${ext}`);
-  },
-});
+  storage = multerS3({
+    s3,
+    bucket: process.env.S3_BUCKET,
+    acl: 'public-read',
+    key: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, `applications/${Date.now()}-${Math.random().toString(36).substr(2, 6)}${ext}`);
+    }
+  });
+} else {
+  const uploadDir = path.join(__dirname, '../uploads');
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+  storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadDir),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, `${Date.now()}-${Math.random().toString(36).substr(2, 6)}${ext}`);
+    },
+  });
+}
+
 const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
@@ -59,7 +83,9 @@ router.post('/', auth, upload.fields(docFields), async (req, res) => {
     if (req.files) {
       Object.entries(req.files).forEach(([key, files]) => {
         const docKey = key.replace('doc_', '');
-        if (files[0]) docs[docKey] = `/uploads/${files[0].filename}`;
+        if (files[0]) {
+          docs[docKey] = files[0].location || `/uploads/${files[0].filename}`;
+        }
       });
     }
 

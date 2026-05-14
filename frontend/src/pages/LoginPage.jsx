@@ -101,11 +101,11 @@ export default function LoginPage() {
               <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Enter your contact to receive an OTP</p>
 
               {/* Mode toggle */}
-              <div className="flex rounded-xl p-1 mb-6" style={{ background: 'rgba(255,255,255,0.05)' }}>
+              <div className="flex rounded-xl p-1 mb-6" style={{ background: '#F3F4F6' }}>
                 {[{ id: 'email', label: 'Email', icon: Mail }, { id: 'mobile', label: 'Mobile', icon: Phone }].map(({ id, label, icon: Icon }) => (
                   <button key={id} onClick={() => { setMode(id); setContact(''); }}
-                    className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all"
-                    style={{ background: mode === id ? 'var(--primary)' : 'transparent', color: mode === id ? '#fff' : 'var(--text-muted)' }}>
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all"
+                    style={{ background: mode === id ? '#fff' : 'transparent', color: mode === id ? 'var(--primary)' : '#6B7280', boxShadow: mode === id ? '0 4px 12px rgba(0,0,0,0.05)' : 'none' }}>
                     <Icon size={15} /> {label}
                   </button>
                 ))}
@@ -121,8 +121,8 @@ export default function LoginPage() {
                     value={contact}
                     onChange={e => setContact(e.target.value)}
                     placeholder={mode === 'email' ? 'student@email.com' : '+91 98765 43210'}
-                    className="w-full rounded-xl px-4 py-3 text-sm"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--card-border)', color: 'var(--text)' }}
+                    className="w-full rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-blue-50 transition-all outline-none"
+                    style={{ background: '#fff', border: '1px solid var(--card-border)', color: 'var(--text)' }}
                     required
                   />
                 </div>
@@ -149,8 +149,8 @@ export default function LoginPage() {
                 <div className="mb-5">
                   <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-muted)' }}>Full Name</label>
                   <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Your full name"
-                    className="w-full rounded-xl px-4 py-3 text-sm"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--card-border)', color: 'var(--text)' }} />
+                    className="w-full rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-blue-50 outline-none transition-all"
+                    style={{ background: '#fff', border: '1px solid var(--card-border)', color: 'var(--text)' }} />
                 </div>
               )}
 
@@ -163,8 +163,8 @@ export default function LoginPage() {
                       value={digit} onChange={e => handleOtpChange(idx, e.target.value)}
                       onKeyDown={e => e.key === 'Backspace' && !digit && idx > 0 && document.getElementById(`otp-${idx-1}`)?.focus()}
                       maxLength={1}
-                      className="flex-1 text-center text-lg font-bold rounded-xl py-3"
-                      style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${digit ? 'var(--primary)' : 'var(--card-border)'}`, color: 'var(--text)' }}
+                      className="w-full text-center text-lg font-bold rounded-xl py-3 min-w-0"
+                      style={{ background: '#fff', border: `1.5px solid ${digit ? 'var(--primary)' : 'var(--card-border)'}`, color: 'var(--text)' }}
                     />
                   ))}
                 </div>

@@ -21,7 +21,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link to="/courses" className="flex items-center gap-2">
             <img 
-              src="https://k12.seatifyai.com/wp-content/uploads/2025/04/Logo-Seatifyai-1.webp" 
+              src="http://k12.seatifyai.com/wp-content/uploads/2025/04/Logo-Seatifyai-scaled.webp" 
               alt="Seatifyai" 
               style={{ height: '48px', width: 'auto' }}
             />

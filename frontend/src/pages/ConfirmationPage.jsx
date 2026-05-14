@@ -31,7 +31,7 @@ export default function ConfirmationPage() {
     ['Student Name', application?.fullName || 'N/A'],
     ['Course', course?.name || 'N/A'],
     ['Program', program?.name || 'N/A'],
-    ['Amount Paid', `₹${(program?.fee || 0).toLocaleString('en-IN')}`],
+    ['Amount Paid', `₹${((program?.fee || 0) + 1).toLocaleString('en-IN')}`],
     ['Payment ID', paymentId || 'N/A'],
     ['Date & Time', `${dateStr} at ${timeStr}`],
     ['Status', 'Confirmed ✓'],

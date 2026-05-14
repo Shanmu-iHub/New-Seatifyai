@@ -134,7 +134,7 @@ export default function ProfilePage() {
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <Field label="Application ID" value={adm.applicationId} />
-                        <Field label="Amount Paid" value={`₹${adm.fee?.toLocaleString('en-IN')}`} />
+                        <Field label="Amount Paid" value={`₹${((adm.fee || 0) + 1).toLocaleString('en-IN')}`} />
                         <Field label="Payment ID" value={adm.paymentId} />
                         <Field label="Date" value={adm.createdAt ? new Date(adm.createdAt).toLocaleDateString('en-IN') : ''} />
                       </div>

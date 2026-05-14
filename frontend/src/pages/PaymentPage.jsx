@@ -24,7 +24,9 @@ export default function PaymentPage() {
   const [application, setApplication] = useState(state?.application);
   const [course, setCourse] = useState(state?.course);
   const [program, setProgram] = useState(state?.program);
-  const fee = application?.fee || program?.fee || 0;
+  const baseFee = application?.fee || program?.fee || 0;
+  const platformFee = 1;
+  const fee = baseFee + platformFee;
 
   useEffect(() => {
     if (!application) {
@@ -120,6 +122,8 @@ export default function PaymentPage() {
               ['Program', application?.programName || program?.name || 'N/A'],
               ['Academic Year', new Date().getFullYear() + '-' + (new Date().getFullYear() + 1)],
               ['Application ID', applicationId || 'N/A'],
+              ['Pre Registration Amount', `₹${baseFee.toLocaleString('en-IN')}`],
+              ['Platform Fee', `₹${platformFee.toLocaleString('en-IN')}`],
             ].map(([label, val]) => (
               <div key={label} className="flex justify-between items-start gap-4">
                 <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{label}</span>

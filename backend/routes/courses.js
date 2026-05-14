@@ -5,7 +5,7 @@ const auth = require('../middleware/auth');
 const axios = require('axios');
 const XLSX = require('xlsx');
 
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1wQvxrTXlULUTCssHwySjz8G6b-5kwBSYD6wkMx54aSk/export?format=csv';
+const SHEET_URL = process.env.GOOGLE_SHEET_URL || 'https://docs.google.com/spreadsheets/d/1wQvxrTXlULUTCssHwySjz8G6b-5kwBSYD6wkMx54aSk/export?format=csv';
 
 const fetchCoursesFromSheet = async () => {
   const response = await axios.get(SHEET_URL, { responseType: 'arraybuffer' });

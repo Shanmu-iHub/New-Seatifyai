@@ -80,7 +80,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8 animate-fade-up">
           <img 
-            src="http://k12.seatifyai.com/wp-content/uploads/2025/04/Logo-Seatifyai-scaled.webp" 
+            src="/logo.webp" 
             alt="Seatifyai" 
             className="mx-auto mb-4"
             style={{ height: '126px', width: 'auto' }}

@@ -221,13 +221,13 @@ export default function CoursesPage() {
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium mb-4"
             style={{ border: '1px solid var(--primary)', color: 'var(--primary)', background: 'rgba(79,70,229,0.08)' }}>
             <Sparkles size={13} />
-            Programs Offered
+            Secure Your Seat Today
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-3" style={{ fontFamily: 'Clash Display' }}>
             Courses & Programs
           </h1>
           <p style={{ color: 'var(--text-muted)', maxWidth: '560px', margin: '0 auto', lineHeight: 1.7 }}>
-            Comprehensive programs across Engineering, Arts & Science, Health Sciences, and more.
+          Explore admissions for K12, UG, PG & career-focused programs all in one place.
           </p>
         </div>
 

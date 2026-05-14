@@ -153,12 +153,12 @@ export default function CoursesPage() {
   const filteredCourses = courses.filter(course => {
     const matchesTab = activeTab === 'All' || course.category === activeTab;
     const q = searchQuery.toLowerCase().replace(/\s+/g, '');
-    
-    const matchesSearch = !searchQuery || 
-      course.name.toLowerCase().replace(/\s+/g, '').includes(q) || 
+
+    const matchesSearch = !searchQuery ||
+      course.name.toLowerCase().replace(/\s+/g, '').includes(q) ||
       course.category.toLowerCase().replace(/\s+/g, '').includes(q) ||
       course.programs.some(p => p.name.toLowerCase().replace(/\s+/g, '').includes(q));
-    
+
     return matchesTab && matchesSearch;
   });
 
@@ -172,111 +172,123 @@ export default function CoursesPage() {
   const getNameColor = (name) => NAME_COLOR[name] || NAME_COLOR['default'];
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
-      {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-4 pt-16 pb-12 text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-blue-600 bg-blue-50 border border-blue-100 mb-6 text-sm font-bold mx-auto">
-          <Sparkles size={14} /> Programs Offered
-        </div>
-        <h1 className="text-5xl md:text-6xl font-extrabold mb-4 text-[#111827]" style={{ fontFamily: 'Clash Display' }}>
-          Courses & Programs
-        </h1>
-        <p className="max-w-2xl mx-auto text-gray-500 mb-10 text-lg leading-relaxed">
-          Comprehensive programs across Engineering, Arts & Science, Health Sciences, and more.
-        </p>
-
-        {/* Centered Search */}
-        <div className="max-w-3xl mx-auto relative mb-12">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400" size={22} />
-          <input 
-            type="text"
-            placeholder="Search courses, degrees, or subjects..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-16 pr-8 py-5 rounded-[2rem] text-lg shadow-sm transition-all outline-none border border-gray-100 focus:border-blue-400 focus:ring-8 focus:ring-blue-50"
-            style={{ background: '#fff' }}
-          />
-        </div>
-
-        {/* Categories */}
-        <div className="flex gap-3 overflow-x-auto pb-4 tabs-scroll justify-center">
-          {CATEGORIES.map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className="flex-shrink-0 px-8 py-3 rounded-full text-sm font-bold transition-all transform active:scale-95"
-              style={{
-                background: activeTab === tab ? 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)' : '#fff',
-                color: activeTab === tab ? '#fff' : '#6B7280',
-                border: activeTab === tab ? 'none' : '1px solid #EEF0F3',
-                boxShadow: activeTab === tab ? '0 12px 24px rgba(59,130,246,0.35)' : 'none'
-              }}>
-              {tab}
-            </button>
-          ))}
-        </div>
+    <div className="min-h-screen relative overflow-hidden" style={{ background: 'var(--bg)' }}>
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full opacity-[0.03] blur-[120px]"
+          style={{ background: 'radial-gradient(circle, #3B82F6, transparent)' }} />
+        <div className="absolute top-1/2 -right-24 w-80 h-80 rounded-full opacity-[0.03] blur-[120px]"
+          style={{ background: 'radial-gradient(circle, #8B5CF6, transparent)' }} />
+        <div className="absolute -bottom-24 left-1/3 w-96 h-96 rounded-full opacity-[0.02] blur-[120px]"
+          style={{ background: 'radial-gradient(circle, #3B82F6, transparent)' }} />
       </div>
 
-      {/* Grid of Program Cards */}
-      <div className="max-w-7xl mx-auto px-4 pb-24">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredCourses.flatMap(course => 
-            course.programs.map(program => (
-              <div key={`${course._id}-${program._id}`} 
-                className="bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col overflow-hidden group">
-                
-                {/* Card Top */}
-                <div className="p-8">
-                  <div className="flex items-center gap-5 mb-6">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-sm transition-transform group-hover:scale-110"
-                      style={{ background: ICON_BG[course.name]?.bg || ICON_BG.default.bg }}>
-                      {ICON_BG[course.name]?.emoji || ICON_BG.default.emoji}
-                    </div>
-                    <h3 className="text-2xl font-bold text-[#111827] leading-tight" style={{ fontFamily: 'Clash Display' }}>
-                      {program.name}
-                    </h3>
-                  </div>
+      <div className="relative z-10">
+        {/* Hero Section */}
+        <div className="max-w-7xl mx-auto px-4 pt-20 pb-12 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-blue-600 bg-blue-50 border border-blue-100 mb-6 text-sm font-bold mx-auto">
+            <Sparkles size={14} /> Programs Offered
+          </div>
+          <h1 className="text-5xl md:text-6xl font-extrabold mb-4 text-[#111827]" style={{ fontFamily: 'Clash Display' }}>
+            Courses & Programs
+          </h1>
+          <p className="max-w-2xl mx-auto text-gray-500 mb-12 text-lg leading-relaxed">
+            Comprehensive programs across Engineering, Arts & Science, Health Sciences, and more.
+          </p>
 
-                  <div className="flex items-center gap-2 mb-6">
-                    <div className="w-2 h-2 rounded-full bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.5)]" />
-                    <span className="text-sm font-medium text-gray-400">{course.name}</span>
-                  </div>
+          {/* Centered Search */}
+          <div className="max-w-3xl mx-auto relative mb-12">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400" size={22} />
+            <input 
+              type="text"
+              placeholder="Search courses, degrees, or subjects..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-16 pr-8 py-5 rounded-[2rem] text-lg shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-all outline-none border border-gray-100 focus:border-blue-400 focus:ring-8 focus:ring-blue-50"
+              style={{ background: '#fff' }}
+            />
+          </div>
 
-                  <div className="flex items-center justify-between mt-8">
-                    <div>
-                      <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-1">Fee</p>
-                      <p className="text-2xl font-black text-[#111827]">₹{program.fee?.toLocaleString('en-IN')}/yr</p>
-                    </div>
-                    <button
-                      onClick={() => handleApply(course, program)}
-                      className="px-6 py-3 rounded-xl text-sm font-bold border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-2 group-hover:shadow-lg shadow-blue-100"
-                    >
-                      Apply Now <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Card Bottom Bar */}
-                <div className="bg-[#EFF6FF] px-8 py-4 border-t border-[#DBEAFE] mt-auto flex items-center gap-3 text-blue-700">
-                  <Users size={16} />
-                  <span className="text-xs font-bold tracking-wide">
-                    {program.seatsAvailable || program.seats} seats available across 1 programs
-                  </span>
-                </div>
-              </div>
-            ))
-          )}
+          {/* Categories */}
+          <div className="flex gap-3 overflow-x-auto pb-6 tabs-scroll justify-center">
+            {CATEGORIES.map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className="flex-shrink-0 px-8 py-3 rounded-full text-sm font-bold transition-all transform active:scale-95"
+                style={{
+                  background: activeTab === tab ? 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)' : '#fff',
+                  color: activeTab === tab ? '#fff' : '#6B7280',
+                  border: activeTab === tab ? 'none' : '1px solid #EEF0F3',
+                  boxShadow: activeTab === tab ? '0 12px 24px rgba(59,130,246,0.35)' : 'none'
+                }}>
+                {tab}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {filteredCourses.length === 0 && (
-          <div className="text-center py-24 bg-white rounded-[3rem] border border-dashed border-gray-200">
-            <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Search size={40} className="text-blue-200" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">No programs found</h3>
-            <p className="text-gray-500">Try adjusting your filters or search keywords.</p>
+        {/* Grid of Program Cards */}
+        <div className="max-w-7xl mx-auto px-4 pb-24">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredCourses.flatMap(course => 
+              course.programs.map(program => (
+                <div key={`${course._id}-${program._id}`} 
+                  className="bg-white rounded-[2rem] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(59,130,246,0.12)] transition-all duration-500 flex flex-col overflow-hidden group">
+                  
+                  {/* Card Top */}
+                  <div className="p-8">
+                    <div className="flex items-center gap-5 mb-6">
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-sm transition-transform group-hover:scale-110"
+                        style={{ background: ICON_BG[course.name]?.bg || ICON_BG.default.bg }}>
+                        {ICON_BG[course.name]?.emoji || ICON_BG.default.emoji}
+                      </div>
+                      <h3 className="text-2xl font-bold text-[#111827] leading-tight" style={{ fontFamily: 'Clash Display' }}>
+                        {program.name}
+                      </h3>
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-6">
+                      <div className="w-2 h-2 rounded-full bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.5)]" />
+                      <span className="text-sm font-medium text-gray-400">{course.name}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-8">
+                      <div>
+                        <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-1">Fee</p>
+                        <p className="text-2xl font-black text-[#111827]">₹{program.fee?.toLocaleString('en-IN')}/yr</p>
+                      </div>
+                      <button
+                        onClick={() => handleApply(course, program)}
+                        className="px-6 py-3 rounded-xl text-sm font-bold border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-2 group-hover:shadow-lg shadow-blue-100"
+                      >
+                        Apply Now <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Card Bottom Bar */}
+                  <div className="bg-[#EFF6FF] px-8 py-4 border-t border-[#DBEAFE] mt-auto flex items-center gap-3 text-blue-700">
+                    <Users size={16} />
+                    <span className="text-xs font-bold tracking-wide">
+                      {program.seatsAvailable || program.seats} seats available across 1 programs
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
-        )}
+
+          {!loading && filteredCourses.length === 0 && (
+            <div className="text-center py-24 bg-white rounded-[3rem] border border-dashed border-gray-200">
+              <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Search size={40} className="text-blue-200" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">No programs found</h3>
+              <p className="text-gray-500">Try adjusting your filters or search keywords.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

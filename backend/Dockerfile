@@ -1,45 +1,20 @@
-# -------------------------------
-# :one: Builder stage
-# -------------------------------
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-# Copy only package files first (better caching)
-COPY package*.json ./
-
-# Install all deps (needed for build)
-RUN npm ci
-
-# Copy source code
-COPY . .
-
-# Build (webpack -> dist/)
-RUN npm run build
-
-
-# -------------------------------
-# :two: Production stage
-# -------------------------------
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Set NODE_ENV
 ENV NODE_ENV=production
 
-# Install only production dependencies
+# Copy package files
 COPY package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force
 
-# Copy built output
-COPY --from=builder /app/dist ./dist
+# Install dependencies
+RUN npm ci --omit=dev
 
-# Copy runtime-needed files
-COPY --from=builder /app/templates ./templates
+# Copy source code
+COPY . .
 
-# Expose port
+# Expose backend port
 EXPOSE 3000
 
-# Start server
-CMD ["node", "dist/server.js"]
+# Start backend
+CMD ["npm", "start"]

@@ -6,9 +6,13 @@ const fs = require('fs');
 const auth = require('../middleware/auth');
 const { Application } = require('../models');
 
+const GOOGLE_DRIVE_SCRIPT_URL = process.env.GOOGLE_DRIVE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbylzIZGJ76BacMewUntlAkAxgnIsNV6LH5QyT695o9Yg2OtuUbsixEdg72ZPiXUFD3a4A/exec';
+
 // Multer setup
 let storage;
-if (process.env.S3_BUCKET) {
+if (GOOGLE_DRIVE_SCRIPT_URL) {
+  storage = multer.memoryStorage();
+} else if (process.env.S3_BUCKET) {
   const { S3Client } = require('@aws-sdk/client-s3');
   const multerS3 = require('multer-s3');
   
@@ -80,12 +84,42 @@ router.post('/', auth, upload.fields(docFields), async (req, res) => {
     // Build docs object
     const docs = {};
     if (req.files) {
-      Object.entries(req.files).forEach(([key, files]) => {
-        const docKey = key.replace('doc_', '');
-        if (files[0]) {
-          docs[docKey] = files[0].location || `/uploads/${files[0].filename}`;
+      if (GOOGLE_DRIVE_SCRIPT_URL) {
+        const filesToUpload = [];
+        Object.entries(req.files).forEach(([key, files]) => {
+          if (files[0]) {
+            filesToUpload.push({
+              key: key.replace('doc_', ''),
+              name: files[0].originalname,
+              mimeType: files[0].mimetype,
+              data: files[0].buffer.toString('base64')
+            });
+          }
+        });
+
+        if (filesToUpload.length > 0) {
+          const axios = require('axios');
+          const driveRes = await axios.post(GOOGLE_DRIVE_SCRIPT_URL, {
+            action: 'uploadFiles',
+            studentName: req.body.fullName || 'Unknown Student',
+            files: filesToUpload
+          });
+          
+          if (driveRes.data && driveRes.data.success) {
+            Object.assign(docs, driveRes.data.fileUrls);
+            docs.driveFolder = driveRes.data.folderUrl;
+          } else {
+            throw new Error('Google Drive Upload Failed: ' + (driveRes.data.error || 'Unknown error'));
+          }
         }
-      });
+      } else {
+        Object.entries(req.files).forEach(([key, files]) => {
+          const docKey = key.replace('doc_', '');
+          if (files[0]) {
+            docs[docKey] = files[0].location || `/uploads/${files[0].filename}`;
+          }
+        });
+      }
     }
 
     const data = {

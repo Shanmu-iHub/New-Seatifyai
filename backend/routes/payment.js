@@ -5,7 +5,7 @@ const auth = require('../middleware/auth');
 const { Application, Course } = require('../models');
 
 let Razorpay;
-try { Razorpay = require('razorpay'); } catch {}
+try { Razorpay = require('razorpay'); } catch { }
 
 const getRazorpayInstance = () => {
   if (!Razorpay || !process.env.RAZORPAY_KEY_ID) return null;
@@ -36,7 +36,7 @@ router.post('/create-order', auth, async (req, res) => {
     await Application.findOneAndUpdate(
       { applicationId },
       { razorpayOrderId: order.id }
-    ).catch(() => {});
+    ).catch(() => { });
 
     res.json({
       orderId: order.id,
@@ -85,8 +85,8 @@ router.post('/verify', auth, async (req, res) => {
 
     if (application) {
       console.log(`✅ Payment verified and application updated: ${applicationId}`);
-      
-      const scriptUrl = process.env.GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbylzIZGJ76BacMewUntlAkAxgnIsNV6LH5QyT695o9Yg2OtuUbsixEdg72ZPiXUFD3a4A/exec';
+
+      const scriptUrl = process.env.GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzV93O99qhhcvSKJ_smlu0q70nlD18IuKhQkZj1bkbSfbMDFQg0cP1_MTKut4PJk4in2w/exec';
       if (scriptUrl) {
         try {
           const axios = require('axios');
@@ -99,7 +99,8 @@ router.post('/verify', auth, async (req, res) => {
             program: application.programName,
             fee: application.fee,
             paymentId: razorpay_payment_id,
-            date: new Date().toLocaleString('en-IN')
+            folderUrl: application.folderUrl || '', // Ensure it's never undefined
+            date: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
           });
           console.log(`✅ Google Sheet Response:`, sheetRes.data);
           console.log(`✅ Order details logged and seat sync triggered`);
@@ -118,7 +119,7 @@ router.post('/verify', auth, async (req, res) => {
             await course.save();
           }
         }
-      } catch {}
+      } catch { }
 
       // Send confirmation email
       try {
@@ -127,9 +128,9 @@ router.post('/verify', auth, async (req, res) => {
           host: process.env.SES_SMTP_HOST || process.env.MAIL_HOST || 'smtp.gmail.com',
           port: Number(process.env.SES_SMTP_PORT || process.env.MAIL_PORT) || 587,
           secure: false,
-          auth: { 
-            user: process.env.SES_SMTP_USERNAME || process.env.MAIL_USER, 
-            pass: process.env.SES_SMTP_PASSWORD || process.env.MAIL_PASS 
+          auth: {
+            user: process.env.SES_SMTP_USERNAME || process.env.MAIL_USER,
+            pass: process.env.SES_SMTP_PASSWORD || process.env.MAIL_PASS
           },
         });
         await transporter.sendMail({

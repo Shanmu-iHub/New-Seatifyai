@@ -15,7 +15,7 @@ if (GOOGLE_DRIVE_SCRIPT_URL) {
 } else if (process.env.S3_BUCKET) {
   const { S3Client } = require('@aws-sdk/client-s3');
   const multerS3 = require('multer-s3');
-  
+
   const s3 = new S3Client({
     region: process.env.AWS_REGION || 'ap-south-1',
     credentials: {
@@ -108,7 +108,7 @@ router.post('/', auth, upload.fields(docFields), async (req, res) => {
               studentName: req.body.fullName || 'Unknown Student',
               files: filesToUpload
             });
-            
+
             if (driveRes.data && driveRes.data.success) {
               Object.assign(docs, driveRes.data.fileUrls);
               docs.driveFolder = driveRes.data.folderUrl;
@@ -118,7 +118,7 @@ router.post('/', auth, upload.fields(docFields), async (req, res) => {
               // Fallback to local storage - write files from memory to disk
               const uploadDir = path.join(__dirname, '../uploads');
               if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-              
+
               Object.entries(req.files).forEach(([key, files]) => {
                 const docKey = key.replace('doc_', '');
                 if (files[0]) {
@@ -136,7 +136,7 @@ router.post('/', auth, upload.fields(docFields), async (req, res) => {
             // Fallback to local storage - write files from memory to disk
             const uploadDir = path.join(__dirname, '../uploads');
             if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-            
+
             Object.entries(req.files).forEach(([key, files]) => {
               const docKey = key.replace('doc_', '');
               if (files[0]) {
@@ -163,6 +163,7 @@ router.post('/', auth, upload.fields(docFields), async (req, res) => {
       student: req.user._id,
       ...req.body,
       docs,
+      folderUrl: docs.driveFolder,
       fee: Number(req.body.fee),
     };
 
@@ -211,15 +212,15 @@ router.put('/:id', auth, async (req, res) => {
     const now = new Date();
     const hoursDiff = (now - createdAt) / (1000 * 60 * 60);
     if (hoursDiff > 1) {
-      return res.status(400).json({ 
-        message: 'You can only edit personal details within 1 hour of placing your order.' 
+      return res.status(400).json({
+        message: 'You can only edit personal details within 1 hour of placing your order.'
       });
     }
 
     // Only allow updating personal details (not course-related fields)
     const allowedFields = ['fullName', 'dob', 'admissionType', 'email', 'mobile'];
     const updates = {};
-    
+
     allowedFields.forEach(field => {
       if (req.body[field] !== undefined) {
         updates[field] = req.body[field];
@@ -230,15 +231,15 @@ router.put('/:id', auth, async (req, res) => {
     const protectedFields = ['courseId', 'courseName', 'programId', 'programName', 'fee', 'docs', 'paymentStatus', 'status'];
     const attemptedProtectedUpdates = protectedFields.filter(field => req.body[field] !== undefined);
     if (attemptedProtectedUpdates.length > 0) {
-      return res.status(400).json({ 
-        message: 'Course details cannot be modified. Only personal details can be edited.' 
+      return res.status(400).json({
+        message: 'Course details cannot be modified. Only personal details can be edited.'
       });
     }
 
     Object.assign(app, updates);
     await app.save();
 
-    res.json({ 
+    res.json({
       message: 'Personal details updated successfully',
       application: app
     });

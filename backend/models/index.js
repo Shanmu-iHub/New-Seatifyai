@@ -65,6 +65,7 @@ const applicationSchema = new mongoose.Schema({
     photo: String, aadhar: String, previousSchoolTC: String, marksheet10: String,
     marksheet12: String, diplomaCertificate: String, tc: String, community: String, birthCertificate: String,
   },
+  folderUrl: String,
   gradeLevel: String,
   // Payment
   paymentStatus: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },

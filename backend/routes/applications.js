@@ -112,22 +112,36 @@ router.post('/', auth, upload.fields(docFields), async (req, res) => {
             } else {
               console.error('Google Drive Upload Failed:', driveRes.data.error || 'Unknown error');
               console.log('Falling back to local storage');
-              // Fallback to local storage
+              // Fallback to local storage - write files from memory to disk
+              const uploadDir = path.join(__dirname, '../uploads');
+              if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+              
               Object.entries(req.files).forEach(([key, files]) => {
                 const docKey = key.replace('doc_', '');
                 if (files[0]) {
-                  docs[docKey] = files[0].location || `/uploads/${files[0].filename}`;
+                  const ext = path.extname(files[0].originalname);
+                  const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 6)}${ext}`;
+                  const filepath = path.join(uploadDir, filename);
+                  fs.writeFileSync(filepath, files[0].buffer);
+                  docs[docKey] = `/uploads/${filename}`;
                 }
               });
             }
           } catch (err) {
             console.error('Google Drive Upload Error:', err.message);
             console.log('Falling back to local storage');
-            // Fallback to local storage
+            // Fallback to local storage - write files from memory to disk
+            const uploadDir = path.join(__dirname, '../uploads');
+            if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+            
             Object.entries(req.files).forEach(([key, files]) => {
               const docKey = key.replace('doc_', '');
               if (files[0]) {
-                docs[docKey] = files[0].location || `/uploads/${files[0].filename}`;
+                const ext = path.extname(files[0].originalname);
+                const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 6)}${ext}`;
+                const filepath = path.join(uploadDir, filename);
+                fs.writeFileSync(filepath, files[0].buffer);
+                docs[docKey] = `/uploads/${filename}`;
               }
             });
           }

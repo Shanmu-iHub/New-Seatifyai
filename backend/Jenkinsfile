@@ -6,58 +6,120 @@ pipeline {
         ECR_REPO = '864981730114.dkr.ecr.ap-south-1.amazonaws.com/okr/backend'
         ECS_CLUSTER = 'okr-cluster'
         ECS_SERVICE = 'okrbackend-dev'
-        TASK_FAMILY = 'okrbackend-dev'  // Task Definition Name
-        CONTAINER_NAME = 'okarbackend'   // Name of the container inside ECS task definition
+        TASK_FAMILY = 'okrbackend-dev'
+        CONTAINER_NAME = 'okarbackend'
     }
 
     stages {
+
+        stage('Clone Repository') {
+            steps {
+                git branch: 'main',
+                url: 'https://github.com/Shanmu-iHub/New-Seatifyai.git'
+            }
+        }
+
+        stage('Debug Workspace') {
+            steps {
+                sh '''
+                echo "Current Workspace"
+                pwd
+
+                echo "Repository Files"
+                ls -la
+
+                echo "Backend Folder Files"
+                ls -la backend
+                '''
+            }
+        }
+
         stage('AWS ECR Login') {
             steps {
-                script {
-                    sh 'aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO'
-                }
+                sh '''
+                aws ecr get-login-password --region $AWS_REGION | \
+                docker login --username AWS --password-stdin 864981730114.dkr.ecr.ap-south-1.amazonaws.com
+                '''
             }
         }
 
-
-        stage('Build & Push Docker Image') {
+        stage('Build Docker Image From Backend Folder') {
             steps {
-                script {
-                    sh """
+                dir('backend') {
+
+                    sh '''
                     docker build -t ${ECR_REPO}:latest .
-                    docker tag ${ECR_REPO}:latest ${ECR_REPO}:latest
-                    docker push ${ECR_REPO}:latest
-                    """
+                    '''
+
                 }
             }
         }
 
-        stage('Register New Task Definition with Latest Image') {
+        stage('Push Docker Image') {
             steps {
-                script {
-                    // Fetch the existing task definition
-                    sh "aws ecs describe-task-definition --task-definition $TASK_FAMILY --query 'taskDefinition' > task-def.json"
-
-                    // Modify the task definition to update the container image
-                    sh """
-                    jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) |
-                        .containerDefinitions[0].image = "${ECR_REPO}:latest"' task-def.json > new-task-def.json
-                    """
-
-                    // Register the updated task definition
-                    sh "aws ecs register-task-definition --cli-input-json file://new-task-def.json"
-                }
+                sh '''
+                docker push ${ECR_REPO}:latest
+                '''
             }
         }
 
-        stage('Update ECS Service with New Task Definition') {
+        stage('Get Existing Task Definition') {
             steps {
+                sh '''
+                aws ecs describe-task-definition \
+                --task-definition $TASK_FAMILY \
+                --query taskDefinition > task-def.json
+                '''
+            }
+        }
+
+        stage('Create New Task Definition') {
+            steps {
+
+                sh """
+                jq 'del(
+                    .taskDefinitionArn,
+                    .revision,
+                    .status,
+                    .requiresAttributes,
+                    .compatibilities,
+                    .registeredAt,
+                    .registeredBy
+                ) |
+                .containerDefinitions[0].image = "${ECR_REPO}:latest"' \
+                task-def.json > new-task-def.json
+                """
+
+                sh '''
+                aws ecs register-task-definition \
+                --cli-input-json file://new-task-def.json
+                '''
+            }
+        }
+
+        stage('Deploy Latest Revision') {
+            steps {
+
                 script {
-                    def TASK_REVISION = sh(script: "aws ecs describe-task-definition --task-definition $TASK_FAMILY --query 'taskDefinition.revision' --output text", returnStdout: true).trim()
-                    echo "New Task Definition Revision: ${TASK_REVISION}"
+
+                    def TASK_REVISION = sh(
+                        script: """
+                        aws ecs describe-task-definition \
+                        --task-definition ${TASK_FAMILY} \
+                        --query 'taskDefinition.revision' \
+                        --output text
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Latest Task Revision: ${TASK_REVISION}"
 
                     sh """
-                    aws ecs update-service --cluster ${ECS_CLUSTER} --service ${ECS_SERVICE} --task-definition ${TASK_FAMILY}:${TASK_REVISION} --force-new-deployment
+                    aws ecs update-service \
+                    --cluster ${ECS_CLUSTER} \
+                    --service ${ECS_SERVICE} \
+                    --task-definition ${TASK_FAMILY}:${TASK_REVISION} \
+                    --force-new-deployment
                     """
                 }
             }
@@ -65,24 +127,22 @@ pipeline {
     }
 
     post {
+
         success {
-            echo ':white_check_mark: Backend Deployment Successful! :tada:'
-
-            // :fire: Remove unused Docker images **immediately**
-            sh 'docker image prune -a -f'
-
-            // :fire: Remove stopped containers
-            sh 'docker container prune -f'
+            echo '✅ Backend Deployment Successful!'
         }
+
         failure {
-            echo ':x: Backend Deployment Failed!'
-
-            // :fire: Cleanup failed build images
-            sh 'docker image prune -a -f'
+            echo '❌ Backend Deployment Failed!'
         }
+
         always {
-            // :arrows_counterclockwise: Ensure unused volumes and networks are cleaned up
-            sh 'docker system prune -f --volumes'
+
+            sh '''
+            docker image prune -a -f || true
+            docker container prune -f || true
+            docker system prune -f --volumes || true
+            '''
         }
     }
 }

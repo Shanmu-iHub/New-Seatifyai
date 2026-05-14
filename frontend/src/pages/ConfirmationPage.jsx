@@ -41,27 +41,39 @@ export default function ConfirmationPage() {
     try {
       const doc = new jsPDF();
       
-      // Header Logo
-      try {
-        const fullLogoData = `data:image/webp;base64,${logoBase64}`;
-        doc.addImage(fullLogoData, 'WEBP', 15, 10, 35, 12);
-      } catch (e) {
-        console.warn("Logo rendering failed, using text instead", e);
-        doc.setFontSize(18);
-        doc.setTextColor(59, 130, 246);
-        doc.text("SEATIFYAI", 15, 20);
-      }
-      
-      doc.setFontSize(20);
+      // Header Section (Safe Text-based Header)
+      doc.setFontSize(24);
+      doc.setTextColor(59, 130, 246); // Seatify Blue
       doc.setFont("helvetica", "bold");
+      doc.text("Seatify", 15, 22);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(150, 150, 150);
+      doc.setFont("helvetica", "normal");
+      doc.text("Smart Admission Portal", 15, 28);
+
+      doc.setFontSize(20);
       doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "bold");
       doc.text("Admission Receipt", 120, 22);
       
       doc.setDrawColor(200, 200, 200);
       doc.line(15, 35, 195, 35);
       
+      // Attempt to add logo if available (non-blocking)
+      try {
+        if (logoBase64) {
+          const fullLogoData = `data:image/webp;base64,${logoBase64}`;
+          // We'll skip adding it for now to ensure reliability until a PNG is provided
+          // doc.addImage(fullLogoData, 'WEBP', 15, 10, 35, 12);
+        }
+      } catch (e) {
+        console.warn("Logo rendering skipped");
+      }
+      
       // Details
       doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
       doc.setFont("helvetica", "normal");
       doc.text(`Date: ${dateStr}`, 15, 45);
       doc.text(`Time: ${timeStr}`, 15, 52);
@@ -71,7 +83,7 @@ export default function ConfirmationPage() {
         head: [['Description', 'Details']],
         body: details.map(([label, val]) => [label, val]),
         theme: 'striped',
-        headStyles: { fillStyle: '#3B82F6', textColor: '#FFFFFF' },
+        headStyles: { fillStyle: [59, 130, 246], textColor: [255, 255, 255] },
         styles: { fontSize: 10, cellPadding: 5 }
       });
       
@@ -87,8 +99,8 @@ export default function ConfirmationPage() {
       doc.save(`Seatify_Receipt_${applicationId}.pdf`);
       toast.success("Receipt downloaded successfully!");
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to generate PDF. Please try again.");
+      console.error("PDF Error:", err);
+      toast.error("Receipt generation failed. Please try again.");
     }
   };
 

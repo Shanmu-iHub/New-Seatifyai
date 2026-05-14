@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { User, BookOpen, CreditCard, FileText, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const TABS = ['Overview', 'Admissions'];
 

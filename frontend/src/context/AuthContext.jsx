@@ -14,7 +14,21 @@ export const AuthProvider = ({ children }) => {
       setUser(JSON.parse(userData));
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
+    
+    // Handle 401 globally
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          logout();
+          window.location.href = '/login';
+        }
+        return Promise.reject(error);
+      }
+    );
+
     setLoading(false);
+    return () => axios.interceptors.response.eject(interceptor);
   }, []);
 
   const login = (userData, token) => {

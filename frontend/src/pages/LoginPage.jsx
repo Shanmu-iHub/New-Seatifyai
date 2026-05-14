@@ -155,7 +155,7 @@ export default function LoginPage() {
               )}
 
               <form onSubmit={handleVerifyOtp}>
-                <label className="block text-sm font-medium mb-3" style={{ color: 'var(--text-muted)' }}>Enter 6-digit OTP <span className="text-xs" style={{ color: 'var(--primary)' }}>(Temp OTP: 123456)</span></label>
+                <label className="block text-sm font-medium mb-3" style={{ color: 'var(--text-muted)' }}>Enter 6-digit OTP</label>
                 <div className="flex gap-2 mb-6">
                   {otp.map((digit, idx) => (
                     <input

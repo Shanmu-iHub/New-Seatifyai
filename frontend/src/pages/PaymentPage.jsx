@@ -118,8 +118,7 @@ export default function PaymentPage() {
 
           <div className="space-y-3 mb-5">
             {[
-              ['Institution', application?.courseName || course?.name || 'N/A'],
-              ['Program', application?.programName || program?.name || 'N/A'],
+              ['Program', application?.courseName || course?.name || 'N/A'],
               ['Academic Year', new Date().getFullYear() + '-' + (new Date().getFullYear() + 1)],
               ['Application ID', applicationId || 'N/A'],
             ].map(([label, val]) => (

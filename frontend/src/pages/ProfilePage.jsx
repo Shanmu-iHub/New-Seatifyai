@@ -20,10 +20,9 @@ export default function ProfilePage() {
       const res = await axios.get('/api/students/profile');
       setProfile(res.data.profile);
       setAdmissions(res.data.admissions || []);
-    } catch {
-      // Demo data
-      setProfile({ fullName: user?.name || 'Demo Student', email: user?.email || 'demo@email.com', mobile: user?.mobile || '+91 98765 43210', city: 'Coimbatore', state: 'Tamil Nadu', community: 'BC', nationality: 'Indian' });
-      setAdmissions([]);
+    } catch (err) {
+      console.error(err);
+      toast.error('Could not load profile history');
     }
   };
 

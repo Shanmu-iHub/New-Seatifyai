@@ -78,9 +78,13 @@ router.post('/verify', auth, async (req, res) => {
         status: 'confirmed',
       },
       { new: true }
-    ).catch(() => null);
+    ).catch((e) => {
+      console.error(`❌ Payment update failed for ${applicationId}:`, e);
+      return null;
+    });
 
     if (application) {
+      console.log(`✅ Payment verified and application updated: ${applicationId}`);
       // Decrement seat
       try {
         const course = await Course.findById(application.courseId);

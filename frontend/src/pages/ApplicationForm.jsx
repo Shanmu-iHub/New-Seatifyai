@@ -114,10 +114,8 @@ export default function ApplicationForm() {
         state: { application: res.data, course, program }
       });
     } catch (err) {
-      // For demo purposes without backend:
-      const mockId = 'SEATIFY-' + new Date().getFullYear() + '-' + Math.random().toString(36).substr(2, 6).toUpperCase();
-      toast.success('Application submitted! Proceeding to payment...');
-      navigate(`/payment/${mockId}`, { state: { application: { applicationId: mockId, ...formData }, course, program } });
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Failed to submit application. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -97,6 +97,7 @@ router.post('/', auth, upload.fields(docFields), async (req, res) => {
     };
 
     const application = await Application.create(data);
+    console.log(`✅ Application created: ${application.applicationId} for student ${req.user._id}`);
     res.status(201).json({
       applicationId: application.applicationId,
       _id: application._id,

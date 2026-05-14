@@ -8,21 +8,21 @@ const CATEGORIES = ['All', 'K-12', 'Engineering & Tech', 'Arts & Science', 'Para
 
 // Icon backgrounds per category
 const ICON_BG = {
-  'AI & Data Science': { bg: '#2D1B6B', color: '#A78BFA', emoji: '🤖' },
-  'Computer Science': { bg: '#1B2D6B', color: '#60A5FA', emoji: '💻' },
-  'Core Engineering': { bg: '#6B2D1B', color: '#FCD34D', emoji: '⚙️' },
-  'Specialized Engineering': { bg: '#1B6B2D', color: '#6EE7B7', emoji: '🚀' },
-  'PG Programs': { bg: '#2D1B6B', color: '#C084FC', emoji: '🎓' },
-  'default': { bg: '#2D2D1B', color: '#FDE68A', emoji: '📚' },
+  'AI & Data Science': { bg: '#F5F3FF', color: '#7C3AED', emoji: '🤖' },
+  'Computer Science': { bg: '#EFF6FF', color: '#2563EB', emoji: '💻' },
+  'Core Engineering': { bg: '#FFF7ED', color: '#D97706', emoji: '⚙️' },
+  'Specialized Engineering': { bg: '#ECFDF5', color: '#059669', emoji: '🚀' },
+  'PG Programs': { bg: '#FAF5FF', color: '#9333EA', emoji: '🎓' },
+  'default': { bg: '#FEFCE8', color: '#CA8A04', emoji: '📚' },
 };
 
 const NAME_COLOR = {
-  'AI & Data Science': '#A78BFA',
-  'Computer Science': '#818CF8',
-  'Core Engineering': '#F59E0B',
-  'Specialized Engineering': '#34D399',
-  'PG Programs': '#C084FC',
-  'default': '#FB923C',
+  'AI & Data Science': '#5B21B6',
+  'Computer Science': '#1E40AF',
+  'Core Engineering': '#B45309',
+  'Specialized Engineering': '#065F46',
+  'PG Programs': '#6B21A8',
+  'default': '#A16207',
 };
 
 // Mock data for demo (backend will serve this)
@@ -202,7 +202,7 @@ export default function CoursesPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-12 py-3.5 rounded-2xl text-sm transition-all outline-none"
               style={{ 
-                background: 'rgba(255,255,255,0.05)', 
+                background: 'rgba(0,0,0,0.03)', 
                 border: '1px solid var(--card-border)',
                 color: 'var(--text)',
               }}
@@ -226,9 +226,10 @@ export default function CoursesPage() {
               onClick={() => setActiveTab(tab)}
               className="flex-shrink-0 px-5 py-2 rounded-full text-sm font-semibold transition-all"
               style={{
-                background: activeTab === tab ? 'var(--primary)' : 'rgba(255,255,255,0.07)',
+                background: activeTab === tab ? 'var(--primary)' : '#fff',
                 color: activeTab === tab ? '#fff' : 'var(--text-muted)',
-                border: activeTab === tab ? 'none' : '1px solid var(--card-border)',
+                border: '1px solid var(--card-border)',
+                boxShadow: activeTab === tab ? '0 4px 12px rgba(59,130,246,0.25)' : 'none'
               }}>
               {tab}
             </button>

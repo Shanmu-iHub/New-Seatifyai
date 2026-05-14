@@ -5,6 +5,8 @@ import toast from 'react-hot-toast';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 
+import { logoBase64 } from '../assets/logoBase64';
+
 export default function ConfirmationPage() {
   const { applicationId } = useParams();
   const { state } = useLocation();
@@ -38,41 +40,21 @@ export default function ConfirmationPage() {
   const handleDownloadReceipt = async () => {
     try {
       const doc = new jsPDF();
-      const logoUrl = "http://k12.seatifyai.com/wp-content/uploads/2025/04/Logo-Seatifyai-scaled.webp";
       
-      // Helper to load image as base64
-      const getBase64Image = (url) => {
-        return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.setAttribute('crossOrigin', 'anonymous');
-          img.onload = () => {
-            const canvas = document.createElement("canvas");
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0);
-            const dataURL = canvas.toDataURL("image/png");
-            resolve(dataURL);
-          };
-          img.onerror = (error) => reject(error);
-          img.src = url;
-        });
-      };
-
-      let base64Logo = null;
+      // Header Logo
       try {
-        base64Logo = await getBase64Image(logoUrl);
+        const fullLogoData = `data:image/webp;base64,${logoBase64}`;
+        doc.addImage(fullLogoData, 'WEBP', 15, 10, 35, 12);
       } catch (e) {
-        console.error("Logo load failed", e);
-      }
-
-      // Header
-      if (base64Logo) {
-        doc.addImage(base64Logo, 'PNG', 15, 10, 40, 15);
+        console.warn("Logo rendering failed, using text instead", e);
+        doc.setFontSize(18);
+        doc.setTextColor(59, 130, 246);
+        doc.text("SEATIFYAI", 15, 20);
       }
       
       doc.setFontSize(20);
       doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
       doc.text("Admission Receipt", 120, 22);
       
       doc.setDrawColor(200, 200, 200);

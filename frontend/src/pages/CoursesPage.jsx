@@ -175,22 +175,22 @@ export default function CoursesPage() {
 
   const filteredCourses = Array.isArray(courses)
     ? courses.filter(course => {
-        const matchesTab =
-          activeTab === 'All' || course.category === activeTab;
+      const matchesTab =
+        activeTab === 'All' || course.category === activeTab;
 
-        const q = searchQuery.toLowerCase().replace(/\s+/g, '');
+      const q = searchQuery.toLowerCase().replace(/\s+/g, '');
 
-        const matchesSearch =
-          !searchQuery ||
-          (course.name || '').toLowerCase().replace(/\s+/g, '').includes(q) ||
-          (course.category || '').toLowerCase().replace(/\s+/g, '').includes(q) ||
-          (course.collegeName || '').toLowerCase().replace(/\s+/g, '').includes(q) ||
-          course.programs?.some(p =>
-            (p.name || '').toLowerCase().replace(/\s+/g, '').includes(q)
-          );
+      const matchesSearch =
+        !searchQuery ||
+        (course.name || '').toLowerCase().replace(/\s+/g, '').includes(q) ||
+        (course.category || '').toLowerCase().replace(/\s+/g, '').includes(q) ||
+        (course.collegeName || '').toLowerCase().replace(/\s+/g, '').includes(q) ||
+        course.programs?.some(p =>
+          (p.name || '').toLowerCase().replace(/\s+/g, '').includes(q)
+        );
 
-        return matchesTab && matchesSearch;
-      })
+      return matchesTab && matchesSearch;
+    })
     : [];
 
 
@@ -206,11 +206,11 @@ export default function CoursesPage() {
     <div className="min-h-screen pb-24 relative overflow-hidden" style={{ background: '#F8FAFC' }}>
       {/* Decorative Background Elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full opacity-20 blur-[120px]" 
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full opacity-20 blur-[120px]"
           style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)' }} />
-        <div className="absolute top-[20%] -right-[5%] w-[30%] h-[30%] rounded-full opacity-10 blur-[100px]" 
+        <div className="absolute top-[20%] -right-[5%] w-[30%] h-[30%] rounded-full opacity-10 blur-[100px]"
           style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2DD4BF 100%)' }} />
-        <div className="absolute -bottom-[10%] left-[20%] w-[35%] h-[35%] rounded-full opacity-10 blur-[120px]" 
+        <div className="absolute -bottom-[10%] left-[20%] w-[35%] h-[35%] rounded-full opacity-10 blur-[120px]"
           style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #EF4444 100%)' }} />
       </div>
 
@@ -227,7 +227,7 @@ export default function CoursesPage() {
             Courses & Programs
           </h1>
           <p style={{ color: 'var(--text-muted)', maxWidth: '560px', margin: '0 auto', lineHeight: 1.7 }}>
-          Explore admissions for K12, UG, PG & career-focused programs all in one place.
+            Explore admissions for K12, UG, PG & career-focused programs all in one place.
           </p>
         </div>
 
@@ -266,13 +266,29 @@ export default function CoursesPage() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className="flex-shrink-0 px-6 py-2.5 rounded-full text-sm font-bold transition-all transform active:scale-95"
+              className={`flex-shrink-0 px-6 py-2.5 rounded-full text-sm font-bold transition-all transform active:scale-95 relative ${activeTab === tab ? 'tab-active-glow' : ''}`}
               style={{
-                background: activeTab === tab ? 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)' : '#fff',
-                color: activeTab === tab ? '#fff' : 'var(--text-muted)',
-                border: activeTab === tab ? 'none' : '1px solid var(--card-border)',
-                boxShadow: activeTab === tab ? '0 8px 20px rgba(59,130,246,0.3)' : 'none'
+                background: activeTab === tab ? 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' : 'rgba(255,255,255,0.8)',
+                color: activeTab === tab ? '#fff' : '#64748B',
+                border: activeTab === tab ? 'none' : '1px solid rgba(0,0,0,0.05)',
+                backdropFilter: 'blur(8px)',
+                zIndex: activeTab === tab ? 2 : 1
               }}>
+              <style>{`
+                .tab-active-glow::after {
+                  content: '';
+                  position: absolute;
+                  top: 8px;
+                  left: 5%;
+                  width: 90%;
+                  height: 100%;
+                  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+                  filter: blur(15px);
+                  opacity: 0.5;
+                  border-radius: 9999px;
+                  z-index: -1;
+                }
+              `}</style>
               {tab}
             </button>
           ))}

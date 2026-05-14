@@ -86,31 +86,38 @@ export default function Navbar() {
       </nav>
 
       {/* Mobile Bottom Nav */}
-      {user && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-4 pointer-events-none">
-          <div className="mx-auto max-w-sm rounded-2xl p-1 flex items-center justify-around shadow-xl pointer-events-auto"
-            style={{ 
-              background: 'rgba(255,255,255,0.9)', 
-              border: '1px solid rgba(0,0,0,0.05)', 
-              backdropFilter: 'blur(20px)' 
-            }}>
-            <Link to="/courses" className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${location.pathname === '/courses' || location.pathname === '/' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-gray-900'}`}>
-              <BookOpen size={20} />
-              <span className="text-[10px] font-semibold uppercase tracking-wider">Courses</span>
-            </Link>
-            
-            <Link to="/profile" className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${location.pathname === '/profile' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-gray-900'}`}>
-              <User size={20} />
-              <span className="text-[10px] font-semibold uppercase tracking-wider">Profile</span>
-            </Link>
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-4 pointer-events-none">
+        <div className="mx-auto max-w-sm rounded-2xl p-1 flex items-center justify-around shadow-xl pointer-events-auto"
+          style={{ 
+            background: 'rgba(255,255,255,0.9)', 
+            border: '1px solid rgba(0,0,0,0.05)', 
+            backdropFilter: 'blur(20px)' 
+          }}>
+          <Link to="/courses" className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${location.pathname === '/courses' || location.pathname === '/' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-gray-900'}`}>
+            <BookOpen size={20} />
+            <span className="text-[10px] font-semibold uppercase tracking-wider">Courses</span>
+          </Link>
+          
+          {user ? (
+            <>
+              <Link to="/profile" className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${location.pathname === '/profile' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-gray-900'}`}>
+                <User size={20} />
+                <span className="text-[10px] font-semibold uppercase tracking-wider">Profile</span>
+              </Link>
 
-            <button onClick={handleLogout} className="flex flex-col items-center gap-1 p-2 rounded-xl text-gray-400 hover:text-red-500 transition-all">
-              <LogOut size={20} />
-              <span className="text-[10px] font-semibold uppercase tracking-wider">Logout</span>
-            </button>
-          </div>
+              <button onClick={handleLogout} className="flex flex-col items-center gap-1 p-2 rounded-xl text-gray-400 hover:text-red-500 transition-all">
+                <LogOut size={20} />
+                <span className="text-[10px] font-semibold uppercase tracking-wider">Logout</span>
+              </button>
+            </>
+          ) : (
+            <Link to="/login" className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${location.pathname === '/login' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-gray-900'}`}>
+              <User size={20} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider">Sign In</span>
+            </Link>
+          )}
         </div>
-      )}
+      </div>
     </>
   );
 }

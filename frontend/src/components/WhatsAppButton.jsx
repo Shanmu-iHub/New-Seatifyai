@@ -11,7 +11,7 @@ export default function WhatsAppButton() {
       href={whatsappUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-6 right-6 z-50 group flex items-center gap-3"
+      className="fixed bottom-24 md:bottom-6 right-6 z-50 group flex items-center gap-3"
       aria-label="Contact on WhatsApp"
     >
       <style>{`

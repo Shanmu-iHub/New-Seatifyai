@@ -352,7 +352,7 @@ export default function CoursesPage() {
                               </button>
                             </div>
                           </div>
-                          {program.seats <= 20 && (
+                          {program.seats <= 5 && program.seats > 0 && (
                             <div className="ml-4 mt-1">
                               <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.12)', color: '#FCA5A5' }}>
                                 Only {program.seats} seats left!
@@ -364,13 +364,15 @@ export default function CoursesPage() {
                     })}
                   </div>
 
-                  {/* Seats summary */}
-                  <div className="mt-4 pt-3 flex items-center gap-2" style={{ borderTop: '1px solid var(--card-border)' }}>
-                    <Users size={13} style={{ color: 'var(--text-muted)' }} />
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      {(course.programs || []).reduce((a, p) => a + (p.seats || 0), 0)} seats available across {course.programs?.length || 0} programs
-                    </span>
-                  </div>
+                  {/* Seats summary - only show if low availability */}
+                  {(course.programs || []).some(p => p.seats <= 5 && p.seats > 0) && (
+                    <div className="mt-4 pt-3 flex items-center gap-2 animate-pulse" style={{ borderTop: '1px solid var(--card-border)' }}>
+                      <Sparkles size={13} style={{ color: '#FCA5A5' }} />
+                      <span className="text-xs font-bold" style={{ color: '#FCA5A5' }}>
+                        Hurry! Only few seats left. Enroll now!
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}

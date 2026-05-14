@@ -104,11 +104,6 @@ export default function ProfilePage() {
                   <Field label="Mobile" value={profile.mobile} />
                   <Field label="Date of Birth" value={profile.dob} />
                   <Field label="Gender" value={profile.gender} />
-                  <Field label="Community" value={profile.community} />
-                  <Field label="City" value={profile.city} />
-                  <Field label="State" value={profile.state} />
-                  <Field label="Nationality" value={profile.nationality} />
-                  <Field label="Aadhar Number" value={profile.aadhar ? '••••••••' + profile.aadhar.slice(-4) : '—'} />
                 </div>
               ) : (
                 <div className="text-center py-8" style={{ color: 'var(--text-muted)' }}>

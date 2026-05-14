@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
-import { User, BookOpen, CreditCard, FileText, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { User, BookOpen, CreditCard, FileText, CheckCircle, Clock, AlertCircle, Edit, X, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const TABS = ['Overview', 'Admissions'];
@@ -11,6 +11,9 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('Overview');
   const [profile, setProfile] = useState(null);
   const [admissions, setAdmissions] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFormData, setEditFormData] = useState({});
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -24,6 +27,51 @@ export default function ProfilePage() {
     } catch (err) {
       console.error(err);
       toast.error('Could not load profile history');
+    }
+  };
+
+  const canEditDetails = () => {
+    if (!admissions || admissions.length === 0) return false;
+    const latestAdmission = admissions[0];
+    const createdAt = new Date(latestAdmission.createdAt);
+    const now = new Date();
+    const hoursDiff = (now - createdAt) / (1000 * 60 * 60);
+    return hoursDiff <= 1;
+  };
+
+  const handleEdit = () => {
+    if (!canEditDetails()) {
+      toast.error('You can only edit personal details within 1 hour of placing your order.');
+      return;
+    }
+    setEditFormData({
+      fullName: profile.fullName,
+      dob: profile.dob,
+      admissionType: profile.admissionType,
+      email: profile.email,
+      mobile: profile.mobile,
+    });
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditFormData({});
+  };
+
+  const handleSaveEdit = async () => {
+    setLoading(true);
+    try {
+      const latestAdmission = admissions[0];
+      await axios.put(`/api/applications/${latestAdmission.applicationId}`, editFormData);
+      toast.success('Personal details updated successfully');
+      setIsEditing(false);
+      fetchProfile();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Failed to update details');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -94,17 +142,114 @@ export default function ProfilePage() {
         <div className="rounded-2xl p-6" style={{ background: 'var(--card)', border: '1px solid var(--card-border)' }}>
           {activeTab === 'Overview' && (
             <>
-              <h2 className="text-lg font-bold mb-5 flex items-center gap-2" style={{ fontFamily: 'Clash Display' }}>
-                <User size={18} style={{ color: 'var(--primary)' }} /> Personal Information
-              </h2>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-lg font-bold flex items-center gap-2" style={{ fontFamily: 'Clash Display' }}>
+                  <User size={18} style={{ color: 'var(--primary)' }} /> Personal Information
+                </h2>
+                {profile && canEditDetails() && !isEditing && (
+                  <button
+                    onClick={handleEdit}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                    style={{ background: 'var(--primary)', color: '#fff' }}
+                  >
+                    <Edit size={14} /> Edit
+                  </button>
+                )}
+              </div>
               {profile ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field label="Full Name" value={profile.fullName} />
-                  <Field label="Email" value={profile.email} />
-                  <Field label="Mobile" value={profile.mobile} />
-                  <Field label="Date of Birth" value={profile.dob} />
-                  <Field label="Gender" value={profile.gender} />
-                </div>
+                isEditing ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                        Full Name <span style={{ color: '#EF4444' }}>*</span>
+                      </label>
+                      <input
+                        className="w-full rounded-xl px-4 py-2.5 text-sm transition-all"
+                        style={{ background: '#fff', border: '1px solid var(--card-border)', color: 'var(--text)' }}
+                        value={editFormData.fullName}
+                        onChange={e => setEditFormData({ ...editFormData, fullName: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                        Date of Birth <span style={{ color: '#EF4444' }}>*</span>
+                      </label>
+                      <input
+                        type="date"
+                        className="w-full rounded-xl px-4 py-2.5 text-sm transition-all"
+                        style={{ background: '#fff', border: '1px solid var(--card-border)', color: 'var(--text)' }}
+                        value={editFormData.dob}
+                        onChange={e => setEditFormData({ ...editFormData, dob: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                        Admission Type <span style={{ color: '#EF4444' }}>*</span>
+                      </label>
+                      <select
+                        className="w-full rounded-xl px-4 py-2.5 text-sm transition-all"
+                        style={{ background: '#fff', border: '1px solid var(--card-border)', color: 'var(--text)' }}
+                        value={editFormData.admissionType}
+                        onChange={e => setEditFormData({ ...editFormData, admissionType: e.target.value })}
+                      >
+                        <option value="">Select...</option>
+                        <option value="Regular">Regular</option>
+                        <option value="Lateral Entry">Lateral Entry</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                        Email <span style={{ color: '#EF4444' }}>*</span>
+                      </label>
+                      <input
+                        type="email"
+                        className="w-full rounded-xl px-4 py-2.5 text-sm transition-all"
+                        style={{ background: '#fff', border: '1px solid var(--card-border)', color: 'var(--text)' }}
+                        value={editFormData.email}
+                        onChange={e => setEditFormData({ ...editFormData, email: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                        Mobile <span style={{ color: '#EF4444' }}>*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        className="w-full rounded-xl px-4 py-2.5 text-sm transition-all"
+                        style={{ background: '#fff', border: '1px solid var(--card-border)', color: 'var(--text)' }}
+                        value={editFormData.mobile}
+                        onChange={e => setEditFormData({ ...editFormData, mobile: e.target.value })}
+                      />
+                    </div>
+                    <div className="sm:col-span-2 flex gap-3 mt-2">
+                      <button
+                        onClick={handleCancelEdit}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm"
+                        style={{ background: 'var(--card)', border: '1px solid var(--card-border)', color: 'var(--text)' }}
+                      >
+                        <X size={16} /> Cancel
+                      </button>
+                      <button
+                        onClick={handleSaveEdit}
+                        disabled={loading}
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm"
+                        style={{ background: 'var(--primary)', color: '#fff', opacity: loading ? 0.7 : 1 }}
+                      >
+                        {loading ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving...</>
+                          : <><Save size={16} /> Save Changes</>}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Field label="Full Name" value={profile.fullName} />
+                    <Field label="Email" value={profile.email} />
+                    <Field label="Mobile" value={profile.mobile} />
+                    <Field label="Date of Birth" value={profile.dob} />
+                    <Field label="Admission Type" value={profile.admissionType} />
+                  </div>
+                )
               ) : (
                 <div className="text-center py-8" style={{ color: 'var(--text-muted)' }}>
                   <User size={40} className="mx-auto mb-3 opacity-30" />

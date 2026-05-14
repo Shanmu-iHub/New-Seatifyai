@@ -35,6 +35,7 @@ programSchema.pre('save', function(next) {
 
 const courseSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  collegeName: { type: String },
   type: String,
   category: { type: String, enum: ['K-12', 'Engineering & Tech', 'Arts & Science', 'Paramedical', 'Education'], required: true },
   programs: [programSchema],
@@ -61,9 +62,10 @@ const applicationSchema = new mongoose.Schema({
   fee: Number,
   // Docs
   docs: {
-    photo: String, aadhar: String, marksheet10: String,
-    marksheet12: String, tc: String, community: String,
+    photo: String, aadhar: String, previousSchoolTC: String, marksheet10: String,
+    marksheet12: String, diplomaCertificate: String, tc: String, community: String, birthCertificate: String,
   },
+  gradeLevel: String,
   // Payment
   paymentStatus: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
   paymentId: String,

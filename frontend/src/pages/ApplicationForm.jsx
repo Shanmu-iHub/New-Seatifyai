@@ -52,9 +52,9 @@ export default function ApplicationForm() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: user?.name || '',
-    dob: '', admissionType: '',
+    dob: '',
     email: user?.email || '', mobile: user?.mobile || '',
-    docs: { aadhar: null, marksheet10: null, community: null }
+    docs: { aadhar: null, previousSchoolTC: null, community: null, birthCertificate: null, marksheet10: null, marksheet12: null, diplomaCertificate: null }
   });
 
   const update = (field, val) => setFormData(prev => ({ ...prev, [field]: val }));
@@ -70,10 +70,17 @@ export default function ApplicationForm() {
 
   const handleNext = () => {
     if (step === 1) {
-      const requiredFields = ['fullName', 'dob', 'admissionType', 'email', 'mobile'];
+      const requiredFields = ['fullName', 'dob', 'email', 'mobile'];
       const missing = requiredFields.filter(f => !formData[f]);
       if (missing.length > 0) {
         toast.error('Please fill all required fields');
+        return;
+      }
+      
+      // Validate mobile number - must be 10 digits only
+      const mobileRegex = /^[0-9]{10}$/;
+      if (!mobileRegex.test(formData.mobile)) {
+        toast.error('Mobile number must be exactly 10 digits');
         return;
       }
     }
@@ -198,10 +205,12 @@ export default function ApplicationForm() {
                 <InputField label="Full Name" value={formData.fullName} onChange={e => update('fullName', e.target.value)} required />
               </div>
               <InputField label="Date of Birth" type="date" value={formData.dob} onChange={e => update('dob', e.target.value)} required />
-              <SelectField label="Admission Type" value={formData.admissionType} onChange={e => update('admissionType', e.target.value)}
-                options={['Regular', 'Lateral Entry']} required />
+              {course?.category === 'Engineering & Tech' && (
+                <SelectField label="Admission Type" value={formData.admissionType} onChange={e => update('admissionType', e.target.value)}
+                  options={['Regular', 'Lateral Entry']} required />
+              )}
               <InputField label="Email ID" type="email" value={formData.email} onChange={e => update('email', e.target.value)} required />
-              <InputField label="Mobile Number" type="tel" value={formData.mobile} onChange={e => update('mobile', e.target.value)} required />
+              <InputField label="Mobile Number" type="tel" value={formData.mobile} onChange={e => update('mobile', e.target.value.replace(/[^0-9]/g, '').slice(0, 10))} required pattern="[0-9]{10}" maxLength={10} />
             </div>
           )}
 
@@ -210,9 +219,28 @@ export default function ApplicationForm() {
               <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
                 Upload clear scans or photos (PDF, JPG, PNG. Max 10MB).
               </p>
-              <DocUpload label="Aadhar Card *" field="aadhar" accept=".pdf,image/*" />
-              <DocUpload label="10th Mark Sheet" field="marksheet10" accept=".pdf,image/*" />
-              <DocUpload label="Community Certificate" field="community" accept=".pdf,image/*" />
+              
+              {/* K-12 Courses */}
+              {course?.category === 'K-12' && (
+                <>
+                  <DocUpload label="Aadhar Card *" field="aadhar" accept=".pdf,image/*" />
+                  <DocUpload label="Previous School TC" field="previousSchoolTC" accept=".pdf,image/*" />
+                  <DocUpload label="Community Certificate" field="community" accept=".pdf,image/*" />
+                  <DocUpload label="Birth Certificate" field="birthCertificate" accept=".pdf,image/*" />
+                  <DocUpload label="10th Mark Sheet" field="marksheet10" accept=".pdf,image/*" />
+                </>
+              )}
+
+              {/* Other Courses (Engineering, Arts, Paramedical, Education) */}
+              {course?.category !== 'K-12' && (
+                <>
+                  <DocUpload label="Aadhar Card *" field="aadhar" accept=".pdf,image/*" />
+                  <DocUpload label="10th Mark Sheet" field="marksheet10" accept=".pdf,image/*" />
+                  <DocUpload label="12th Mark Sheet or Diploma Certificate" field="marksheet12" accept=".pdf,image/*" />
+                  <DocUpload label="Community Certificate" field="community" accept=".pdf,image/*" />
+                  <DocUpload label="Birth Certificate" field="birthCertificate" accept=".pdf,image/*" />
+                </>
+              )}
             </div>
           )}
         </div>

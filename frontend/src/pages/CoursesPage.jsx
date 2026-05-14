@@ -173,17 +173,24 @@ export default function CoursesPage() {
     }
   };
 
-  const filteredCourses = courses.filter(course => {
-    const matchesTab = activeTab === 'All' || course.category === activeTab;
-    const q = searchQuery.toLowerCase().replace(/\s+/g, '');
+  const filteredCourses = Array.isArray(courses)
+    ? courses.filter(course => {
+        const matchesTab =
+          activeTab === 'All' || course.category === activeTab;
 
-    const matchesSearch = !searchQuery ||
-      course.name.toLowerCase().replace(/\s+/g, '').includes(q) ||
-      course.category.toLowerCase().replace(/\s+/g, '').includes(q) ||
-      course.programs.some(p => p.name.toLowerCase().replace(/\s+/g, '').includes(q));
+        const q = searchQuery.toLowerCase().replace(/\s+/g, '');
 
-    return matchesTab && matchesSearch;
-  });
+        const matchesSearch =
+          !searchQuery ||
+          (course.name || '').toLowerCase().replace(/\s+/g, '').includes(q) ||
+          (course.category || '').toLowerCase().replace(/\s+/g, '').includes(q) ||
+          course.programs?.some(p =>
+            (p.name || '').toLowerCase().replace(/\s+/g, '').includes(q)
+          );
+
+        return matchesTab && matchesSearch;
+      })
+    : [];
 
 
 
@@ -315,7 +322,7 @@ export default function CoursesPage() {
 
                   {/* Programs list */}
                   <div className="space-y-3">
-                    {course.programs.map(program => {
+                    {course.programs?.map(program => {
                       const key = `${course._id}-${program._id}`;
 
                       return (
@@ -355,7 +362,7 @@ export default function CoursesPage() {
                   <div className="mt-4 pt-3 flex items-center gap-2" style={{ borderTop: '1px solid var(--card-border)' }}>
                     <Users size={13} style={{ color: 'var(--text-muted)' }} />
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      {course.programs.reduce((a, p) => a + (p.seats || 0), 0)} seats available across {course.programs.length} programs
+                      {(course.programs || []).reduce((a, p) => a + (p.seats || 0), 0)} seats available across {course.programs?.length || 0} programs
                     </span>
                   </div>
                 </div>

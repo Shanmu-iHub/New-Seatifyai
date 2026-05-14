@@ -45,6 +45,7 @@ const fetchCoursesFromSheet = async () => {
       if (!courseMap[key]) {
         courseMap[key] = {
           name: cName,
+          collegeName: String(row['College Name'] || '').trim(),
           type: String(row['Course Type'] || '').trim(),
           category: cat,
           emoji: emoji,

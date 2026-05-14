@@ -57,10 +57,13 @@ const upload = multer({
 const docFields = [
   { name: 'doc_photo', maxCount: 1 },
   { name: 'doc_aadhar', maxCount: 1 },
+  { name: 'doc_previousSchoolTC', maxCount: 1 },
   { name: 'doc_marksheet10', maxCount: 1 },
   { name: 'doc_marksheet12', maxCount: 1 },
+  { name: 'doc_diplomaCertificate', maxCount: 1 },
   { name: 'doc_tc', maxCount: 1 },
   { name: 'doc_community', maxCount: 1 },
+  { name: 'doc_birthCertificate', maxCount: 1 },
 ];
 
 // POST /api/applications — submit application
@@ -193,6 +196,54 @@ router.get('/:id', auth, async (req, res) => {
     if (!app) return res.status(404).json({ message: 'Application not found' });
     res.json(app);
   } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// PUT /api/applications/:id — update personal details (within 1 hour only)
+router.put('/:id', auth, async (req, res) => {
+  try {
+    const app = await Application.findOne({ applicationId: req.params.id, student: req.user._id });
+    if (!app) return res.status(404).json({ message: 'Application not found' });
+
+    // Check if within 1 hour of creation
+    const createdAt = new Date(app.createdAt);
+    const now = new Date();
+    const hoursDiff = (now - createdAt) / (1000 * 60 * 60);
+    if (hoursDiff > 1) {
+      return res.status(400).json({ 
+        message: 'You can only edit personal details within 1 hour of placing your order.' 
+      });
+    }
+
+    // Only allow updating personal details (not course-related fields)
+    const allowedFields = ['fullName', 'dob', 'admissionType', 'email', 'mobile'];
+    const updates = {};
+    
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    });
+
+    // Prevent course-related fields from being updated
+    const protectedFields = ['courseId', 'courseName', 'programId', 'programName', 'fee', 'docs', 'paymentStatus', 'status'];
+    const attemptedProtectedUpdates = protectedFields.filter(field => req.body[field] !== undefined);
+    if (attemptedProtectedUpdates.length > 0) {
+      return res.status(400).json({ 
+        message: 'Course details cannot be modified. Only personal details can be edited.' 
+      });
+    }
+
+    Object.assign(app, updates);
+    await app.save();
+
+    res.json({ 
+      message: 'Personal details updated successfully',
+      application: app
+    });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.message });
   }
 });

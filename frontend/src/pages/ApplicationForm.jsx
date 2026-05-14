@@ -52,7 +52,7 @@ export default function ApplicationForm() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: user?.name || '',
-    dob: '', gender: '',
+    dob: '', admissionType: '',
     email: user?.email || '', mobile: user?.mobile || '',
     docs: { aadhar: null, marksheet10: null, community: null }
   });
@@ -198,8 +198,8 @@ export default function ApplicationForm() {
                 <InputField label="Full Name" value={formData.fullName} onChange={e => update('fullName', e.target.value)} required />
               </div>
               <InputField label="Date of Birth" type="date" value={formData.dob} onChange={e => update('dob', e.target.value)} required />
-              <SelectField label="Gender" value={formData.gender} onChange={e => update('gender', e.target.value)}
-                options={['Male', 'Female', 'Other']} required />
+              <SelectField label="Admission Type" value={formData.admissionType} onChange={e => update('admissionType', e.target.value)}
+                options={['Regular', 'Lateral Entry']} required />
               <InputField label="Email ID" type="email" value={formData.email} onChange={e => update('email', e.target.value)} required />
               <InputField label="Mobile Number" type="tel" value={formData.mobile} onChange={e => update('mobile', e.target.value)} required />
             </div>

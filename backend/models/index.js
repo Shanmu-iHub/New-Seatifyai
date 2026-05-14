@@ -48,7 +48,7 @@ const applicationSchema = new mongoose.Schema({
   student: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   academicYear: String,
   // Personal
-  fullName: String, dob: String, gender: String,
+  fullName: String, dob: String, admissionType: String,
   fatherName: String, motherName: String,
   email: String, mobile: String,
   street: String, city: String, state: String, pin: String,

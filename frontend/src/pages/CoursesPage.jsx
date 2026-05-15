@@ -234,10 +234,10 @@ export default function CoursesPage() {
             Secure Your Seat Today
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-3" style={{ fontFamily: 'Clash Display' }}>
-            Courses & Program
+            Courses & Programs
           </h1>
           <p style={{ color: 'var(--text-muted)', maxWidth: '560px', margin: '0 auto', lineHeight: 1.7 }}>
-            Explore admissions for K12, UG, PG & career-focused program all in one place.
+            Explore admissions for K12, UG, PG & career-focused programs all in one place.
           </p>
         </div>
 

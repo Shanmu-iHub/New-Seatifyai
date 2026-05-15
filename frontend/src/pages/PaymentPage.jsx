@@ -76,12 +76,14 @@ export default function PaymentPage() {
         },
         theme: { color: '#4F46E5' },
         handler: async (response) => {
+          setLoading(true);
           try {
             await axios.post('/api/payment/verify', { ...response, applicationId });
             toast.success('Payment successful!');
             navigate(`/confirmation/${applicationId}`, { state: { paymentId: response.razorpay_payment_id, application, course, program } });
           } catch {
             toast.error('Payment verification failed');
+            setLoading(false);
           }
         },
       };
@@ -106,6 +108,15 @@ export default function PaymentPage() {
 
   return (
     <div className="min-h-screen py-10 px-4" style={{ background: 'var(--bg)' }}>
+      {/* Full-screen Loading Overlay */}
+      {loading && (
+        <div className="fixed inset-0 bg-[#0f172a]/80 backdrop-blur-md z-[9999] flex flex-col items-center justify-center text-white">
+          <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-6" />
+          <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: 'Clash Display' }}>Verifying Payment</h2>
+          <p className="text-gray-400 animate-pulse">Please do not refresh or close this window...</p>
+        </div>
+      )}
+
       <div className="max-w-md mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold" style={{ fontFamily: 'Clash Display' }}>Complete Payment</h1>
@@ -133,7 +144,7 @@ export default function PaymentPage() {
             <div className="pt-2" />
 
             {[
-              ['Pre Registration Amount', `₹${baseFee.toLocaleString('en-IN')}`],
+              ['Pre Registration Fee', `₹${baseFee.toLocaleString('en-IN')}`],
               ['Platform Fee', `₹${platformFee.toLocaleString('en-IN')}`],
             ].map(([label, val]) => (
               <div key={label} className="flex justify-between items-start gap-4">
@@ -178,7 +189,6 @@ export default function PaymentPage() {
                   navigate('/courses');
                 } catch (err) {
                   toast.error("Failed to cancel application");
-                } finally {
                   setLoading(false);
                 }
               }

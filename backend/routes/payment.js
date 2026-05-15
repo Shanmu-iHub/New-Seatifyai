@@ -157,45 +157,72 @@ router.post('/verify', auth, async (req, res) => {
           to: application.email,
           subject: `Admission Confirmed — ${application.applicationId}`,
           html: `
-            <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 20px auto; background-color: #1a1d24; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
-              <!-- Header -->
-              <div style="padding: 40px 32px 20px; text-align: center;">
-                <div style="width: 64px; height: 64px; background-color: #10b981; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">
-                  <span style="font-size: 32px; color: #ffffff;">✓</span>
-                </div>
-                <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #10b981;">Admission Confirmed!</h1>
-              </div>
+            <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #0f172a; padding: 20px 10px;">
+              <tr>
+                <td align="center">
+                  <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; width: 100%; max-width: 600px; background-color: #1a1d24; color: #f8fafc; border-radius: 16px; overflow: hidden; border: 1px solid #334155; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);">
+                    <!-- Header -->
+                    <div style="padding: 40px 20px 20px; text-align: center; background: linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, rgba(26, 29, 36, 0) 100%);">
+                      <div style="width: 64px; height: 64px; background-color: #10b981; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);">
+                        <span style="font-size: 32px; color: #ffffff;">✓</span>
+                      </div>
+                      <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #10b981; letter-spacing: -0.02em;">Admission Confirmed!</h1>
+                      <p style="margin: 8px 0 0; color: #94a3b8; font-size: 14px;">Your seat has been successfully reserved.</p>
+                    </div>
 
-              <!-- Body -->
-              <div style="padding: 20px 32px;">
-                <p style="font-size: 16px; margin-bottom: 20px;">Dear ${application.fullName},</p>
-                <p style="line-height: 1.6; color: #e2e8f0; margin-bottom: 30px; font-size: 16px;">
-                  Your admission has been confirmed for <strong>${application.courseName} — ${application.programName}</strong> at <strong>${application.collegeName || 'Seatifyai Institute'}</strong>.
-                </p>
+                    <!-- Body -->
+                    <div style="padding: 20px 24px;">
+                      <p style="font-size: 16px; margin-bottom: 20px; font-weight: 500;">Dear ${application.fullName},</p>
+                      <p style="line-height: 1.6; color: #e2e8f0; margin-bottom: 30px; font-size: 15px;">
+                        Congratulations! Your admission has been confirmed for <strong>${application.courseName} — ${application.programName}</strong> at <strong>${application.collegeName || 'Seatifyai Institute'}</strong>.
+                      </p>
 
-                <!-- Order Summary Box -->
-                <div style="background-color: #0a0a0a; border-radius: 12px; padding: 24px; margin-bottom: 30px;">
-                  <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 600; color: #f8fafc;">Order Summary</h3>
-                  <div style="display: flex; flex-direction: column; gap: 16px;">
-                    <div style="font-size: 15px;"><strong style="color: #94a3b8;">Application ID:</strong> ${application.applicationId}</div>
-                    <div style="font-size: 15px;"><strong style="color: #94a3b8;">College Name:</strong> ${application.collegeName || 'Seatifyai Institute'}</div>
-                    <div style="font-size: 15px;"><strong style="color: #94a3b8;">Course Name:</strong> ${application.courseName}</div>
-                    <div style="font-size: 15px;"><strong style="color: #94a3b8;">Program Name:</strong> ${application.programName}</div>
-                    <div style="font-size: 15px;"><strong style="color: #94a3b8;">Email Address:</strong> ${application.email}</div>
-                    <div style="font-size: 15px;"><strong style="color: #94a3b8;">Payment ID:</strong> ${razorpay_payment_id}</div>
-                    <div style="font-size: 15px;"><strong style="color: #94a3b8;">Amount Paid:</strong> ₹${application.fee?.toLocaleString('en-IN')}</div>
-                    <div style="font-size: 15px;"><strong style="color: #94a3b8;">Date:</strong> ${new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                      <!-- Order Summary Box -->
+                      <div style="background-color: #0a0a0a; border-radius: 14px; padding: 24px; border: 1px solid #1e293b;">
+                        <h3 style="margin: 0 0 20px 0; font-size: 16px; font-weight: 600; color: #f8fafc; text-transform: uppercase; letter-spacing: 0.05em;">Enrollment Details</h3>
+                        
+                        <div style="display: table; width: 100%; border-collapse: separate; border-spacing: 0 12px;">
+                          <div style="display: table-row;">
+                            <div style="display: table-cell; font-size: 14px; color: #94a3b8; padding-right: 12px; width: 40%;">Application ID</div>
+                            <div style="display: table-cell; font-size: 14px; color: #f8fafc; font-weight: 600;">${application.applicationId}</div>
+                          </div>
+                          <div style="display: table-row;">
+                            <div style="display: table-cell; font-size: 14px; color: #94a3b8; padding-right: 12px;">Institution</div>
+                            <div style="display: table-cell; font-size: 14px; color: #f8fafc; font-weight: 500;">${application.collegeName || 'Seatifyai Institute'}</div>
+                          </div>
+                          <div style="display: table-row;">
+                            <div style="display: table-cell; font-size: 14px; color: #94a3b8; padding-right: 12px;">Course & Program</div>
+                            <div style="display: table-cell; font-size: 14px; color: #f8fafc; font-weight: 500;">${application.courseName} — ${application.programName}</div>
+                          </div>
+                          <div style="display: table-row;">
+                            <div style="display: table-cell; font-size: 14px; color: #94a3b8; padding-right: 12px;">Payment ID</div>
+                            <div style="display: table-cell; font-size: 14px; color: #6366f1; font-weight: 600; font-family: monospace;">${razorpay_payment_id}</div>
+                          </div>
+                          <div style="display: table-row;">
+                            <div style="display: table-cell; font-size: 14px; color: #94a3b8; padding-right: 12px;">Amount Paid</div>
+                            <div style="display: table-cell; font-size: 16px; color: #10b981; font-weight: 700;">₹${application.fee?.toLocaleString('en-IN')}</div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div style="margin-top: 30px; text-align: center;">
+                        <a href="https://seatifyai.com/profile" style="display: inline-block; padding: 14px 28px; background-color: #4f46e5; color: #ffffff; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);">View Admission Profile</a>
+                      </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style="padding: 32px 24px; background-color: #1e293b; text-align: center;">
+                      <p style="color: #94a3b8; font-size: 13px; line-height: 1.6; margin: 0;">
+                        This is an automated confirmation of your admission. Please keep this email for your records. If you have any questions, feel free to contact our support team.
+                      </p>
+                      <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(148, 163, 184, 0.1);">
+                        <p style="color: #64748b; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} Seatifyai. All rights reserved.</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-
-              <!-- Footer -->
-              <div style="padding: 0 32px 40px; text-align: left;">
-                <p style="color: #94a3b8; font-size: 14px; line-height: 1.5; margin: 0;">
-                  Please keep this email for your records. If you have any queries, contact our admissions office.
-                </p>
-              </div>
-            </div>
+                </td>
+              </tr>
+            </table>
           `,
         });
       } catch (mailErr) {

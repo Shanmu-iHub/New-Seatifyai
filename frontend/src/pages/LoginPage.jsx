@@ -12,7 +12,7 @@ export default function LoginPage() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
-  const [name, setName] = useState('');
+
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,7 +48,7 @@ export default function LoginPage() {
     if (otpStr.length !== 6) return toast.error('Please enter the complete OTP');
     setLoading(true);
     try {
-      const res = await axios.post('/api/auth/verify-otp', { contact, type: mode, otp: otpStr, name: isNewUser ? name : undefined });
+      const res = await axios.post('/api/auth/verify-otp', { contact, type: mode, otp: otpStr });
       login(res.data.user, res.data.token);
       toast.success('Welcome to Seatifyai!');
       
@@ -112,6 +112,7 @@ export default function LoginPage() {
               </div>
 
               <form onSubmit={handleSendOtp}>
+
                 <div className="mb-5">
                   <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-muted)' }}>
                     {mode === 'email' ? 'Email Address' : 'Mobile Number'}
@@ -145,14 +146,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {isNewUser && (
-                <div className="mb-5">
-                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-muted)' }}>Full Name</label>
-                  <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Your full name"
-                    className="w-full rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-blue-50 outline-none transition-all"
-                    style={{ background: '#fff', border: '1px solid var(--card-border)', color: 'var(--text)' }} />
-                </div>
-              )}
+
 
               <form onSubmit={handleVerifyOtp}>
                 <label className="block text-sm font-medium mb-3" style={{ color: 'var(--text-muted)' }}>Enter 6-digit OTP</label>

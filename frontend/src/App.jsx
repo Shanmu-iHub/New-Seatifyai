@@ -21,6 +21,12 @@ const ProtectedRoute = ({ children }) => {
   return user ? children : <Navigate to="/login" />;
 };
 
+const PublicRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  return user ? <Navigate to="/courses" /> : children;
+};
+
 const AppRoutes = () => {
   const { user } = useAuth();
   return (
@@ -28,7 +34,7 @@ const AppRoutes = () => {
       <Navbar />
       <Routes>
         <Route path="/" element={<CoursesPage />} />
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/courses" element={<CoursesPage />} />
         <Route path="/apply/:courseId" element={<ProtectedRoute><ApplicationForm /></ProtectedRoute>} />
         <Route path="/payment/:applicationId" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />

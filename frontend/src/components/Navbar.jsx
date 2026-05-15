@@ -36,6 +36,9 @@ export default function Navbar() {
               <Link to="/profile" className={`text-sm font-medium transition-colors ${location.pathname === '/profile' ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-900'}`}>
                 Profile
               </Link>
+              <a href="tel:+919600940618" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
+                Help: +91 96009 40618
+              </a>
               <div className="flex items-center gap-3 pl-4" style={{ borderLeft: '1px solid var(--card-border)' }}>
                 <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
                   style={{ background: 'var(--primary)' }}>
@@ -48,7 +51,10 @@ export default function Navbar() {
               </div>
             </div>
           ) : (
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-6">
+              <a href="tel:+919600940618" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
+                Help: +91 96009 40618
+              </a>
               <Link to="/login" className="px-5 py-2 rounded-xl text-sm font-bold text-white transition-all hover:scale-105 active:scale-95 shadow-lg shadow-indigo-200"
                 style={{ background: 'var(--primary)' }}>
                 Sign In
@@ -80,6 +86,9 @@ export default function Navbar() {
                   Sign In
                 </Link>
               )}
+              <a href="tel:+919600940618" onClick={() => setMenuOpen(false)} className="text-gray-600 font-medium py-2 border-t mt-2" style={{ borderColor: 'var(--card-border)' }}>
+                Help: +91 96009 40618
+              </a>
             </div>
           </div>
         )}

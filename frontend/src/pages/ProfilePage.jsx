@@ -6,6 +6,8 @@ import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+import { logoBase64 } from '../assets/logoBase64';
+
 const TABS = ['Overview', 'Admissions'];
 
 export default function ProfilePage() {
@@ -49,7 +51,7 @@ export default function ProfilePage() {
     setEditFormData({
       fullName: profile.fullName,
       dob: profile.dob,
-      admissionType: profile.admissionType,
+      admissionType: profile.admissionType || 'Regular',
       email: profile.email,
       mobile: profile.mobile,
     });
@@ -76,50 +78,68 @@ export default function ProfilePage() {
       setLoading(false);
     }
   };
+  const handleCancelAdmission = async (adm) => {
+    if (!window.confirm("Are you sure you want to cancel this admission? This action cannot be undone.")) return;
+    
+    setLoading(true);
+    try {
+      await axios.post(`/api/cancel/${adm.applicationId}`);
+      toast.success("Admission cancelled successfully. You can now book another course.");
+      fetchProfile();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || err.message || "Failed to cancel admission");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDownloadReceipt = (adm) => {
     try {
       const doc = new jsPDF();
       const studentName = profile?.fullName || user?.name || 'Student';
-      const dateStr = new Date(adm.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-      const timeStr = new Date(adm.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      const dateStr = new Date(adm.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
+      const timeStr = new Date(adm.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
 
       // 1. Sidebar Accent (Yellow)
       doc.setFillColor(252, 211, 77);
       doc.rect(0, 0, 5, 297, 'F');
 
       // 2. Header Block (Black)
-      doc.setFillColor(31, 41, 55);
-      doc.rect(5, 10, 200, 30, 'F');
+      doc.setFillColor(0, 0, 0);
+      doc.rect(5, 10, 200, 35, 'F');
       
-      doc.setFontSize(24);
+      // --- Logo Only (White Version) ---
+      if (logoBase64) {
+        doc.addImage(logoBase64, 'WEBP', 15, 16, 46, 23);
+      }
+
+      doc.setFontSize(20);
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
-      doc.text("Seatify", 15, 30);
-      
-      doc.setFontSize(10);
-      doc.setTextColor(252, 211, 77);
-      doc.text("Smart Admission Portal", 15, 36);
-
-      doc.setFontSize(18);
-      doc.setTextColor(255, 255, 255);
-      doc.text("OFFICIAL RECEIPT", 140, 30);
+      doc.text("OFFICIAL RECEIPT", 135, 30);
       
       // 3. Info Section
       doc.setFontSize(10);
       doc.setTextColor(75, 85, 99);
       doc.text(`ISSUED ON: ${dateStr} at ${timeStr}`, 15, 55);
-      doc.text(`APPLICATION ID: ${adm.applicationId}`, 150, 55);
+      
+      // Fixed Application ID Alignment (Moved left to prevent cut-off)
+      doc.setFont("helvetica", "bold");
+      doc.text("APPLICATION ID:", 115, 55);
+      doc.setFont("helvetica", "normal");
+      doc.text(`${adm.applicationId}`, 145, 55);
       
       const tableData = [
         ['INSTITUTION NAME', adm.collegeName || 'SNS Institutions'],
         ['APPLICATION ID', adm.applicationId],
         ['STUDENT NAME', studentName.toUpperCase()],
-        ['COURSE', (adm.courseName || 'N/A').toUpperCase()],
         ['PROGRAM', (adm.programName || 'N/A').toUpperCase()],
+        ['COURSE', (adm.courseName || 'N/A').toUpperCase()],
         ['AMOUNT PAID', `INR ${((adm.fee || 0) + 1).toLocaleString('en-IN')}`],
         ['PAYMENT ID', adm.paymentId || 'N/A'],
         ['DATE & TIME', `${dateStr} at ${timeStr}`],
-        ['STATUS', 'CONFIRMED ✓']
+        ['STATUS', 'PRE REGISTRATION CONFIRMED']
       ];
 
       autoTable(doc, {
@@ -135,40 +155,41 @@ export default function ProfilePage() {
         },
         bodyStyles: { fontSize: 9, cellPadding: 6 },
         columnStyles: {
-          0: { cellWidth: 60, fontStyle: 'bold', fillColor: [249, 250, 251] }
+          0: { cellWidth: 55, fontStyle: 'bold', fillColor: [249, 250, 251] }
         }
       });
       
       const finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) || 150;
       
       doc.setFillColor(245, 245, 245);
-      doc.rect(15, finalY + 10, 180, 22, 'F');
-      doc.setFontSize(9);
+      doc.rect(15, finalY + 10, 180, 25, 'F');
+      doc.setFontSize(10);
       doc.setTextColor(31, 41, 55);
       doc.setFont("helvetica", "bold");
-      doc.text("VERIFIED ENROLLMENT ✓", 20, finalY + 23);
+      doc.text("VERIFIED ENROLLMENT", 20, finalY + 25);
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.text("This receipt confirms your seat reservation and initial fee payment in our system.", 65, finalY + 23);
+      doc.setFontSize(8.5);
+      doc.text("This receipt confirms your seat reservation and initial fee payment in our system.", 65, finalY + 25);
 
       // Policy Note
       doc.setFillColor(254, 252, 232);
       doc.setDrawColor(252, 211, 77);
-      doc.rect(15, finalY + 40, 180, 25, 'FD');
+      doc.rect(15, finalY + 45, 180, 25, 'FD');
       doc.setFontSize(9);
       doc.setTextColor(31, 41, 55);
       doc.setFont("helvetica", "bold");
-      doc.text("NOTE:", 20, finalY + 50);
+      doc.text("NOTE:", 20, finalY + 58);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8.5);
       const noteText = "This is a temporary seat confirmation only. Students are required to visit the college campus directly to verify and confirm their course admission.";
-      const splitNote = doc.splitTextToSize(noteText, 150);
-      doc.text(splitNote, 35, finalY + 50);
+      const splitNote = doc.splitTextToSize(noteText, 145);
+      doc.text(splitNote, 38, finalY + 58);
 
+      // Footer (One Line)
       doc.setFontSize(8);
       doc.setTextColor(156, 163, 175);
-      doc.text("This is a digital receipt issued by SeatifyAI Admission System.", 15, 280);
-      doc.text("www.seatifyai.com", 15, 285);
+      const footerY = Math.max(280, finalY + 80);
+      doc.text("This is a digital receipt issued by SeatifyAI Admission System.  www.seatifyai.com  |  Page 1 of 1", 105, footerY, { align: 'center' });
       
       doc.save(`Seatify_Receipt_${adm.applicationId}.pdf`);
       toast.success("Receipt downloaded!");
@@ -177,11 +198,13 @@ export default function ProfilePage() {
       toast.error("Receipt generation failed.");
     }
   };
+
   const StatusBadge = ({ status }) => {
     const cfg = {
-      confirmed: { color: '#10B981', bg: 'rgba(16,185,129,0.12)', icon: CheckCircle, label: 'Confirmed' },
+      confirmed: { color: '#10B981', bg: 'rgba(16,185,129,0.12)', icon: CheckCircle, label: 'Pre Registration Confirmed' },
       pending: { color: '#F59E0B', bg: 'rgba(245,158,11,0.12)', icon: Clock, label: 'Pending' },
       rejected: { color: '#EF4444', bg: 'rgba(239,68,68,0.12)', icon: AlertCircle, label: 'Rejected' },
+      cancelled: { color: '#6B7280', bg: 'rgba(107,114,128,0.12)', icon: X, label: 'Cancelled' },
     }[status?.toLowerCase()] || { color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)', icon: Clock, label: status };
     const Icon = cfg.icon;
     return (
@@ -349,7 +372,7 @@ export default function ProfilePage() {
                     <Field label="Email" value={profile.email} />
                     <Field label="Mobile" value={profile.mobile} />
                     <Field label="Date of Birth" value={profile.dob} />
-                    <Field label="Admission Type" value={profile.admissionType} />
+                    <Field label="Admission Type" value={profile.admissionType || 'Regular'} />
                   </div>
                 )
               ) : (
@@ -380,18 +403,29 @@ export default function ProfilePage() {
                         <StatusBadge status={adm.status} />
                       </div>
                       <div className="grid grid-cols-2 gap-2 mb-3">
+                        <Field label="Institution Name" value={adm.collegeName || 'SNS Institutions'} />
                         <Field label="Application ID" value={adm.applicationId} />
                         <Field label="Amount Paid" value={`₹${((adm.fee || 0) + 1).toLocaleString('en-IN')}`} />
                         <Field label="Payment ID" value={adm.paymentId} />
-                        <Field label="Date" value={adm.createdAt ? new Date(adm.createdAt).toLocaleDateString('en-IN') : ''} />
+                        <Field label="Date" value={adm.createdAt ? new Date(adm.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) : ''} />
                       </div>
-                      {adm.paymentStatus === 'completed' && (
-                        <button
-                          onClick={() => handleDownloadReceipt(adm)}
-                          className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold bg-gray-900 text-white hover:bg-black transition-all"
-                        >
-                          <Download size={14} /> Download Receipt
-                        </button>
+                      {(adm.paymentStatus === 'completed' || adm.paymentId) && adm.status !== 'cancelled' && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleDownloadReceipt(adm)}
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold bg-gray-900 text-white hover:bg-black transition-all"
+                          >
+                            <Download size={14} /> Receipt
+                          </button>
+                          {adm.status !== 'rejected' && adm.status !== 'cancelled' && (
+                            <button
+                              onClick={() => handleCancelAdmission(adm)}
+                              className="px-4 py-2.5 rounded-xl text-xs font-bold border border-red-100 text-red-500 hover:bg-red-50 transition-all"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   ))}

@@ -43,6 +43,7 @@ router.get('/profile', auth, async (req, res) => {
         applicationId: a.applicationId,
         courseName: a.courseName,
         programName: a.programName,
+        collegeName: a.collegeName || 'SNS Institutions',
         fee: a.fee,
         paymentId: a.paymentId,
         status: a.status,

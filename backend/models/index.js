@@ -4,7 +4,8 @@ const mongoose = require('mongoose');
 const otpSchema = new mongoose.Schema({
   contact: { type: String, required: true },
   type: { type: String, enum: ['email', 'mobile'], required: true },
-  otp: { type: String, required: true },
+  otp: { type: String }, // Optional for 2Factor
+  sessionId: { type: String }, // For 2Factor.in
   expiresAt: { type: Date, required: true },
   verified: { type: Boolean, default: false },
 }, { timestamps: true });
@@ -71,7 +72,7 @@ const applicationSchema = new mongoose.Schema({
   paymentStatus: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
   paymentId: String,
   razorpayOrderId: String,
-  status: { type: String, enum: ['submitted', 'confirmed', 'rejected', 'pending'], default: 'pending' },
+  status: { type: String, enum: ['submitted', 'confirmed', 'rejected', 'pending', 'cancelled'], default: 'pending' },
 }, { timestamps: true });
 
 applicationSchema.pre('save', function(next) {

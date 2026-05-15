@@ -25,17 +25,22 @@ router.post('/create-order', auth, async (req, res) => {
       return res.status(503).json({ message: 'Payment gateway not configured' });
     }
 
+    const application = await Application.findOne({ applicationId });
+    
     const order = await razorpay.orders.create({
       amount: Math.round(amount * 100), // paise
       currency: 'INR',
       receipt: applicationId,
-      notes: { applicationId },
+      notes: { 
+        applicationId,
+        collegeName: application?.collegeName || 'N/A'
+      },
     });
 
     // Store order ID
     await Application.findOneAndUpdate(
       { applicationId },
-      { razorpayOrderId: order.id }
+      { razorpayOrderId: order.id, fee: amount }
     ).catch(() => { });
 
     res.json({
@@ -97,10 +102,19 @@ router.post('/verify', auth, async (req, res) => {
             mobile: application.mobile,
             course: application.courseName,
             program: application.programName,
+            college: application.collegeName,
+            collegeName: application.collegeName,
             fee: application.fee,
             paymentId: razorpay_payment_id,
-            folderUrl: application.folderUrl || '', // Ensure it's never undefined
-            date: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+            folderUrl: application.folderUrl || '',
+            documentUrl: application.folderUrl || '',
+            driveFolder: application.folderUrl || '',
+            marksheet10: application.docs?.marksheet10 || '',
+            marksheet12: application.docs?.marksheet12 || '',
+            aadhaar: application.docs?.aadhar || '',
+            tc: application.docs?.previousSchoolTC || application.docs?.tc || '',
+            community: application.docs?.community || '',
+            date: new Date(application.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
           });
           console.log(`✅ Google Sheet Response:`, sheetRes.data);
           console.log(`✅ Order details logged and seat sync triggered`);
@@ -109,14 +123,16 @@ router.post('/verify', auth, async (req, res) => {
         }
       }
 
-      // Decrement seat
       try {
-        const course = await Course.findById(application.courseId);
-        if (course) {
-          const prog = course.programs.id(application.programId);
-          if (prog && prog.seats > 0) {
-            prog.seats = prog.seats - 1;
-            await course.save();
+        const mongoose = require('mongoose');
+        if (mongoose.isValidObjectId(application.courseId)) {
+          const course = await Course.findById(application.courseId);
+          if (course) {
+            const prog = course.programs.id(application.programId);
+            if (prog && prog.seats > 0) {
+              prog.seats = prog.seats - 1;
+              await course.save();
+            }
           }
         }
       } catch { }
@@ -124,34 +140,61 @@ router.post('/verify', auth, async (req, res) => {
       // Send confirmation email
       try {
         const nodemailer = require('nodemailer');
+        const port = Number(process.env.SES_SMTP_PORT || process.env.MAIL_PORT) || 587;
+        const secure = process.env.MAIL_SECURE !== undefined ? process.env.MAIL_SECURE === 'true' : port === 465;
         const transporter = nodemailer.createTransport({
           host: process.env.SES_SMTP_HOST || process.env.MAIL_HOST || 'smtp.gmail.com',
-          port: Number(process.env.SES_SMTP_PORT || process.env.MAIL_PORT) || 587,
-          secure: false,
+          port: port,
+          secure: secure,
           auth: {
             user: process.env.SES_SMTP_USERNAME || process.env.MAIL_USER,
             pass: process.env.SES_SMTP_PASSWORD || process.env.MAIL_PASS
           },
+          tls: { rejectUnauthorized: false }
         });
         await transporter.sendMail({
           from: process.env.MAIL_FROM || 'Seatifyai <noreply@seatifyai.com>',
           to: application.email,
           subject: `Admission Confirmed — ${application.applicationId}`,
           html: `
-            <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px;background:#1A1A24;border-radius:16px;color:#fff">
-              <div style="text-align:center;margin-bottom:24px">
-                <div style="width:64px;height:64px;border-radius:50%;background:rgba(16,185,129,0.2);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:32px">✓</div>
-                <h2 style="color:#10B981;margin:0">Admission Confirmed!</h2>
+            <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 20px auto; background-color: #1a1d24; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
+              <!-- Header -->
+              <div style="padding: 40px 32px 20px; text-align: center;">
+                <div style="width: 64px; height: 64px; background-color: #10b981; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+                  <span style="font-size: 32px; color: #ffffff;">✓</span>
+                </div>
+                <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #10b981;">Admission Confirmed!</h1>
               </div>
-              <p>Dear ${application.fullName},</p>
-              <p>Your admission has been confirmed for <strong>${application.courseName} — ${application.programName}</strong>.</p>
-              <div style="background:#0F0F13;border-radius:12px;padding:16px;margin:20px 0">
-                <p><strong>Application ID:</strong> ${application.applicationId}</p>
-                <p><strong>Payment ID:</strong> ${razorpay_payment_id}</p>
-                <p><strong>Amount Paid:</strong> ₹${application.fee?.toLocaleString('en-IN')}</p>
-                <p><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN')}</p>
+
+              <!-- Body -->
+              <div style="padding: 20px 32px;">
+                <p style="font-size: 16px; margin-bottom: 20px;">Dear ${application.fullName},</p>
+                <p style="line-height: 1.6; color: #e2e8f0; margin-bottom: 30px; font-size: 16px;">
+                  Your admission has been confirmed for <strong>${application.courseName} — ${application.programName}</strong> at <strong>${application.collegeName || 'Seatifyai Institute'}</strong>.
+                </p>
+
+                <!-- Order Summary Box -->
+                <div style="background-color: #0a0a0a; border-radius: 12px; padding: 24px; margin-bottom: 30px;">
+                  <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 600; color: #f8fafc;">Order Summary</h3>
+                  <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <div style="font-size: 15px;"><strong style="color: #94a3b8;">Application ID:</strong> ${application.applicationId}</div>
+                    <div style="font-size: 15px;"><strong style="color: #94a3b8;">College Name:</strong> ${application.collegeName || 'Seatifyai Institute'}</div>
+                    <div style="font-size: 15px;"><strong style="color: #94a3b8;">Course Name:</strong> ${application.courseName}</div>
+                    <div style="font-size: 15px;"><strong style="color: #94a3b8;">Program Name:</strong> ${application.programName}</div>
+                    <div style="font-size: 15px;"><strong style="color: #94a3b8;">Email Address:</strong> ${application.email}</div>
+                    <div style="font-size: 15px;"><strong style="color: #94a3b8;">Payment ID:</strong> ${razorpay_payment_id}</div>
+                    <div style="font-size: 15px;"><strong style="color: #94a3b8;">Amount Paid:</strong> ₹${application.fee?.toLocaleString('en-IN')}</div>
+                    <div style="font-size: 15px;"><strong style="color: #94a3b8;">Date:</strong> ${new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                  </div>
+                </div>
               </div>
-              <p style="color:#9CA3AF;font-size:13px">Please keep this email for your records. If you have any queries, contact our admissions office.</p>
+
+              <!-- Footer -->
+              <div style="padding: 0 32px 40px; text-align: left;">
+                <p style="color: #94a3b8; font-size: 14px; line-height: 1.5; margin: 0;">
+                  Please keep this email for your records. If you have any queries, contact our admissions office.
+                </p>
+              </div>
             </div>
           `,
         });

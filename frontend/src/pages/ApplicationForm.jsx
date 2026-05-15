@@ -53,6 +53,7 @@ export default function ApplicationForm() {
   const [formData, setFormData] = useState({
     fullName: user?.name || '',
     dob: '',
+    admissionType: 'Regular',
     email: user?.email || '', mobile: user?.mobile || '',
     docs: { aadhar: null, previousSchoolTC: null, community: null, birthCertificate: null, marksheet10: null, marksheet12: null, diplomaCertificate: null }
   });
@@ -76,7 +77,7 @@ export default function ApplicationForm() {
         toast.error('Please fill all required fields');
         return;
       }
-      
+
       // Validate mobile number - must be 10 digits only
       const mobileRegex = /^[0-9]{10}$/;
       if (!mobileRegex.test(formData.mobile)) {
@@ -93,11 +94,43 @@ export default function ApplicationForm() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const getDocumentRequirements = () => {
+    if (!course) return [];
+    const docs = [
+      { id: 'aadhar', label: 'Aadhar Card *', required: true },
+      { id: 'birthCertificate', label: 'Birth Certificate', required: false },
+      { id: 'community', label: 'Community Certificate', required: false },
+    ];
+
+    const category = course.category;
+    const name = course.name?.toLowerCase() || '';
+
+    if (category === 'K-12') {
+      if (name.includes('grade 11') || name.includes('grade 12')) {
+        docs.push({ id: 'marksheet10', label: '10th Mark Sheet', required: false });
+        docs.push({ id: 'previousSchoolTC', label: 'Transfer Certificate (TC)', required: false });
+      } else if (name.includes('pre kg')) {
+        // No TC for Pre KG
+      } else {
+        docs.push({ id: 'previousSchoolTC', label: 'Transfer Certificate (TC)', required: false });
+      }
+    } else {
+      // College categories
+      docs.push({ id: 'marksheet10', label: '10th Mark Sheet', required: false });
+      docs.push({ id: 'marksheet12', label: '12th Mark Sheet / Diploma Certificate', required: false });
+    }
+    return docs;
+  };
+
   const handleSubmit = async () => {
-    if (!formData.docs.aadhar) {
-      toast.error('Aadhar Card is required');
+    const requiredDocs = getDocumentRequirements().filter(d => d.required);
+    const missing = requiredDocs.filter(d => !formData.docs[d.id]);
+
+    if (missing.length > 0) {
+      toast.error(`Please upload: ${missing.map(m => m.label.replace(' *', '')).join(', ')}`);
       return;
     }
+
     setLoading(true);
     try {
       const fd = new FormData();
@@ -160,7 +193,7 @@ export default function ApplicationForm() {
             <BookOpen size={20} style={{ color: 'var(--primary)' }} />
             <div>
               <p className="text-sm font-semibold">{course.name} — {program.name}</p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Pre Registration Amount: ₹{program.fee?.toLocaleString('en-IN')}</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Pre Registration Fee: ₹{program.fee?.toLocaleString('en-IN')}</p>
             </div>
           </div>
         )}
@@ -221,28 +254,15 @@ export default function ApplicationForm() {
               <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
                 Upload clear scans or photos (PDF, JPG, PNG. Max 10MB).
               </p>
-              
-              {/* K-12 Courses */}
-              {course?.category === 'K-12' && (
-                <>
-                  <DocUpload label="Aadhar Card *" field="aadhar" accept=".pdf,image/*" />
-                  <DocUpload label="Previous School TC" field="previousSchoolTC" accept=".pdf,image/*" />
-                  <DocUpload label="Community Certificate" field="community" accept=".pdf,image/*" />
-                  <DocUpload label="Birth Certificate" field="birthCertificate" accept=".pdf,image/*" />
-                  <DocUpload label="10th Mark Sheet" field="marksheet10" accept=".pdf,image/*" />
-                </>
-              )}
 
-              {/* Other Courses (Engineering, Arts, Paramedical, Education) */}
-              {course?.category !== 'K-12' && (
-                <>
-                  <DocUpload label="Aadhar Card *" field="aadhar" accept=".pdf,image/*" />
-                  <DocUpload label="10th Mark Sheet" field="marksheet10" accept=".pdf,image/*" />
-                  <DocUpload label="12th Mark Sheet or Diploma Certificate" field="marksheet12" accept=".pdf,image/*" />
-                  <DocUpload label="Community Certificate" field="community" accept=".pdf,image/*" />
-                  <DocUpload label="Birth Certificate" field="birthCertificate" accept=".pdf,image/*" />
-                </>
-              )}
+              {getDocumentRequirements().map(doc => (
+                <DocUpload
+                  key={doc.id}
+                  label={doc.label}
+                  field={doc.id}
+                  accept=".pdf,image/*"
+                />
+              ))}
             </div>
           )}
         </div>

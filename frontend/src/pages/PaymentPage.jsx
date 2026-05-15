@@ -119,7 +119,8 @@ export default function PaymentPage() {
           <div className="space-y-3 mb-5">
             {[
               ['Institution Name', application?.collegeName || course?.collegeName || 'SNS Institutions'],
-              ['Program', application?.courseName || course?.name || 'N/A'],
+              ['Program', application?.programName || program?.name || 'N/A'],
+              ['Course', application?.courseName || course?.name || 'N/A'],
               ['Academic Year', new Date().getFullYear() + '-' + (new Date().getFullYear() + 1)],
               ['Application ID', applicationId || 'N/A'],
             ].map(([label, val]) => (
@@ -156,7 +157,7 @@ export default function PaymentPage() {
           <button
             onClick={handlePayment}
             disabled={loading}
-            className="w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-all"
+            className="w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-all mb-3"
             style={{
               background: loading ? 'var(--primary-dark)' : 'var(--primary)',
               color: '#fff',
@@ -165,6 +166,27 @@ export default function PaymentPage() {
             {loading
               ? <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing...</>
               : <><ShieldCheck size={18} /> Pay ₹{fee.toLocaleString('en-IN')}</>}
+          </button>
+
+          <button
+            onClick={async () => {
+              if (window.confirm("Are you sure you want to cancel this application?")) {
+                setLoading(true);
+                try {
+                  await axios.post(`/api/cancel/${applicationId}`);
+                  toast.success("Application cancelled");
+                  navigate('/courses');
+                } catch (err) {
+                  toast.error("Failed to cancel application");
+                } finally {
+                  setLoading(false);
+                }
+              }
+            }}
+            disabled={loading}
+            className="w-full py-3 rounded-xl font-bold text-sm text-red-500 hover:bg-red-50 transition-all border border-red-100"
+          >
+            Cancel Application
           </button>
         </div>
 

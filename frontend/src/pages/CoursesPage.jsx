@@ -4,6 +4,7 @@ import { BookOpen, Users, IndianRupee, ChevronRight, Plus, Check, ShoppingCart, 
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
+import logo from '../assets/White_Version_Logo.webp';
 
 const CATEGORIES = ['All', 'K-12', 'Engineering & Tech', 'Arts & Science', 'Paramedical', 'Education'];
 
@@ -122,6 +123,8 @@ export default function CoursesPage() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 12;
   const [hasCompletedApplication, setHasCompletedApplication] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState(false);
 
@@ -165,7 +168,10 @@ export default function CoursesPage() {
       const currentYear = new Date().getFullYear();
       const academicYear = `${currentYear}-${currentYear + 1}`;
       const hasCompleted = res.data.some(
-        app => app.paymentStatus === 'completed' && app.academicYear === academicYear
+        app => app.paymentStatus === 'completed' &&
+          app.academicYear === academicYear &&
+          app.status !== 'rejected' &&
+          app.status !== 'cancelled'
       );
       setHasCompletedApplication(hasCompleted);
     } catch (err) {
@@ -176,7 +182,8 @@ export default function CoursesPage() {
   const filteredCourses = Array.isArray(courses)
     ? courses.filter(course => {
       const matchesTab =
-        activeTab === 'All' || course.category === activeTab;
+        activeTab === 'All' ||
+        (course.category || '').trim().toLowerCase() === activeTab.trim().toLowerCase();
 
       const q = searchQuery.toLowerCase().replace(/\s+/g, '');
 
@@ -193,6 +200,9 @@ export default function CoursesPage() {
     })
     : [];
 
+  const totalPages = Math.ceil(filteredCourses.length / ITEMS_PER_PAGE);
+  const paginatedCourses = filteredCourses.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
 
 
   const handleApplyNow = (course, program) => {
@@ -203,7 +213,7 @@ export default function CoursesPage() {
   const getNameColor = (name) => NAME_COLOR[name] || NAME_COLOR['default'];
 
   return (
-    <div className="min-h-screen pb-24 relative overflow-hidden" style={{ background: '#F8FAFC' }}>
+    <div className="min-h-screen relative overflow-hidden" style={{ background: '#F8FAFC' }}>
       {/* Decorative Background Elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
         <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full opacity-20 blur-[120px]"
@@ -224,10 +234,10 @@ export default function CoursesPage() {
             Secure Your Seat Today
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-3" style={{ fontFamily: 'Clash Display' }}>
-            Courses & Programs
+            Courses & Program
           </h1>
           <p style={{ color: 'var(--text-muted)', maxWidth: '560px', margin: '0 auto', lineHeight: 1.7 }}>
-            Explore admissions for K12, UG, PG & career-focused programs all in one place.
+            Explore admissions for K12, UG, PG & career-focused program all in one place.
           </p>
         </div>
 
@@ -241,7 +251,10 @@ export default function CoursesPage() {
               type="text"
               placeholder="Search courses, degrees, or subjects..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
               className="w-full pl-12 pr-12 py-3.5 rounded-2xl text-sm transition-all outline-none"
               style={{
                 background: 'rgba(0,0,0,0.03)',
@@ -265,8 +278,11 @@ export default function CoursesPage() {
           {CATEGORIES.map(tab => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-shrink-0 px-6 py-2.5 rounded-full text-sm font-bold transition-all transform active:scale-95 relative ${activeTab === tab ? 'tab-active-glow' : ''}`}
+              onClick={() => {
+                setActiveTab(tab);
+                setCurrentPage(1);
+              }}
+              className={`flex-shrink-0 px-6 py-2.5 rounded-full text-sm font-bold transition-all transform active:scale-95 relative ${activeTab === tab ? '' : ''}`}
               style={{
                 background: activeTab === tab ? 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' : 'rgba(255,255,255,0.8)',
                 color: activeTab === tab ? '#fff' : '#64748B',
@@ -305,94 +321,141 @@ export default function CoursesPage() {
 
         {/* Course Cards Grid */}
         {!loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredCourses.map((course, idx) => {
-              const iconStyle = getIconStyle(course.name);
-              const nameColor = getNameColor(course.name);
-              return (
-                <div
-                  key={course._id}
-                  className="course-card rounded-2xl p-5 animate-fade-up"
-                  style={{
-                    background: 'var(--card)',
-                    border: '1px solid var(--card-border)',
-                    animationDelay: `${idx * 0.06}s`,
-                    animationFillMode: 'both'
-                  }}
-                >
-                  {/* Card Header */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                      style={{ background: iconStyle.bg }}>
-                      {course.emoji || iconStyle.emoji}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-base leading-tight" style={{ color: nameColor, fontFamily: 'Clash Display' }}>
-                        {course.name}
-                      </h3>
-                      <div className="mt-1 flex flex-col gap-0.5">
-                        <p className="text-[11px] font-medium" style={{ color: 'var(--primary)', opacity: 0.8 }}>
-                          {course.collegeName || 'SNS Institutions'}
-                        </p>
-                        <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>{course.type}</p>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {paginatedCourses.map((course, idx) => {
+                const iconStyle = getIconStyle(course.name);
+                const nameColor = getNameColor(course.name);
+                return (
+                  <div
+                    key={course._id}
+                    className="course-card rounded-2xl p-5 animate-fade-up"
+                    style={{
+                      background: 'var(--card)',
+                      border: '1px solid var(--card-border)',
+                      animationDelay: `${idx * 0.06}s`,
+                      animationFillMode: 'both'
+                    }}
+                  >
+                    {/* Card Header */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                        style={{ background: iconStyle.bg }}>
+                        {course.emoji || iconStyle.emoji}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-base leading-tight" style={{ color: nameColor, fontFamily: 'Clash Display' }}>
+                          {course.name}
+                        </h3>
+                        <div className="mt-1 flex flex-col gap-0.5">
+                          <p className="text-[11px] font-medium" style={{ color: 'var(--primary)', opacity: 0.8 }}>
+                            {course.collegeName || 'SNS Institutions'}
+                          </p>
+                          <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>{course.type}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Divider */}
-                  <div style={{ height: '1px', background: 'var(--card-border)', marginBottom: '14px' }} />
+                    {/* Divider */}
+                    <div style={{ height: '1px', background: 'var(--card-border)', marginBottom: '14px' }} />
 
-                  {/* Programs list */}
-                  <div className="space-y-3">
-                    {course.programs?.map(program => {
-                      const key = `${course._id}-${program._id}`;
+                    {/* Programs list */}
+                    <div className="space-y-3">
+                      {course.programs?.map(program => {
+                        const key = `${course._id}-${program._id}`;
 
-                      return (
-                        <div key={program._id}>
-                          <div className="flex items-start gap-2 mb-2">
-                            <span className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>●</span>
-                            <span className="text-sm leading-snug" style={{ color: '#D1D5DB' }}>{program.name}</span>
-                          </div>
-                          <div className="flex items-center justify-between ml-4">
-                            <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
-                              <span style={{ color: 'var(--text-muted)', fontWeight: 'normal', fontSize: '0.85em', marginRight: '4px' }}>Pre Registration Amount:</span>
-                              {formatFullFee(program.fee)}
-                            </span>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleApply(course, program)}
-                                className="flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold text-white transition-all transform hover:scale-105"
-                                style={{ background: 'var(--primary)' }}
-                              >
-                                Apply Now <ChevronRight size={14} />
-                              </button>
+                        return (
+                          <div key={program._id}>
+                            <div className="flex items-start gap-2 mb-2">
+                              <span className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>●</span>
+                              <span className="text-sm leading-snug" style={{ color: '#D1D5DB' }}>{program.name}</span>
                             </div>
-                          </div>
-                          {program.seats <= 5 && program.seats > 0 && (
-                            <div className="ml-4 mt-1">
-                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.12)', color: '#FCA5A5' }}>
-                                Only {program.seats} seats left!
+                            <div className="flex items-center justify-between ml-4">
+                              <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                                <span style={{ color: 'var(--text-muted)', fontWeight: 'normal', fontSize: '0.85em', marginRight: '4px' }}>Pre Registration Fee:</span>
+                                {formatFullFee(program.fee)}
                               </span>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleApply(course, program)}
+                                  className="flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold text-white transition-all transform hover:scale-105"
+                                  style={{ background: 'var(--primary)' }}
+                                >
+                                  Apply Now <ChevronRight size={14} />
+                                </button>
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Seats summary - only show if low availability */}
-                  {(course.programs || []).some(p => p.seats <= 5 && p.seats > 0) && (
-                    <div className="mt-4 pt-3 flex items-center gap-2 animate-pulse" style={{ borderTop: '1px solid var(--card-border)' }}>
-                      <Sparkles size={13} style={{ color: '#FCA5A5' }} />
-                      <span className="text-xs font-bold" style={{ color: '#FCA5A5' }}>
-                        Hurry! Only few seats left. Enroll now!
-                      </span>
+                            {program.seats <= 5 && program.seats > 0 && (
+                              <div className="ml-4 mt-1">
+                                <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.12)', color: '#FCA5A5' }}>
+                                  Only {program.seats} seats left!
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  )}
+
+                    {/* Seats summary - only show if low availability */}
+                    {(course.programs || []).some(p => p.seats <= 5 && p.seats > 0) && (
+                      <div className="mt-4 pt-3 flex items-center gap-2 animate-pulse" style={{ borderTop: '1px solid var(--card-border)' }}>
+                        <Sparkles size={13} style={{ color: '#FCA5A5' }} />
+                        <span className="text-xs font-bold" style={{ color: '#FCA5A5' }}>
+                          Hurry! Only few seats left. Enroll now!
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Pagination UI */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-4 mt-12 animate-fade-up">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${currentPage === 1
+                      ? 'opacity-30 cursor-not-allowed'
+                      : 'hover:scale-105 active:scale-95'
+                    }`}
+                  style={{
+                    background: 'rgba(255,255,255,0.8)',
+                    border: '1px solid var(--card-border)',
+                    color: 'var(--text)'
+                  }}
+                >
+                  Previous
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-gray-400">Page</span>
+                  <span className="px-3 py-1 rounded-lg text-sm font-bold bg-primary text-white shadow-lg shadow-indigo-500/20">
+                    {currentPage}
+                  </span>
+                  <span className="text-xs font-bold text-gray-400">of {totalPages}</span>
                 </div>
-              );
-            })}
-          </div>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${currentPage === totalPages
+                      ? 'opacity-30 cursor-not-allowed'
+                      : 'hover:scale-105 active:scale-95'
+                    }`}
+                  style={{
+                    background: 'rgba(255,255,255,0.8)',
+                    border: '1px solid var(--card-border)',
+                    color: 'var(--text)'
+                  }}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         {!loading && filteredCourses.length === 0 && (
@@ -421,6 +484,25 @@ export default function CoursesPage() {
           </div>
         </div>
       )}
+      {/* Desktop Footer — hidden on mobile */}
+      <footer className="hidden md:block mt-16 py-10 px-8 text-center" style={{ background: '#0F172A', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="max-w-5xl mx-auto">
+          <img src={logo} alt="SeatifyAI" style={{ height: 40, margin: '0 auto 8px' }} />
+          <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.45)' }}>
+            Digital Admission Marketplace — Making admissions simple, transparent &amp; digital.
+          </p>
+          <div className="flex justify-center gap-6 text-xs font-medium mb-6" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            {/* <span>About</span>
+            <span>Contact</span> */}
+            <a href="tel:+919600940618" className="hover:text-white transition-colors">Support: +91 96009 40618</a>
+            {/* <span>Privacy Policy</span>
+            <span>Terms of Service</span> */}
+          </div>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+            © {new Date().getFullYear()} SeatifyAI. Powered by SeatifyAI. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

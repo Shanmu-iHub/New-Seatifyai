@@ -32,19 +32,19 @@ export default function ConfirmationPage() {
   }, []);
 
   const now = new Date();
-  const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-  const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
+  const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
 
   const details = [
     ['Institution Name', application?.collegeName || course?.collegeName || 'SNS Institutions'],
     ['Application ID', applicationId],
     ['Student Name', application?.fullName || user?.name || 'Student'],
-    ['Course', course?.name || 'N/A'],
     ['Program', program?.name || 'N/A'],
+    ['Course', course?.name || 'N/A'],
     ['Amount Paid', `₹${((program?.fee || 0) + 1).toLocaleString('en-IN')}`],
     ['Payment ID', paymentId || 'N/A'],
     ['Date & Time', `${dateStr} at ${timeStr}`],
-    ['Status', 'Confirmed ✓'],
+    ['Status', 'Pre Registration Confirmed'],
   ];
 
   const handleDownloadReceipt = async () => {
@@ -57,40 +57,41 @@ export default function ConfirmationPage() {
       doc.rect(0, 0, 5, 297, 'F');
 
       // 2. Header Block (Black)
-      doc.setFillColor(31, 41, 55); 
-      doc.rect(5, 10, 200, 30, 'F');
+      doc.setFillColor(0, 0, 0); 
+      doc.rect(5, 10, 200, 35, 'F');
       
-      doc.setFontSize(24);
-      doc.setTextColor(255, 255, 255); 
-      doc.setFont("helvetica", "bold");
-      doc.text("Seatify", 15, 30);
+      // --- Logo Only (White Version) ---
+      if (logoBase64) {
+        doc.addImage(logoBase64, 'WEBP', 15, 16, 46, 23);
+      }
       
-      doc.setFontSize(10);
-      doc.setTextColor(252, 211, 77); 
-      doc.setFont("helvetica", "normal");
-      doc.text("Smart Admission Portal", 15, 36);
-
-      doc.setFontSize(18);
+      doc.setFontSize(20);
       doc.setTextColor(255, 255, 255);
-      doc.text("OFFICIAL RECEIPT", 140, 30);
+      doc.setFont("helvetica", "bold");
+      doc.text("OFFICIAL RECEIPT", 135, 30);
       
       // 3. Info Section
-      doc.setFontSize(10);
+      doc.setFontSize(9);
       doc.setTextColor(75, 85, 99); 
       doc.text(`ISSUED ON: ${dateStr || 'N/A'} at ${timeStr || 'N/A'}`, 15, 55);
-      doc.text(`APPLICATION ID: ${applicationId || 'N/A'}`, 150, 55);
       
-      // 4. Data Table
+      // Fixed Application ID Alignment (Moved left to prevent cut-off)
+      doc.setFont("helvetica", "bold");
+      doc.text("APPLICATION ID:", 115, 55);
+      doc.setFont("helvetica", "normal");
+      doc.text(`${applicationId || 'N/A'}`, 145, 55);
+      
+      // 4. Data Table (RE-ORDERED AS REQUESTED)
       const tableData = [
-        ['INSTITUTION NAME', application?.collegeName || course?.collegeName || 'SNS Institutions'],
+        ['INSTITUTION NAME', (application?.collegeName || course?.collegeName || 'SNS Institutions').toUpperCase()],
         ['APPLICATION ID', applicationId || 'N/A'],
         ['STUDENT NAME', studentName.toUpperCase()],
-        ['COURSE', (course?.name || 'N/A').toUpperCase()],
         ['PROGRAM', (program?.name || 'N/A').toUpperCase()],
+        ['COURSE', (course?.name || 'N/A').toUpperCase()],
         ['AMOUNT PAID', `INR ${((program?.fee || 0) + 1).toLocaleString('en-IN')}`],
         ['PAYMENT ID', paymentId || 'N/A'],
         ['DATE & TIME', `${dateStr || 'N/A'} at ${timeStr || 'N/A'}`],
-        ['STATUS', 'CONFIRMED ✓']
+        ['STATUS', 'PRE REGISTRATION CONFIRMED']
       ];
       
       autoTable(doc, {
@@ -107,11 +108,11 @@ export default function ConfirmationPage() {
         },
         bodyStyles: { 
           fontSize: 9, 
-          cellPadding: 6,
+          cellPadding: 5,
           textColor: [31, 41, 55]
         },
         columnStyles: {
-          0: { cellWidth: 60, fontStyle: 'bold', fillColor: [249, 250, 251] },
+          0: { cellWidth: 55, fontStyle: 'bold', fillColor: [249, 250, 251] },
           1: { cellWidth: 'auto' }
         },
         styles: {
@@ -122,39 +123,40 @@ export default function ConfirmationPage() {
       
       const finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) || 180;
       
-      // 5. Verification Badge
+      // 5. Verification Badge (FIXED OVERLAP)
       doc.setFillColor(245, 245, 245);
-      doc.rect(15, finalY + 10, 180, 22, 'F');
-      doc.setFontSize(9);
+      doc.rect(15, finalY + 10, 180, 25, 'F');
+      
+      doc.setFontSize(10);
       doc.setTextColor(31, 41, 55);
       doc.setFont("helvetica", "bold");
-      doc.text("VERIFIED ENROLLMENT ✓", 20, finalY + 23);
+      doc.text("VERIFIED ENROLLMENT", 20, finalY + 25);
+      
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.text("This receipt confirms your seat reservation and initial fee payment in our system.", 65, finalY + 23);
+      doc.setFontSize(8.5);
+      doc.text("This receipt confirms your seat reservation and initial fee payment in our system.", 65, finalY + 25);
 
-      // 6. Policy Note (Requested)
+      // 6. Policy Note (FIXED SPACING)
       doc.setFillColor(254, 252, 232); // Light yellow
       doc.setDrawColor(252, 211, 77); // Yellow border
-      doc.rect(15, finalY + 40, 180, 25, 'FD');
+      doc.rect(15, finalY + 45, 180, 25, 'FD');
       
       doc.setFontSize(9);
       doc.setTextColor(31, 41, 55);
       doc.setFont("helvetica", "bold");
-      doc.text("NOTE:", 20, finalY + 50);
+      doc.text("NOTE:", 20, finalY + 58);
       
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8.5);
       const noteText = "This is a temporary seat confirmation only. Students are required to visit the college campus directly to verify and confirm their course admission.";
-      const splitNote = doc.splitTextToSize(noteText, 150);
-      doc.text(splitNote, 35, finalY + 50);
+      const splitNote = doc.splitTextToSize(noteText, 145);
+      doc.text(splitNote, 38, finalY + 58);
 
-      // 7. Footer
+      // 7. Footer (One Line)
       doc.setFontSize(8);
       doc.setTextColor(156, 163, 175);
-      doc.text("This is a digital receipt issued by SeatifyAI Admission System.", 15, 280);
-      doc.text("For support, visit www.seatifyai.com", 15, 285);
-      doc.text("Page 1 of 1", 185, 285);
+      const footerY = Math.max(280, finalY + 80);
+      doc.text("This is a digital receipt issued by SeatifyAI Admission System.  www.seatifyai.com  |  Page 1 of 1", 105, footerY, { align: 'center' });
       
       doc.save(`Seatify_Receipt_${applicationId || 'Admission'}.pdf`);
       toast.success("Receipt generated!");
@@ -258,7 +260,7 @@ export default function ConfirmationPage() {
 
         {/* Support link */}
         <p className="text-center text-xs mt-8 text-gray-400 font-medium">
-          Need help? Contact support at <span className="text-blue-600 font-bold">help@seatifyai.com</span>
+          Need help? Contact support at <span className="text-blue-600 font-bold">+91 9600940618</span>
         </p>
       </div>
     </div>

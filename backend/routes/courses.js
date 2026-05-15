@@ -39,7 +39,8 @@ const fetchCoursesFromSheet = async () => {
       const status = String(cleanRow['status'] || '').trim().toLowerCase();
       if (status !== 'active') return;
 
-      let cat = String(cleanRow['category'] || 'Engineering & Tech').trim();
+      let cat = String(cleanRow['category'] || '').trim();
+      if (!cat || cat.toLowerCase().includes('engineering')) cat = 'Engineering & Tech';
       if (cat.toLowerCase() === 'k12') cat = 'K-12';
       
       const cName = String(cleanRow['course name'] || 'General').trim();

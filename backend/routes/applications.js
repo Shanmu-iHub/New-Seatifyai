@@ -4,7 +4,108 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const auth = require('../middleware/auth');
-const { Application } = require('../models');
+const { Application, Course } = require('../models');
+
+// POST /api/applications/:id/cancel
+router.post('/:id/cancel', async (req, res) => {
+  try {
+    const app = await Application.findOne({ applicationId: req.params.id });
+    if (!app) return res.status(404).json({ message: 'Application not found' });
+
+    const previousStatus = app.status;
+    app.status = 'cancelled';
+    await app.save();
+
+    // Release seat if it was previously confirmed
+    if (previousStatus === 'confirmed' || app.paymentStatus === 'completed') {
+      try {
+        const mongoose = require('mongoose');
+        if (mongoose.isValidObjectId(app.courseId)) {
+          const course = await Course.findById(app.courseId);
+          if (course) {
+            const prog = course.programs.id(app.programId);
+            if (prog) {
+              prog.seats = (prog.seats || 0) + 1;
+              await course.save();
+              console.log(`✅ Seat released for program: ${app.programName}`);
+            }
+          }
+        }
+      } catch (seatErr) {
+        console.warn('❌ Failed to release seat:', seatErr.message);
+      }
+    }
+
+    // Send cancellation email
+    try {
+      const nodemailer = require('nodemailer');
+      const port = Number(process.env.SES_SMTP_PORT || process.env.MAIL_PORT) || 587;
+      const secure = process.env.MAIL_SECURE !== undefined ? process.env.MAIL_SECURE === 'true' : port === 465;
+      const transporter = nodemailer.createTransport({
+        host: process.env.SES_SMTP_HOST || process.env.MAIL_HOST || 'smtp.gmail.com',
+        port: port,
+        secure: secure,
+        auth: {
+          user: process.env.SES_SMTP_USERNAME || process.env.MAIL_USER,
+          pass: process.env.SES_SMTP_PASSWORD || process.env.MAIL_PASS
+        },
+        tls: { rejectUnauthorized: false }
+      });
+
+      await transporter.sendMail({
+        from: process.env.MAIL_FROM || 'Seatifyai <noreply@seatifyai.com>',
+        to: app.email,
+        subject: `Admission Cancelled — ${app.applicationId}`,
+        html: `
+          <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 20px auto; background-color: #1a1d24; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
+            <!-- Header -->
+            <div style="padding: 40px 32px 20px; text-align: center;">
+              <div style="width: 64px; height: 64px; background-color: #ef4444; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+                <span style="font-size: 32px; color: #ffffff;">✕</span>
+              </div>
+              <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #ef4444;">Admission Cancelled</h1>
+            </div>
+
+            <!-- Body -->
+            <div style="padding: 20px 32px;">
+              <p style="font-size: 16px; margin-bottom: 20px;">Dear ${app.fullName},</p>
+              <p style="line-height: 1.6; color: #e2e8f0; margin-bottom: 30px; font-size: 16px;">
+                Your admission has been cancelled for <strong>${app.courseName} — ${app.programName}</strong> at <strong>${app.collegeName || 'Seatifyai Institute'}</strong>.
+              </p>
+
+              <!-- Order Summary Box -->
+              <div style="background-color: #0a0a0a; border-radius: 12px; padding: 24px; margin-bottom: 30px;">
+                <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 600; color: #f8fafc;">Order Summary</h3>
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <div style="font-size: 15px;"><strong style="color: #94a3b8;">Application ID:</strong> ${app.applicationId}</div>
+                  <div style="font-size: 15px;"><strong style="color: #94a3b8;">College Name:</strong> ${app.collegeName || 'Seatifyai Institute'}</div>
+                  <div style="font-size: 15px;"><strong style="color: #94a3b8;">Course Name:</strong> ${app.courseName}</div>
+                  <div style="font-size: 15px;"><strong style="color: #94a3b8;">Program Name:</strong> ${app.programName}</div>
+                  <div style="font-size: 15px;"><strong style="color: #94a3b8;">Email Address:</strong> ${app.email}</div>
+                  <div style="font-size: 15px;"><strong style="color: #94a3b8;">Cancellation Date:</strong> ${new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="padding: 0 32px 40px; text-align: left;">
+              <p style="color: #94a3b8; font-size: 14px; line-height: 1.5; margin: 0;">
+                If this cancellation was not authorized by you, or if you have questions regarding refunds, please contact our admissions office immediately.
+              </p>
+            </div>
+          </div>
+        `,
+      });
+      console.log(`✅ Cancellation email sent to: ${app.email}`);
+    } catch (mailErr) {
+      console.warn('❌ Cancellation email failed:', mailErr.message);
+    }
+
+    res.json({ message: 'Admission cancelled successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 const GOOGLE_DRIVE_SCRIPT_URL = process.env.GOOGLE_DRIVE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzV93O99qhhcvSKJ_smlu0q70nlD18IuKhQkZj1bkbSfbMDFQg0cP1_MTKut4PJk4in2w/exec';
 
@@ -76,6 +177,7 @@ router.post('/', auth, upload.fields(docFields), async (req, res) => {
       student: req.user._id,
       academicYear: `${year}-${year + 1}`,
       paymentStatus: 'completed',
+      status: { $ne: 'cancelled' }
     });
     if (existing) {
       return res.status(400).json({
@@ -111,7 +213,8 @@ router.post('/', auth, upload.fields(docFields), async (req, res) => {
 
             if (driveRes.data && driveRes.data.success) {
               Object.assign(docs, driveRes.data.fileUrls);
-              docs.driveFolder = driveRes.data.folderUrl;
+              // Store folder URL with fallbacks
+              docs.driveFolder = driveRes.data.folderUrl || driveRes.data.url || driveRes.data.driveUrl;
             } else {
               console.error('Google Drive Upload Failed:', driveRes.data.error || 'Unknown error');
               console.log('Falling back to local storage');
@@ -179,6 +282,7 @@ router.post('/', auth, upload.fields(docFields), async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
 
 // GET /api/applications/my — student's applications
 router.get('/my', auth, async (req, res) => {
@@ -248,5 +352,7 @@ router.put('/:id', auth, async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
+
 
 module.exports = router;

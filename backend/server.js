@@ -11,10 +11,7 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors({
   origin: [
-    process.env.FRONTEND_URL || 'https://seatifyai.com',
-    'https://seatifyai.com',
-    'https://www.seatifyai.com',
-    'http://seatifyai.com',
+    /https?:\/\/.*\.?seatifyai\.com$/,
     'http://localhost:3000',
     'http://localhost:5173',
   ],
@@ -41,6 +38,40 @@ app.use('/api/students', require('./routes/students'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));
+app.get('/api/test-cancel', (req, res) => res.json({ message: 'Cancel route is reachable' }));
+
+app.post('/api/cancel/:id', async (req, res) => {
+  const { Application } = require('./models');
+  try {
+    const app = await Application.findOne({ applicationId: req.params.id });
+    if (!app) return res.status(404).json({ message: 'Application not found' });
+    app.status = 'cancelled';
+    await app.save();
+
+    // Release seat in DB
+    try {
+      const { Course } = require('./models');
+      const mongoose = require('mongoose');
+      if (mongoose.isValidObjectId(app.courseId)) {
+        const course = await Course.findById(app.courseId);
+        if (course) {
+          const prog = course.programs.id(app.programId);
+          if (prog) {
+            prog.seats = (prog.seats || 0) + 1;
+            await course.save();
+            console.log(`✅ Seat released for ${app.courseName} — ${app.programName}`);
+          }
+        }
+      }
+    } catch (seatErr) {
+      console.error('❌ Failed to release seat:', seatErr.message);
+    }
+
+    res.json({ message: 'Admission cancelled successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 // Error handler
 app.use((err, req, res, next) => {

@@ -313,7 +313,7 @@ export default function CoursesPage() {
       {showWarningModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/50">
           <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
-            <h3 className="text-xl font-bold mb-4">Application Limit Reached</h3>
+            <h3 className="text-xl font-bold mb-4">Application Limit Reached.</h3>
             <p className="text-slate-500 mb-6">You have already completed an application for this year.</p>
             <button onClick={() => setShowWarningModal(false)} className="w-full py-4 rounded-xl font-bold text-white" style={{ background: 'var(--primary)' }}>OK</button>
           </div>

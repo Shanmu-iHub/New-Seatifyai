@@ -8,7 +8,6 @@ import logo from '../assets/White_Version_Logo.webp';
 
 const CATEGORIES = ['All', 'K-12', 'Engineering & Tech', 'Arts & Science', 'Paramedical', 'Education'];
 
-// Icon backgrounds per category
 const ICON_BG = {
   'AI & Data Science': { bg: '#F5F3FF', color: '#7C3AED', emoji: '🤖' },
   'Computer Science': { bg: '#EFF6FF', color: '#2563EB', emoji: '💻' },
@@ -18,104 +17,20 @@ const ICON_BG = {
   'default': { bg: '#FEFCE8', color: '#CA8A04', emoji: '📚' },
 };
 
-const NAME_COLOR = {
-  'AI & Data Science': '#000',
-  'Computer Science': '#000',
-  'Core Engineering': '#000',
-  'Specialized Engineering': '#000',
-  'PG Programs': '#000',
-  'default': '#000',
-};
+const NAME_COLOR = { 'default': '#000' };
 
-// Mock data for demo (backend will serve this)
 const MOCK_COURSES = [
   {
-    _id: '1', name: 'AI & Data Science', type: 'B.E./B.Tech', category: 'Engineering & Tech', collegeName: 'SNS College of Technology',
-    programs: [
-      { name: 'Artificial Intelligence & Data Science', fee: 120000, seats: 45, _id: 'p1' },
-      { name: 'Artificial Intelligence & Machine Learning', fee: 115000, seats: 30, _id: 'p2' },
-      { name: 'Data Science *', fee: 110000, seats: 60, _id: 'p3' },
-    ]
-  },
-  {
-    _id: '2', name: 'Computer Science', type: 'B.E./B.Tech', category: 'Engineering & Tech', collegeName: 'SNS College of Engineering',
-    programs: [
-      { name: 'Computer Science and Engineering', fee: 125000, seats: 50, _id: 'p4' },
-      { name: 'Computer Science and Design', fee: 118000, seats: 40, _id: 'p5' },
-      { name: 'Computer Science and Technology', fee: 116000, seats: 35, _id: 'p6' },
-      { name: 'CSE (IOT & Cyber Security)', fee: 122000, seats: 25, _id: 'p7' },
-      { name: 'Information Technology', fee: 112000, seats: 55, _id: 'p8' },
-    ]
-  },
-  {
-    _id: '3', name: 'Core Engineering', type: 'B.E./B.Tech', category: 'Engineering & Tech', collegeName: 'SNS College of Technology',
-    programs: [
-      { name: 'Mechanical & Mechatronics', fee: 108000, seats: 60, _id: 'p9' },
-      { name: 'Mechanical Engineering', fee: 105000, seats: 70, _id: 'p10' },
-      { name: 'Civil Engineering', fee: 100000, seats: 80, _id: 'p11' },
-      { name: 'Electrical & Electronics Engg.', fee: 110000, seats: 45, _id: 'p12' },
-      { name: 'Electronics & Communication', fee: 112000, seats: 50, _id: 'p13' },
-    ]
-  },
-  {
-    _id: '4', name: 'Specialized Engineering', type: 'B.E./B.Tech', category: 'Engineering & Tech', collegeName: 'SNS College of Engineering',
-    programs: [
-      { name: 'Aerospace Engineering', fee: 130000, seats: 20, _id: 'p14' },
-      { name: 'Mechatronics Engineering', fee: 115000, seats: 30, _id: 'p15' },
-      { name: 'Bio-Medical Engineering', fee: 118000, seats: 25, _id: 'p16' },
-      { name: 'Food Technology', fee: 98000, seats: 40, _id: 'p17' },
-    ]
-  },
-  {
-    _id: '5', name: 'PG Programs', type: 'MBA/MCA', category: 'Engineering & Tech', collegeName: 'SNS College of Technology',
-    programs: [
-      { name: 'MBA', fee: 80000, seats: 60, _id: 'p18' },
-      { name: 'MCA', fee: 75000, seats: 50, _id: 'p19' },
-      { name: 'MBA in Business Analytics', fee: 90000, seats: 30, _id: 'p20' },
-      { name: 'Ph.D - CIVIL, CSE, ECE, EEE, Mech.', fee: 60000, seats: 15, _id: 'p21' },
-    ]
-  },
-  {
-    _id: '6', name: 'Science Stream', type: 'Class 11-12', category: 'K-12', collegeName: 'SNS Academy',
-    programs: [
-      { name: 'Physics, Chemistry, Maths (PCM)', fee: 45000, seats: 80, _id: 'p22' },
-      { name: 'Physics, Chemistry, Biology (PCB)', fee: 45000, seats: 80, _id: 'p23' },
-      { name: 'Computer Science (PCMC)', fee: 50000, seats: 60, _id: 'p24' },
-    ]
-  },
-  {
-    _id: '7', name: 'Commerce Stream', type: 'Class 11-12', category: 'K-12', collegeName: 'SNS Academy',
-    programs: [
-      { name: 'Accountancy, Business Studies, Economics', fee: 40000, seats: 90, _id: 'p25' },
-      { name: 'Commerce with Computer Applications', fee: 42000, seats: 70, _id: 'p26' },
-    ]
-  },
-  {
-    _id: '8', name: 'B.Sc Programs', type: 'Bachelor of Science', category: 'Arts & Science', collegeName: 'SNS College of Arts and Science',
-    programs: [
-      { name: 'B.Sc Computer Science', fee: 65000, seats: 60, _id: 'p27' },
-      { name: 'B.Sc Mathematics', fee: 55000, seats: 70, _id: 'p28' },
-      { name: 'B.Sc Physics', fee: 55000, seats: 65, _id: 'p29' },
-    ]
-  },
-  {
-    _id: '9', name: 'Nursing', type: 'B.Sc Nursing', category: 'Paramedical', collegeName: 'SNS College of Nursing',
-    programs: [
-      { name: 'B.Sc Nursing (4 years)', fee: 95000, seats: 40, _id: 'p30' },
-      { name: 'GNM Nursing (3 years)', fee: 70000, seats: 50, _id: 'p31' },
-    ]
-  },
-  {
-    _id: '10', name: 'B.Ed Programs', type: 'Bachelor of Education', category: 'Education', collegeName: 'SNS College of Education',
-    programs: [
-      { name: 'B.Ed (2 years)', fee: 50000, seats: 100, _id: 'p32' },
-      { name: 'B.Ed Special Education', fee: 55000, seats: 60, _id: 'p33' },
-    ]
-  },
+    _id: '1', name: 'AI & Data Science (MOCK)', type: 'B.E./B.Tech', category: 'Engineering & Tech', collegeName: 'Mock Institution',
+    programs: [{ name: 'Mock Program', fee: 1000, seats: 10, _id: 'p1' }]
+  }
 ];
 
-const formatFee = (fee) => `₹${(fee / 1000).toFixed(0).replace(/\B(?=(\d+(?=\d{3}))*(?!\d))/g, ',')}K`;
-const formatFullFee = (fee) => `₹${fee.toLocaleString('en-IN')}`;
+const formatFullFee = (fee) => {
+  const num = Number(fee);
+  if (isNaN(num)) return '₹0';
+  return `₹${num.toLocaleString('en-IN')}`;
+};
 
 export default function CoursesPage() {
   const { user } = useAuth();
@@ -143,6 +58,20 @@ export default function CoursesPage() {
     navigate(`/apply/${course._id}`, { state: { course, program } });
   };
 
+  const fetchCourses = async () => {
+    try {
+      console.log('📡 Fetching Real Data from Backend...');
+      const res = await axios.get(`http://localhost:5000/api/courses?t=${Date.now()}`);
+      console.log('✅ Real Data Loaded:', res.data.length);
+      setCourses(res.data);
+    } catch (err) {
+      console.error('❌ Connection to Backend Failed:', err.message);
+      setCourses(MOCK_COURSES);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchCourses();
     if (user) {
@@ -150,21 +79,9 @@ export default function CoursesPage() {
     }
   }, [user]);
 
-  const fetchCourses = async () => {
-    try {
-      const res = await axios.get('/api/courses');
-      setCourses(res.data);
-    } catch {
-      // Use mock data if backend not available
-      setCourses(MOCK_COURSES);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const checkCompletedApplication = async () => {
     try {
-      const res = await axios.get('/api/applications/my');
+      const res = await axios.get('http://localhost:5000/api/applications/my');
       const currentYear = new Date().getFullYear();
       const academicYear = `${currentYear}-${currentYear + 1}`;
       const hasCompleted = res.data.some(
@@ -181,6 +98,7 @@ export default function CoursesPage() {
 
   const filteredCourses = Array.isArray(courses)
     ? courses.filter(course => {
+      if (!course) return false;
       const matchesTab =
         activeTab === 'All' ||
         (course.category || '').trim().toLowerCase() === activeTab.trim().toLowerCase();
@@ -203,306 +121,137 @@ export default function CoursesPage() {
   const totalPages = Math.ceil(filteredCourses.length / ITEMS_PER_PAGE);
   const paginatedCourses = filteredCourses.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
-
-
-  const handleApplyNow = (course, program) => {
-    navigate(`/apply/${course._id}`, { state: { course, program } });
-  };
-
   const getIconStyle = (name) => ICON_BG[name] || ICON_BG['default'];
-  const getNameColor = (name) => NAME_COLOR[name] || NAME_COLOR['default'];
 
   return (
-    <div className="min-h-screen relative overflow-hidden" style={{ background: '#F8FAFC' }}>
-      {/* Decorative Background Elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full opacity-20 blur-[120px]"
-          style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)' }} />
-        <div className="absolute top-[20%] -right-[5%] w-[30%] h-[30%] rounded-full opacity-10 blur-[100px]"
-          style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2DD4BF 100%)' }} />
-        <div className="absolute -bottom-[10%] left-[20%] w-[35%] h-[35%] rounded-full opacity-10 blur-[120px]"
-          style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #EF4444 100%)' }} />
+    <div className="min-h-screen bg-slate-50 relative overflow-hidden">
+      {/* Decorative Circles */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-20">
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-400 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 -right-24 w-80 h-80 bg-purple-400 rounded-full blur-3xl" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-10 pb-4 relative" style={{ zIndex: 1 }}>
-
+      <div className="max-w-7xl mx-auto px-4 pt-12 pb-20 relative z-10">
         {/* Header */}
-        <div className="text-center mb-10 animate-fade-up">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium mb-4"
-            style={{ border: '1px solid var(--primary)', color: 'var(--primary)', background: 'rgba(79,70,229,0.08)' }}>
-            <Sparkles size={13} />
-            Secure Your Seat Today
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-3" style={{ fontFamily: 'Clash Display' }}>
-            Courses & Programs
+        <div className="text-center mb-12">
+          <span className="px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-widest mb-4 inline-block border border-indigo-100">
+            Smart Admission Portal
+          </span>
+          <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-4" style={{ fontFamily: 'Clash Display' }}>
+            Find Your Future
           </h1>
-          <p style={{ color: 'var(--text-muted)', maxWidth: '560px', margin: '0 auto', lineHeight: 1.7 }}>
-            Explore admissions for K12, UG, PG & career-focused programs all in one place.
+          <p className="text-slate-500 max-w-lg mx-auto">
+            Browse through 100+ programs directly synced from our academic records.
           </p>
         </div>
 
-        {/* Search Bar */}
-        <div className="max-w-xl mx-auto mb-10 animate-fade-up" style={{ animationDelay: '0.1s' }}>
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none transition-colors group-focus-within:text-primary">
-              <Search size={18} style={{ color: 'var(--text-muted)' }} />
-            </div>
+        {/* Search & Filter */}
+        <div className="max-w-2xl mx-auto mb-10">
+          <div className="relative mb-8">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
             <input
               type="text"
-              placeholder="Search courses, degrees, or subjects..."
+              placeholder="Search by course name, college, or category..."
+              className="w-full pl-12 pr-4 py-4 bg-white rounded-2xl border border-slate-200 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
               value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full pl-12 pr-12 py-3.5 rounded-2xl text-sm transition-all outline-none"
-              style={{
-                background: 'rgba(0,0,0,0.03)',
-                border: '1px solid var(--card-border)',
-                color: 'var(--text)',
-              }}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
             />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute inset-y-0 right-4 flex items-center"
-              >
-                <X size={16} style={{ color: 'var(--text-muted)' }} />
-              </button>
-            )}
           </div>
-        </div>
 
-        {/* Filter Tabs */}
-        <div className="flex gap-2 overflow-x-auto tabs-scroll pb-2 mb-8 animate-fade-up" style={{ animationDelay: '0.1s' }}>
-          {CATEGORIES.map(tab => (
-            <button
-              key={tab}
-              onClick={() => {
-                setActiveTab(tab);
-                setCurrentPage(1);
-              }}
-              className={`flex-shrink-0 px-6 py-2.5 rounded-full text-sm font-bold transition-all transform active:scale-95 relative ${activeTab === tab ? '' : ''}`}
-              style={{
-                background: activeTab === tab ? 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' : 'rgba(255,255,255,0.8)',
-                color: activeTab === tab ? '#fff' : '#64748B',
-                border: activeTab === tab ? 'none' : '1px solid rgba(0,0,0,0.05)',
-                backdropFilter: 'blur(8px)',
-                zIndex: activeTab === tab ? 2 : 1
-              }}>
-              <style>{`
-                .tab-active-glow::after {
-                  content: '';
-                  position: absolute;
-                  top: 8px;
-                  left: 5%;
-                  width: 90%;
-                  height: 100%;
-                  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
-                  filter: blur(15px);
-                  opacity: 0.5;
-                  border-radius: 9999px;
-                  z-index: -1;
-                }
-              `}</style>
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Loading */}
-        {loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="rounded-2xl h-64 animate-pulse" style={{ background: 'var(--card)' }} />
+          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+            {CATEGORIES.map(cat => (
+              <button
+                key={cat}
+                onClick={() => { setActiveTab(cat); setCurrentPage(1); }}
+                className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === cat ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+              >
+                {cat}
+              </button>
             ))}
           </div>
+        </div>
+
+        {/* Loading State */}
+        {loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-64 bg-slate-200 rounded-3xl animate-pulse" />)}
+          </div>
         )}
 
-        {/* Course Cards Grid */}
+        {/* Real Cards */}
         {!loading && (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {paginatedCourses.map((course, idx) => {
-                const iconStyle = getIconStyle(course.name);
-                const nameColor = getNameColor(course.name);
-                return (
-                  <div
-                    key={course._id}
-                    className="course-card rounded-2xl p-5 animate-fade-up"
-                    style={{
-                      background: 'var(--card)',
-                      border: '1px solid var(--card-border)',
-                      animationDelay: `${idx * 0.06}s`,
-                      animationFillMode: 'both'
-                    }}
-                  >
-                    {/* Card Header */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                        style={{ background: iconStyle.bg }}>
-                        {course.emoji || iconStyle.emoji}
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-base leading-tight" style={{ color: nameColor, fontFamily: 'Clash Display' }}>
-                          {course.name}
-                        </h3>
-                        <div className="mt-1 flex flex-col gap-0.5">
-                          <p className="text-[11px] font-medium" style={{ color: 'var(--primary)', opacity: 0.8 }}>
-                            {course.collegeName || 'SNS Institutions'}
-                          </p>
-                          <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>{course.type}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {paginatedCourses.map((course, idx) => {
+              const style = getIconStyle(course.name);
+              return (
+                <div key={course._id || idx} className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
+                  <div className="flex gap-4 mb-6">
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-inner" style={{ background: style.bg }}>
+                      {course.emoji || style.emoji}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-slate-900 leading-tight mb-1 group-hover:text-indigo-600 transition-colors">
+                        {course.name}
+                      </h3>
+                      <p className="text-xs font-bold text-indigo-500 uppercase tracking-tight">
+                        {course.collegeName}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {course.programs?.map((prog, pIdx) => (
+                      <div key={prog._id || pIdx} className="bg-slate-50 rounded-2xl p-4 border border-slate-50 group-hover:border-indigo-50 transition-all">
+                        <p className="text-sm font-bold text-slate-700 mb-3">{prog.name}</p>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase">Pre-Reg Fee</p>
+                            <p className="text-base font-black text-slate-900">{formatFullFee(prog.fee)}</p>
+                          </div>
+                          <button
+                            onClick={() => handleApply(course, prog)}
+                            className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2"
+                          >
+                            Apply <ChevronRight size={14} />
+                          </button>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Divider */}
-                    <div style={{ height: '1px', background: 'var(--card-border)', marginBottom: '14px' }} />
-
-                    {/* Programs list */}
-                    <div className="space-y-3">
-                      {course.programs?.map(program => {
-                        const key = `${course._id}-${program._id}`;
-
-                        return (
-                          <div key={program._id}>
-                            <div className="flex items-start gap-2 mb-2">
-                              <span className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>●</span>
-                              <span className="text-sm leading-snug" style={{ color: '#D1D5DB' }}>{program.name}</span>
-                            </div>
-                            <div className="flex items-center justify-between ml-4">
-                              <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
-                                <span style={{ color: 'var(--text-muted)', fontWeight: 'normal', fontSize: '0.85em', marginRight: '4px' }}>Pre Registration Fee:</span>
-                                {formatFullFee(program.fee)}
-                              </span>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleApply(course, program)}
-                                  className="flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold text-white transition-all transform hover:scale-105"
-                                  style={{ background: 'var(--primary)' }}
-                                >
-                                  Apply Now <ChevronRight size={14} />
-                                </button>
-                              </div>
-                            </div>
-                            {program.seats <= 5 && program.seats > 0 && (
-                              <div className="ml-4 mt-1">
-                                <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.12)', color: '#FCA5A5' }}>
-                                  Only {program.seats} seats left!
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Seats summary - only show if low availability */}
-                    {(course.programs || []).some(p => p.seats <= 5 && p.seats > 0) && (
-                      <div className="mt-4 pt-3 flex items-center gap-2 animate-pulse" style={{ borderTop: '1px solid var(--card-border)' }}>
-                        <Sparkles size={13} style={{ color: '#FCA5A5' }} />
-                        <span className="text-xs font-bold" style={{ color: '#FCA5A5' }}>
-                          Hurry! Only few seats left. Enroll now!
-                        </span>
-                      </div>
-                    )}
+                    ))}
                   </div>
-                );
-              })}
-            </div>
-
-            {/* Pagination UI */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-4 mt-12 animate-fade-up">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${currentPage === 1
-                      ? 'opacity-30 cursor-not-allowed'
-                      : 'hover:scale-105 active:scale-95'
-                    }`}
-                  style={{
-                    background: 'rgba(255,255,255,0.8)',
-                    border: '1px solid var(--card-border)',
-                    color: 'var(--text)'
-                  }}
-                >
-                  Previous
-                </button>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-gray-400">Page</span>
-                  <span className="px-3 py-1 rounded-lg text-sm font-bold bg-primary text-white shadow-lg shadow-indigo-500/20">
-                    {currentPage}
-                  </span>
-                  <span className="text-xs font-bold text-gray-400">of {totalPages}</span>
                 </div>
-
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${currentPage === totalPages
-                      ? 'opacity-30 cursor-not-allowed'
-                      : 'hover:scale-105 active:scale-95'
-                    }`}
-                  style={{
-                    background: 'rgba(255,255,255,0.8)',
-                    border: '1px solid var(--card-border)',
-                    color: 'var(--text)'
-                  }}
-                >
-                  Next
-                </button>
-              </div>
-            )}
-          </>
+              );
+            })}
+          </div>
         )}
 
+        {/* Empty State */}
         {!loading && filteredCourses.length === 0 && (
-          <div className="text-center py-20">
-            <BookOpen size={48} className="mx-auto mb-4 opacity-30" />
-            <p style={{ color: 'var(--text-muted)' }}>No courses found in this category</p>
+          <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
+            <Search className="mx-auto text-slate-300 mb-4" size={48} />
+            <p className="text-slate-500 font-medium">No courses found matching your criteria.</p>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-12 flex justify-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold disabled:opacity-50 shadow-lg shadow-indigo-100"
+            >
+              Next
+            </button>
           </div>
         )}
       </div>
-
-      {/* Warning Modal */}
-      {showWarningModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.5)' }}>
-          <div className="rounded-2xl p-6 max-w-md mx-4" style={{ background: 'var(--card)', border: '1px solid var(--card-border)' }}>
-            <h3 className="text-xl font-bold mb-3" style={{ fontFamily: 'Clash Display', letterSpacing: '2px' }}>Application Limit Reached</h3>
-            <p className="text-sm mb-6" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
-              You have already enrolled for this academic year. Please wait until the next academic year to apply again.
-            </p>
-            <button
-              onClick={() => setShowWarningModal(false)}
-              className="w-full py-3 rounded-xl font-semibold text-sm"
-              style={{ background: 'var(--primary)', color: '#fff' }}
-            >
-              OK
-            </button>
-          </div>
-        </div>
-      )}
-      {/* Desktop Footer — hidden on mobile */}
-      <footer className="hidden md:block mt-16 py-10 px-8 text-center" style={{ background: '#0F172A', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="max-w-5xl mx-auto">
-          <img src={logo} alt="SeatifyAI" style={{ height: 40, margin: '0 auto 8px' }} />
-          <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.45)' }}>
-            Digital Admission Marketplace — Making admissions simple, transparent &amp; digital.
-          </p>
-          <div className="flex justify-center gap-6 text-xs font-medium mb-6" style={{ color: 'rgba(255,255,255,0.35)' }}>
-            {/* <span>About</span>
-            <span>Contact</span> */}
-            <a href="tel:+919600940618" className="hover:text-white transition-colors">Support: +91 96009 40618</a>
-            {/* <span>Privacy Policy</span>
-            <span>Terms of Service</span> */}
-          </div>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
-            © {new Date().getFullYear()} SeatifyAI. Powered by SeatifyAI. All rights reserved.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }

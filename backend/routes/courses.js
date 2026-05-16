@@ -4,81 +4,139 @@ const { Course } = require('../models');
 const auth = require('../middleware/auth');
 const axios = require('axios');
 const XLSX = require('xlsx');
+const { google } = require('googleapis');
+const path = require('path');
 
 const SHEET_URL = process.env.GOOGLE_SHEET_URL || 'https://docs.google.com/spreadsheets/d/1wQvxrTXlULUTCssHwySjz8G6b-5kwBSYD6wkMx54aSk/export?format=csv';
 const SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzV93O99qhhcvSKJ_smlu0q70nlD18IuKhQkZj1bkbSfbMDFQg0cP1_MTKut4PJk4in2w/exec';
 
+// Extract Spreadsheet ID from URL
+const extractSheetId = (url) => {
+  const matches = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  return matches ? matches[1] : null;
+};
+
 const fetchCoursesFromSheet = async () => {
   try {
-    // Force gid=0 to ensure we get the "Course details" tab from your sheet
+    // 1. Try Google Sheets API with Service Account (Highest priority, works for Restricted sheets)
+    const sheetId = extractSheetId(SHEET_URL);
+    const keyPath = path.join(__dirname, '../google-key.json');
+    
+    if (sheetId && require('fs').existsSync(keyPath)) {
+      try {
+        console.log('📡 Fetching courses via Google Sheets API (Service Account)...');
+        const auth = new google.auth.GoogleAuth({
+          keyFile: keyPath,
+          scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+        });
+        const sheets = google.sheets({ version: 'v4', auth });
+        
+        const response = await sheets.spreadsheets.values.get({
+          spreadsheetId: sheetId,
+          range: 'Course details!A:Z', // Assumes tab name is "Course details"
+        });
+
+        const rows = response.data.values;
+        if (rows && rows.length > 1) {
+          const headers = rows[0];
+          const data = rows.slice(1).map(row => {
+            const obj = {};
+            headers.forEach((header, i) => {
+              obj[header] = row[i];
+            });
+            return obj;
+          });
+          return processSheetRows(data);
+        }
+      } catch (apiErr) {
+        console.warn('⚠️ Google Sheets API failed:', apiErr.message);
+      }
+    }
+
+    // 2. Try fetching via Script URL
+    if (SCRIPT_URL) {
+      try {
+        console.log('📡 Attempting to fetch courses via Google Apps Script...');
+        const scriptResponse = await axios.get(SCRIPT_URL, { timeout: 10000 });
+        if (Array.isArray(scriptResponse.data) && scriptResponse.data.length > 0) {
+          return processSheetRows(scriptResponse.data);
+        }
+      } catch (scriptErr) {
+        console.warn('⚠️ Apps Script fetch failed:', scriptErr.message);
+      }
+    }
+
+    // 3. Fallback to direct CSV export (requires public sheet)
     const exportUrl = SHEET_URL.includes('gid=') ? SHEET_URL : `${SHEET_URL}&gid=0`;
-    
-    const response = await axios.get(exportUrl, { 
-      responseType: 'arraybuffer',
-      timeout: 15000 
-    });
-    
+    const response = await axios.get(exportUrl, { responseType: 'arraybuffer', timeout: 15000 });
     const data = new TextDecoder('utf-8').decode(response.data);
     const workbook = XLSX.read(data, { type: 'string' });
     const sheetName = workbook.SheetNames[0];
-    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    const csvRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    return processSheetRows(csvRows);
 
-    if (!rows || rows.length === 0) {
-      console.error('❌ Google Sheet is empty or headers are missing.');
-      return [];
-    }
-
-    const courseMap = {};
-    rows.forEach((row, i) => {
-      // Create a normalized row with lowercase keys for case-insensitive matching
-      const cleanRow = {};
-      Object.keys(row).forEach(k => {
-        cleanRow[k.toLowerCase().trim()] = row[k];
-      });
-
-      const status = String(cleanRow['status'] || '').trim().toLowerCase();
-      if (status !== 'active') return;
-
-      let cat = String(cleanRow['category'] || '').trim();
-      if (!cat || cat.toLowerCase().includes('engineering')) cat = 'Engineering & Tech';
-      if (cat.toLowerCase() === 'k12') cat = 'K-12';
-      
-      const cName = String(cleanRow['course name'] || 'General').trim();
-      const pName = String(cleanRow['program name'] || 'General Program').trim();
-      const fee = Number(cleanRow['fee']) || 0;
-      const totalSeats = Number(cleanRow['total seats']) || 60;
-      const seatsAvail = Number(cleanRow['seats available'] !== undefined ? cleanRow['seats available'] : totalSeats);
-      const emoji = String(cleanRow['emoji'] || '📚').trim();
-      const college = String(cleanRow['college name'] || 'SNS Institutions').trim();
-      const type = String(cleanRow['course type'] || '').trim();
-
-      const key = `${cat}-${cName}`;
-      if (!courseMap[key]) {
-        courseMap[key] = {
-          name: cName,
-          collegeName: college,
-          type: type,
-          category: cat,
-          emoji: emoji,
-          programs: []
-        };
-      }
-      courseMap[key].programs.push({
-        _id: `p${i}`,
-        name: pName,
-        fee: fee,
-        seats: seatsAvail,
-        totalSeats: totalSeats
-      });
-    });
-
-    const result = Object.values(courseMap).map((c, i) => ({ ...c, _id: `c${i}` }));
-    console.log(`✅ Successfully fetched ${result.length} LIVE courses from your Google Sheet`);
-    return result;
   } catch (err) {
-    console.error('❌ Google Sheets fetch error:', err.message);
+    console.error('❌ All Google Sheets fetch methods failed:', err.message);
     throw err;
   }
+};
+
+const processSheetRows = (rows) => {
+  if (!rows || rows.length === 0) {
+    console.error('❌ Google Sheet data is empty or headers are missing.');
+    return [];
+  }
+
+  const courseMap = {};
+  rows.forEach((row, i) => {
+    // Create a normalized row with lowercase keys for case-insensitive matching
+    const cleanRow = {};
+    Object.keys(row).forEach(k => {
+      cleanRow[k.toLowerCase().trim()] = row[k];
+    });
+
+    const status = String(cleanRow['status'] || '').trim().toLowerCase();
+    if (status !== 'active') return;
+
+    let cat = String(cleanRow['category'] || '').trim();
+    if (!cat || cat.toLowerCase().includes('engineering')) cat = 'Engineering & Tech';
+    if (cat.toLowerCase() === 'k12') cat = 'K-12';
+    
+    const cName = String(cleanRow['course name'] || 'General').trim();
+    const pName = String(cleanRow['program name'] || 'General Program').trim();
+    const fee = Number(cleanRow['fee']) || 0;
+    const totalSeats = Number(cleanRow['total seats']) || 60;
+    const seatsAvail = Number(cleanRow['seats available'] !== undefined ? cleanRow['seats available'] : totalSeats);
+    const emoji = String(cleanRow['emoji'] || '📚').trim();
+    const college = String(cleanRow['college name'] || 'SNS Institutions').trim();
+    const type = String(cleanRow['course type'] || '').trim();
+
+    const key = `${cat}-${cName}`;
+    if (!courseMap[key]) {
+      courseMap[key] = {
+        name: cName,
+        collegeName: college,
+        type: type,
+        category: cat,
+        emoji: emoji,
+        programs: []
+      };
+    }
+    courseMap[key].programs.push({
+      _id: `p${i}`,
+      name: pName,
+      fee: fee,
+      seats: seatsAvail,
+      totalSeats: totalSeats
+    });
+  });
+
+  const result = Object.values(courseMap).map((c, i) => ({ ...c, _id: `c${i}` }));
+  console.log(`✅ Successfully processed ${result.length} LIVE courses from Google Sheets`);
+  if (result.length > 0) {
+    console.log('📝 Sample Data from Sheet (First 2 items):', JSON.stringify(result.slice(0, 2), null, 2));
+  }
+  return result;
 };
 
 // Seed data

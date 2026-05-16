@@ -212,7 +212,7 @@ export default function CoursesPage() {
                         <p className="text-sm font-medium text-slate-700 mb-2">{prog.name}</p>
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-bold text-slate-900">
-                            <span className="text-slate-500 font-normal mr-1 text-[11px]">Free Pre Registration Fee :</span>
+                            <span className="text-slate-500 font-normal mr-1 text-[11px]">Pre Registration Fee :</span>
                             {formatFullFee(prog.fee)}
                           </span>
                           <button

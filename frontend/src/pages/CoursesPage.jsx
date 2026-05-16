@@ -65,7 +65,6 @@ export default function CoursesPage() {
 
   const fetchCourses = async () => {
     try {
-      // Automatically uses localhost or live API based on your config
       const res = await axios.get(`${config.API_URL}/api/courses?t=${Date.now()}`);
       setCourses(res.data);
     } catch (err) {
@@ -212,7 +211,10 @@ export default function CoursesPage() {
                       <div key={prog._id || pIdx} className="bg-slate-50 rounded-xl p-3 border border-slate-50">
                         <p className="text-sm font-medium text-slate-700 mb-2">{prog.name}</p>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-bold text-slate-900">{formatFullFee(prog.fee)}</span>
+                          <span className="text-sm font-bold text-slate-900">
+                            <span className="text-slate-500 font-normal mr-1 text-[11px]">Free Pre Registration Fee :</span>
+                            {formatFullFee(prog.fee)}
+                          </span>
                           <button
                             onClick={() => handleApply(course, prog)}
                             className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all active:scale-95"

@@ -21,7 +21,7 @@ const fetchCoursesFromSheet = async () => {
     // 1. Try Google Sheets API with Service Account (Highest priority, works for Restricted sheets)
     const sheetId = extractSheetId(SHEET_URL);
     const keyPath = path.join(__dirname, '../google-key.json');
-    
+
     if (sheetId && require('fs').existsSync(keyPath)) {
       try {
         console.log('📡 Fetching courses via Google Sheets API (Service Account)...');
@@ -30,7 +30,7 @@ const fetchCoursesFromSheet = async () => {
           scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
         });
         const sheets = google.sheets({ version: 'v4', auth });
-        
+
         const response = await sheets.spreadsheets.values.get({
           spreadsheetId: sheetId,
           range: 'Course details!A:Z', // Assumes tab name is "Course details"
@@ -101,7 +101,7 @@ const processSheetRows = (rows) => {
     let cat = String(cleanRow['category'] || '').trim();
     if (!cat || cat.toLowerCase().includes('engineering')) cat = 'Engineering & Tech';
     if (cat.toLowerCase() === 'k12') cat = 'K-12';
-    
+
     const cName = String(cleanRow['course name'] || 'General').trim();
     const pName = String(cleanRow['program name'] || 'General Program').trim();
     const fee = Number(cleanRow['fee']) || 0;

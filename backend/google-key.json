@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "seatifyai-496503",
+  "private_key_id": "f12773f0213caad673453932efcf6f50505cd06b",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDSqNzbQmBuh7+L\nsEKggsSVEhAWZPdHfvz6tSSXIxtrp8xRx8fXUOUh8mHzzbUXjpKF9xWNKrL14Mzv\n7+hrtqbKT60CztcKaRczV3Maaf4rRCfQ+ZtHREDJnhHbuDxDTrURzAuddXFH3hb3\nLMeTptfzU2RKTwnxCjghav1a0A4ef3Av410idUOAhHHRJd0QqBGPDxPm75KWRkQf\n4oe/ANpEUYx/0Vb6Pm8ce5sdafWKbbaywPSyHRc+K2ukmg7i9WIcy/eiDhg/CH2S\nQVCE6lfCe/n+jv0PjBD+Gs1F0PveWXIHEyDgP3S4KwHa0iQrK3mpCWgIL7M6SA8R\nuQRq03N1AgMBAAECggEAS1ijefbhR9dc3ukhw4hSKKFnyKK/QT693CwLFNW1Oomv\nTjbfFvezpLMtbsbONUlExg6skivKC6CmnFEaN+CCAo2B66Wwi2QwLKhkHnf3tWDw\nvtFwRQq4A4T6jTR1tXtCz0VEiEKXzGU2oJzPG1QLHFhg4CUqAKEvl2BNkvwkeKpk\no0NYckf1yqVP5i/zgmTYPZPma0nAc7koM/91mBTW7BH/e7uUGQi9dYUr7lFEuJHA\nBWBmfkv+pOjzPnRrCym+LKw0xU3ZnYlKBRm9s5LYn2BRNn6CNT5RnyEOUhiEY8lJ\nbeR6HtV7dDFh92XBCUNXvl9ioFyjo78/2Cg9CbD1twKBgQD4nUSP4ObXdEppj20M\nWEkBH17NfrsoLiiRk/s8Y/bewZOUpHoXYZkw+q4juHYCyEjBxBFVdGrBum3ne1EU\nGnKh5/A9hFzkHMtcxirpdykiBqGOw9o9vhoSoW5E7HpbODCeL9R7BwEnXdeGcKJl\ng9XmCixxHt7bIOjIakJ2idFxywKBgQDY6vI+UpVnyY0cH12BgorA1mQBoj50g717\nXBEKNxvWtP9FdfgLSweghNc4OGtVbahh4EgfYjCuztV7NlsnEtUSVz7HMEowjYT6\ngMQhHEjyvYT0GMKkdyf4gNlFquJBkK+z6+MOdcV17GZc/C37T2iRk3Amg7ZbeOg9\nFpBzrfkHvwKBgQCduOArSyoH2+3tZCFxaH0AKk+xnMnNZuMz4CbOHDkc/r/K2EHg\nnXlbWl2pqbescjW+P84jYZTszII3DcPVNiYtUwDVdiicSyw08j99F6zPulc6REQr\nUXQnB6T2MvQ49L/bS0rIthvkRqOZ1dEhB+9mXmPtbAFEEW+83bTGkQ5/2wKBgFZn\nV7DdgmfCD/RIxh1FW3GutE02TDxrEXnm1V7FTtB6bkhD0lblPxeAcp4RUyfHM1Ax\nX2ko2o13E/AtWae5x6ezmu0K3jJy3KpPylAKDUCrnx8AEeAjGofRAzrN86v8LxCz\nAFGNNedgD/Iv/Tzih5udKAofYu8SvSdAKq/5d33PAoGBANr3lHWHb+S4bs6veV6g\notYmCFF0M7gxIKJvKZE5Ff/PAxA77X+1MyM0tx7z5G5f2hT9G3c65kS54TWpTYnO\nC0ieZeERMEluF+3OY8I1C3s7FUSrEd1NYSyUokP7DggxM8dco6+OmPuGL2lx0Fp+\nI+Vy6P4BpePPGY6xZoPKA44C\n-----END PRIVATE KEY-----\n",
+  "client_email": "seatify-access@seatifyai-496503.iam.gserviceaccount.com",
+  "client_id": "109759109846501957459",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/seatify-access%40seatifyai-496503.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

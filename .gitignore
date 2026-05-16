@@ -7,5 +7,3 @@ backend/.env
 *.log
 .DS_Store
 .env.local
-*.json
-backend/google-key.json

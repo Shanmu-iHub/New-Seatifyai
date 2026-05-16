@@ -8,6 +8,7 @@ import logo from '../assets/White_Version_Logo.webp';
 
 const CATEGORIES = ['All', 'K-12', 'Engineering & Tech', 'Arts & Science', 'Paramedical', 'Education'];
 
+// Your Original Icon Backgrounds
 const ICON_BG = {
   'AI & Data Science': { bg: '#F5F3FF', color: '#7C3AED', emoji: '🤖' },
   'Computer Science': { bg: '#EFF6FF', color: '#2563EB', emoji: '💻' },
@@ -17,15 +18,27 @@ const ICON_BG = {
   'default': { bg: '#FEFCE8', color: '#CA8A04', emoji: '📚' },
 };
 
-const NAME_COLOR = { 'default': '#000' };
+const NAME_COLOR = {
+  'AI & Data Science': '#000',
+  'Computer Science': '#000',
+  'Core Engineering': '#000',
+  'Specialized Engineering': '#000',
+  'PG Programs': '#000',
+  'default': '#000',
+};
 
 const MOCK_COURSES = [
   {
-    _id: '1', name: 'AI & Data Science (MOCK)', type: 'B.E./B.Tech', category: 'Engineering & Tech', collegeName: 'Mock Institution',
-    programs: [{ name: 'Mock Program', fee: 1000, seats: 10, _id: 'p1' }]
+    _id: '1', name: 'AI & Data Science', type: 'B.E./B.Tech', category: 'Engineering & Tech', collegeName: 'SNS Institutions',
+    programs: [
+      { name: 'Artificial Intelligence & Data Science', fee: 120000, seats: 45, _id: 'p1' },
+      { name: 'Artificial Intelligence & Machine Learning', fee: 115000, seats: 30, _id: 'p2' },
+      { name: 'Data Science *', fee: 110000, seats: 60, _id: 'p3' },
+    ]
   }
 ];
 
+const formatFee = (fee) => `₹${(fee / 1000).toFixed(0).replace(/\B(?=(\d+(?=\d{3}))*(?!\d))/g, ',')}K`;
 const formatFullFee = (fee) => {
   const num = Number(fee);
   if (isNaN(num)) return '₹0';
@@ -60,12 +73,10 @@ export default function CoursesPage() {
 
   const fetchCourses = async () => {
     try {
-      console.log('📡 Fetching Real Data from Backend...');
       const res = await axios.get(`http://localhost:5000/api/courses?t=${Date.now()}`);
-      console.log('✅ Real Data Loaded:', res.data.length);
       setCourses(res.data);
     } catch (err) {
-      console.error('❌ Connection to Backend Failed:', err.message);
+      console.error('Frontend Fetch Error:', err);
       setCourses(MOCK_COURSES);
     } finally {
       setLoading(false);
@@ -98,7 +109,6 @@ export default function CoursesPage() {
 
   const filteredCourses = Array.isArray(courses)
     ? courses.filter(course => {
-      if (!course) return false;
       const matchesTab =
         activeTab === 'All' ||
         (course.category || '').trim().toLowerCase() === activeTab.trim().toLowerCase();
@@ -122,136 +132,193 @@ export default function CoursesPage() {
   const paginatedCourses = filteredCourses.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const getIconStyle = (name) => ICON_BG[name] || ICON_BG['default'];
+  const getNameColor = (name) => NAME_COLOR[name] || NAME_COLOR['default'];
 
   return (
-    <div className="min-h-screen bg-slate-50 relative overflow-hidden">
-      {/* Decorative Circles */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-20">
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-400 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 -right-24 w-80 h-80 bg-purple-400 rounded-full blur-3xl" />
+    <div className="min-h-screen relative overflow-hidden" style={{ background: '#F8FAFC' }}>
+      {/* Decorative Background Elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full opacity-20 blur-[120px]"
+          style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)' }} />
+        <div className="absolute top-[20%] -right-[5%] w-[30%] h-[30%] rounded-full opacity-10 blur-[100px]"
+          style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2DD4BF 100%)' }} />
+        <div className="absolute -bottom-[10%] left-[20%] w-[35%] h-[35%] rounded-full opacity-10 blur-[120px]"
+          style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #EF4444 100%)' }} />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 pt-12 pb-20 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-10 pb-4 relative" style={{ zIndex: 1 }}>
+
         {/* Header */}
-        <div className="text-center mb-12">
-          <span className="px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-widest mb-4 inline-block border border-indigo-100">
-            Smart Admission Portal
-          </span>
-          <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-4" style={{ fontFamily: 'Clash Display' }}>
-            Find Your Future
+        <div className="text-center mb-10 animate-fade-up">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium mb-4"
+            style={{ border: '1px solid var(--primary)', color: 'var(--primary)', background: 'rgba(79,70,229,0.08)' }}>
+            <Sparkles size={13} />
+            Secure Your Seat Today
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold mb-3" style={{ fontFamily: 'Clash Display' }}>
+            Courses & Programs
           </h1>
-          <p className="text-slate-500 max-w-lg mx-auto">
-            Browse through 100+ programs directly synced from our academic records.
+          <p style={{ color: 'var(--text-muted)', maxWidth: '560px', margin: '0 auto', lineHeight: 1.7 }}>
+            Explore admissions for K12, UG, PG & career-focused programs all in one place.
           </p>
         </div>
 
-        {/* Search & Filter */}
-        <div className="max-w-2xl mx-auto mb-10">
-          <div className="relative mb-8">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+        {/* Search Bar */}
+        <div className="max-w-xl mx-auto mb-10 animate-fade-up">
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+              <Search size={18} style={{ color: 'var(--text-muted)' }} />
+            </div>
             <input
               type="text"
-              placeholder="Search by course name, college, or category..."
-              className="w-full pl-12 pr-4 py-4 bg-white rounded-2xl border border-slate-200 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+              placeholder="Search courses, degrees, or subjects..."
               value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-12 pr-12 py-3.5 rounded-2xl text-sm outline-none"
+              style={{
+                background: 'rgba(0,0,0,0.03)',
+                border: '1px solid var(--card-border)',
+                color: 'var(--text)',
+              }}
             />
-          </div>
-
-          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-            {CATEGORIES.map(cat => (
-              <button
-                key={cat}
-                onClick={() => { setActiveTab(cat); setCurrentPage(1); }}
-                className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === cat ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
-              >
-                {cat}
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute inset-y-0 right-4 flex items-center">
+                <X size={16} style={{ color: 'var(--text-muted)' }} />
               </button>
-            ))}
+            )}
           </div>
         </div>
 
-        {/* Loading State */}
+        {/* Filter Tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-8 animate-fade-up">
+          {CATEGORIES.map(tab => (
+            <button
+              key={tab}
+              onClick={() => { setActiveTab(tab); setCurrentPage(1); }}
+              className={`flex-shrink-0 px-6 py-2.5 rounded-full text-sm font-bold transition-all relative`}
+              style={{
+                background: activeTab === tab ? 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' : 'rgba(255,255,255,0.8)',
+                color: activeTab === tab ? '#fff' : '#64748B',
+                border: activeTab === tab ? 'none' : '1px solid rgba(0,0,0,0.05)',
+                backdropFilter: 'blur(8px)',
+              }}>
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Loading */}
         {loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-64 bg-slate-200 rounded-3xl animate-pulse" />)}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="rounded-2xl h-64 animate-pulse" style={{ background: 'var(--card)' }} />
+            ))}
           </div>
         )}
 
-        {/* Real Cards */}
+        {/* Original Course Cards Grid */}
         {!loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {paginatedCourses.map((course, idx) => {
-              const style = getIconStyle(course.name);
-              return (
-                <div key={course._id || idx} className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
-                  <div className="flex gap-4 mb-6">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-inner" style={{ background: style.bg }}>
-                      {course.emoji || style.emoji}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-slate-900 leading-tight mb-1 group-hover:text-indigo-600 transition-colors">
-                        {course.name}
-                      </h3>
-                      <p className="text-xs font-bold text-indigo-500 uppercase tracking-tight">
-                        {course.collegeName}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {course.programs?.map((prog, pIdx) => (
-                      <div key={prog._id || pIdx} className="bg-slate-50 rounded-2xl p-4 border border-slate-50 group-hover:border-indigo-50 transition-all">
-                        <p className="text-sm font-bold text-slate-700 mb-3">{prog.name}</p>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase">Pre-Reg Fee</p>
-                            <p className="text-base font-black text-slate-900">{formatFullFee(prog.fee)}</p>
-                          </div>
-                          <button
-                            onClick={() => handleApply(course, prog)}
-                            className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2"
-                          >
-                            Apply <ChevronRight size={14} />
-                          </button>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {paginatedCourses.map((course, idx) => {
+                const iconStyle = getIconStyle(course.name);
+                const nameColor = getNameColor(course.name);
+                return (
+                  <div
+                    key={course._id || idx}
+                    className="rounded-2xl p-5 animate-fade-up"
+                    style={{
+                      background: 'var(--card)',
+                      border: '1px solid var(--card-border)',
+                      animationDelay: `${idx * 0.06}s`,
+                      animationFillMode: 'both'
+                    }}
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl" style={{ background: iconStyle.bg }}>
+                        {course.emoji || iconStyle.emoji}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-base leading-tight" style={{ color: nameColor, fontFamily: 'Clash Display' }}>
+                          {course.name}
+                        </h3>
+                        <div className="mt-1 flex flex-col gap-0.5">
+                          <p className="text-[11px] font-medium" style={{ color: 'var(--primary)', opacity: 0.8 }}>
+                            {course.collegeName || 'SNS Institutions'}
+                          </p>
                         </div>
                       </div>
-                    ))}
+                    </div>
+
+                    <div style={{ height: '1px', background: 'var(--card-border)', marginBottom: '14px' }} />
+
+                    <div className="space-y-3">
+                      {course.programs?.map(program => (
+                        <div key={program._id}>
+                          <div className="flex items-start gap-2 mb-2">
+                            <span className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>●</span>
+                            <span className="text-sm leading-snug" style={{ color: '#D1D5DB' }}>{program.name}</span>
+                          </div>
+                          <div className="flex items-center justify-between ml-4">
+                            <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                              <span style={{ color: 'var(--text-muted)', fontWeight: 'normal', fontSize: '0.85em', marginRight: '4px' }}>Pre Registration Fee:</span>
+                              {formatFullFee(program.fee)}
+                            </span>
+                            <button
+                              onClick={() => handleApply(course, program)}
+                              className="px-5 py-2 rounded-xl text-xs font-bold text-white shadow-lg"
+                              style={{ background: 'var(--primary)' }}
+                            >
+                              Apply Now <ChevronRight size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
 
-        {/* Empty State */}
-        {!loading && filteredCourses.length === 0 && (
-          <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
-            <Search className="mx-auto text-slate-300 mb-4" size={48} />
-            <p className="text-slate-500 font-medium">No courses found matching your criteria.</p>
-          </div>
-        )}
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="mt-12 flex justify-center gap-2">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold disabled:opacity-50 shadow-lg shadow-indigo-100"
-            >
-              Next
-            </button>
-          </div>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-4 mt-12 animate-fade-up">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold ${currentPage === 1 ? 'opacity-30' : ''}`}
+                  style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid var(--card-border)', color: 'var(--text)' }}
+                >
+                  Previous
+                </button>
+                <span className="text-xs font-bold">Page {currentPage} of {totalPages}</span>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold ${currentPage === totalPages ? 'opacity-30' : ''}`}
+                  style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid var(--card-border)', color: 'var(--text)' }}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
+
+      {/* Warning Modal */}
+      {showWarningModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/50">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
+            <h3 className="text-xl font-bold mb-4">Application Limit Reached</h3>
+            <p className="text-slate-500 mb-6">You have already completed an application for this year.</p>
+            <button onClick={() => setShowWarningModal(false)} className="w-full py-4 rounded-xl font-bold text-white" style={{ background: 'var(--primary)' }}>OK</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

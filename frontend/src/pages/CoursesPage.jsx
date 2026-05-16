@@ -269,7 +269,7 @@ export default function CoursesPage() {
                             </span>
                             <button
                               onClick={() => handleApply(course, program)}
-                              className="px-5 py-2 rounded-xl text-xs font-bold text-white shadow-lg"
+                              className="flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold text-white shadow-lg transition-all active:scale-95"
                               style={{ background: 'var(--primary)' }}
                             >
                               Apply Now <ChevronRight size={14} />

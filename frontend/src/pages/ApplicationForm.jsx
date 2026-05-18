@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -45,11 +45,14 @@ export default function ApplicationForm() {
   const { state } = useLocation();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get('editId');
   const [course, setCourse] = useState(state?.course || null);
   const [program, setProgram] = useState(state?.program || null);
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [existingDocs, setExistingDocs] = useState({});
   const [formData, setFormData] = useState({
     fullName: user?.name || '',
     dob: '',
@@ -61,13 +64,70 @@ export default function ApplicationForm() {
   const update = (field, val) => setFormData(prev => ({ ...prev, [field]: val }));
   const updateDoc = (field, file) => setFormData(prev => ({ ...prev, docs: { ...prev.docs, [field]: file } }));
 
+  // Fetch data if editing
+  useEffect(() => {
+    let isMounted = true;
+    if (editId) {
+      const fetchEditData = async () => {
+        setLoading(true);
+        try {
+          const res = await axios.get(`/api/applications/${editId}`);
+          if (!isMounted) return;
+          const app = res.data;
+          
+          setFormData(prev => ({
+            ...prev,
+            fullName: app.fullName,
+            dob: app.dob,
+            admissionType: app.admissionType || 'Regular',
+            email: app.email,
+            mobile: app.mobile,
+          }));
+          setExistingDocs(app.docs || {});
+
+          // Always set a baseline course/program from the application data
+          // This ensures getDocumentRequirements() works even if the live fetch fails
+          setCourse({
+            name: app.courseName,
+            category: app.category,
+            collegeName: app.collegeName
+          });
+          setProgram({
+            name: app.programName,
+            fee: app.fee
+          });
+
+          // Then try to fetch live course/program info for richer banner details if possible
+          if (app.courseId) {
+            try {
+              const courseRes = await axios.get(`/api/courses/${app.courseId}`);
+              if (!isMounted) return;
+              setCourse(courseRes.data);
+              const prog = courseRes.data.programs.find(p => p._id === app.programId);
+              if (prog) setProgram(prog);
+            } catch (courseErr) {
+              console.warn('Could not fetch live course details, using application baseline');
+            }
+          }
+        } catch (err) {
+          console.error(err);
+          if (isMounted) toast.error('Failed to load application data for editing');
+        } finally {
+          if (isMounted) setLoading(false);
+        }
+      };
+      fetchEditData();
+    }
+    return () => { isMounted = false; };
+  }, [editId]);
+
   // Fallback for missing state
   useEffect(() => {
-    if (!course || !program) {
+    if (!editId && (!course || !program)) {
       toast.error('Application context lost. Please select a course again.');
       navigate('/courses');
     }
-  }, [course, program, navigate]);
+  }, [course, program, navigate, editId]);
 
   const handleNext = () => {
     if (step === 1) {
@@ -124,40 +184,60 @@ export default function ApplicationForm() {
 
   const handleSubmit = async () => {
     const requiredDocs = getDocumentRequirements().filter(d => d.required);
-    const missing = requiredDocs.filter(d => !formData.docs[d.id]);
+    const missing = requiredDocs.filter(d => !formData.docs[d.id] && !existingDocs[d.id]);
 
     if (missing.length > 0) {
       toast.error(`Please upload: ${missing.map(m => m.label.replace(' *', '')).join(', ')}`);
       return;
     }
-
     setLoading(true);
     try {
-      const fd = new FormData();
-      Object.entries(formData).forEach(([k, v]) => {
-        if (k !== 'docs') fd.append(k, v);
-      });
-      Object.entries(formData.docs).forEach(([k, v]) => {
-        if (v) fd.append(`doc_${k}`, v);
-      });
-      fd.append('courseId', course?._id);
-      fd.append('courseName', course?.name);
-      fd.append('collegeName', course?.collegeName || 'SNS Institutions');
-      fd.append('category', course?.category);
-      fd.append('programId', program?._id);
-      fd.append('programName', program?.name);
-      fd.append('fee', program?.fee);
+      if (editId) {
+        // Handle Edit submission (personal details + documents)
+        const fd = new FormData();
+        Object.entries(formData).forEach(([k, v]) => {
+          if (k !== 'docs') fd.append(k, v);
+        });
+        Object.entries(formData.docs).forEach(([k, v]) => {
+          if (v) fd.append(`doc_${k}`, v);
+        });
 
-      const res = await axios.post('/api/applications', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      toast.success('Application submitted! Proceeding to payment...');
-      navigate(`/payment/${res.data.applicationId}`, {
-        state: { application: res.data, course, program }
-      });
+        const res = await axios.put(`/api/applications/${editId}`, fd, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        toast.success('Details updated successfully!');
+        // Redirect back to confirmation page to see updated details and download receipt
+        navigate(`/confirmation/${editId}`, {
+          state: { application: res.data.application, course, program }
+        });
+      } else {
+        // Handle New submission
+        const fd = new FormData();
+        Object.entries(formData).forEach(([k, v]) => {
+          if (k !== 'docs') fd.append(k, v);
+        });
+        Object.entries(formData.docs).forEach(([k, v]) => {
+          if (v) fd.append(`doc_${k}`, v);
+        });
+        fd.append('courseId', course?._id);
+        fd.append('courseName', course?.name);
+        fd.append('collegeName', course?.collegeName || 'SNS Institutions');
+        fd.append('category', course?.category);
+        fd.append('programId', program?._id);
+        fd.append('programName', program?.name);
+        fd.append('fee', program?.fee);
+
+        const res = await axios.post('/api/applications', fd, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        toast.success('Application submitted! Proceeding to payment...');
+        navigate(`/payment/${res.data.applicationId}`, {
+          state: { application: res.data, course, program }
+        });
+      }
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || 'Failed to submit application. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to process application. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -165,16 +245,19 @@ export default function ApplicationForm() {
 
   const DocUpload = ({ label, field, accept }) => (
     <div className="rounded-xl p-4 transition-all cursor-pointer group"
-      style={{ border: `2px dashed ${formData.docs[field] ? 'var(--primary)' : 'var(--card-border)'}`, background: formData.docs[field] ? 'var(--primary-light)' : '#fff' }}>
+      style={{ 
+        border: `2px dashed ${(formData.docs[field] || existingDocs[field]) ? 'var(--primary)' : 'var(--card-border)'}`, 
+        background: (formData.docs[field] || existingDocs[field]) ? 'var(--primary-light)' : '#fff' 
+      }}>
       <label className="cursor-pointer flex items-center gap-3">
         <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-all"
-          style={{ background: formData.docs[field] ? 'rgba(59,130,246,0.2)' : 'var(--bg)' }}>
-          {formData.docs[field] ? <Check size={18} className="text-blue-600" /> : <Upload size={18} style={{ color: 'var(--text-muted)' }} />}
+          style={{ background: (formData.docs[field] || existingDocs[field]) ? 'rgba(59,130,246,0.2)' : 'var(--bg)' }}>
+          {(formData.docs[field] || existingDocs[field]) ? <Check size={18} className="text-blue-600" /> : <Upload size={18} style={{ color: 'var(--text-muted)' }} />}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-gray-800">{label}</p>
+          <p className="text-sm font-bold text-gray-800 truncate">{label}</p>
           <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-            {formData.docs[field] ? formData.docs[field].name : `Click to upload (${accept})`}
+            {formData.docs[field] ? formData.docs[field].name : existingDocs[field] ? 'File already uploaded (Click to change)' : `Click to upload (${accept})`}
           </p>
         </div>
         <input type="file" className="hidden" accept={accept} onChange={e => updateDoc(field, e.target.files[0])} />
@@ -230,7 +313,7 @@ export default function ApplicationForm() {
         {/* Form Card */}
         <div className="rounded-2xl p-6 md:p-8" style={{ background: 'var(--card)', border: '1px solid var(--card-border)' }}>
           <h2 className="text-xl font-bold mb-6" style={{ fontFamily: 'Clash Display' }}>
-            Step {step}: {STEPS[step - 1].title}
+            {editId ? 'Edit Personal Details' : `Step ${step}: ${STEPS[step - 1].title}`}
           </h2>
 
           {/* Step 1 */}
@@ -267,7 +350,6 @@ export default function ApplicationForm() {
           )}
         </div>
 
-        {/* Navigation */}
         <div className="flex gap-3 mt-6">
           {step > 1 && (
             <button onClick={handleBack}
@@ -285,8 +367,8 @@ export default function ApplicationForm() {
             <button onClick={handleSubmit} disabled={loading}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm"
               style={{ background: 'var(--primary)', color: '#fff', opacity: loading ? 0.7 : 1 }}>
-              {loading ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Submitting...</>
-                : <><span>Submit & Pay</span><ChevronRight size={16} /></>}
+              {loading ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{editId ? 'Saving...' : 'Submitting...'}</>
+                : <><span>{editId ? 'Save Changes' : 'Submit & Pay'}</span><ChevronRight size={16} /></>}
             </button>
           )}
         </div>

@@ -9,6 +9,7 @@ import ApplicationForm from './pages/ApplicationForm';
 import PaymentPage from './pages/PaymentPage';
 import ConfirmationPage from './pages/ConfirmationPage';
 import ProfilePage from './pages/ProfilePage';
+import CancelPage from './pages/CancelPage';
 import WhatsAppButton from './components/WhatsAppButton';
 
 const ProtectedRoute = ({ children }) => {
@@ -40,6 +41,7 @@ const AppRoutes = () => {
         <Route path="/payment/:applicationId" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
         <Route path="/confirmation/:applicationId" element={<ProtectedRoute><ConfirmationPage /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        <Route path="/cancel-booking/:applicationId" element={<ProtectedRoute><CancelPage /></ProtectedRoute>} />
       </Routes>
       <WhatsAppButton />
     </div>

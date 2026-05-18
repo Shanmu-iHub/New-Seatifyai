@@ -47,6 +47,8 @@ export default function CoursesPage() {
   const ITEMS_PER_PAGE = 12;
   const [hasCompletedApplication, setHasCompletedApplication] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState(false);
+  const [cardStates, setCardStates] = useState({});
+  const [globalSelected, setGlobalSelected] = useState(null);
 
   const navigate = useNavigate();
 
@@ -121,10 +123,72 @@ export default function CoursesPage() {
     })
     : [];
 
-  const totalPages = Math.ceil(filteredCourses.length / ITEMS_PER_PAGE);
-  const paginatedCourses = filteredCourses.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const groupedData = React.useMemo(() => {
+    const groups = {};
+    filteredCourses.forEach(course => {
+      const college = course.collegeName || 'SNS Institutions';
+      if (!groups[college]) {
+        groups[college] = {
+          collegeName: college,
+          emoji: course.emoji || '🏫',
+          categories: {}
+        };
+      }
+      
+      course.programs?.forEach(prog => {
+        const catName = prog.name || 'General';
+        if (!groups[college].categories[catName]) {
+          groups[college].categories[catName] = [];
+        }
+        groups[college].categories[catName].push({
+          course: course,
+          program: prog,
+          displayName: course.name,
+          fee: prog.fee
+        });
+      });
+    });
+    return Object.values(groups);
+  }, [filteredCourses]);
 
-  const getIconStyle = (name) => ICON_BG[name] || ICON_BG['default'];
+  const totalPages = Math.ceil(groupedData.length / ITEMS_PER_PAGE);
+  const paginatedGroups = groupedData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  const getIconStyle = (name) => {
+    const predefined = {
+      'SNS Academy': { bg: '#FFF7ED', color: '#D97706' }, // Amber
+      'SNS College of Technology': { bg: '#EFF6FF', color: '#2563EB' }, // Blue
+      'Dr. SNS Rajalakshmi College of Arts & Science': { bg: '#F5F3FF', color: '#7C3AED' }, // Purple
+      'SNS College of Pharmacy and Health Sciences': { bg: '#ECFDF5', color: '#059669' }, // Emerald
+      'SNS College of Nursing': { bg: '#FFF1F2', color: '#E11D48' }, // Rose
+      'SNS College of Physiotherapy': { bg: '#F0FDFA', color: '#0D9488' }, // Teal
+      'SNS College of Allied Health Science': { bg: '#EEF2FF', color: '#4F46E5' }, // Indigo
+      'Dr.SNS College of Education': { bg: '#FDF4FF', color: '#C026D3' } // Fuchsia
+    };
+    if (name && predefined[name]) return predefined[name];
+
+    const colors = [
+      { bg: '#EFF6FF', color: '#2563EB' },
+      { bg: '#F5F3FF', color: '#7C3AED' },
+      { bg: '#ECFDF5', color: '#059669' },
+      { bg: '#FFF7ED', color: '#D97706' },
+      { bg: '#FFF1F2', color: '#E11D48' },
+      { bg: '#F0FDFA', color: '#0D9488' },
+      { bg: '#EEF2FF', color: '#4F46E5' },
+      { bg: '#FDF4FF', color: '#C026D3' }
+    ];
+    let hash = 0;
+    const str = name || '';
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+  };
+
+  const updateCardState = (collegeName, updates) => {
+    setCardStates(prev => ({ ...prev, [collegeName]: { ...prev[collegeName], ...updates } }));
+  };
 
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ background: '#F8FAFC' }}>
@@ -186,48 +250,94 @@ export default function CoursesPage() {
         </div>
 
         {loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="rounded-2xl h-64 animate-pulse bg-white border" />)}
+          <div className="flex flex-col gap-6">
+            {[1, 2].map(i => <div key={i} className="rounded-2xl h-48 animate-pulse bg-white border" />)}
           </div>
         )}
 
         {!loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {paginatedCourses.map((course, idx) => {
-              const style = getIconStyle(course.name);
+          <div className="flex flex-col gap-6">
+            {(() => {
+              const activeCollege = paginatedGroups.find(g => cardStates[g.collegeName]?.step === 2);
+              const groupsToRender = activeCollege ? [activeCollege] : paginatedGroups;
+
+              return groupsToRender.map((collegeGroup, idx) => {
+              const style = getIconStyle(collegeGroup.collegeName);
+              const state = cardStates[collegeGroup.collegeName] || { step: 1, category: null, courseId: null };
+              
               return (
-                <div key={course._id || idx} className="rounded-2xl p-5 bg-white border border-slate-100 shadow-sm animate-fade-up">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl" style={{ background: style.bg }}>
-                      {course.emoji || style.emoji}
+                <div key={collegeGroup.collegeName || idx} className="rounded-2xl p-6 bg-white border border-slate-100 shadow-sm animate-fade-up">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl" style={{ background: style.bg, color: style.color }}>
+                      {collegeGroup.emoji || style.emoji}
                     </div>
-                    <div>
-                      <h3 className="font-bold text-base leading-tight text-slate-900">{course.name}</h3>
-                      <p className="text-[11px] font-medium text-indigo-600">{course.collegeName}</p>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-lg leading-tight" style={{ color: style.color || '#000' }}>{collegeGroup.collegeName}</h3>
+                      {state.step === 2 && (
+                        <p className="text-sm font-medium text-slate-500 mt-1">{state.category}</p>
+                      )}
                     </div>
+                    {state.step === 2 && (
+                       <button 
+                         onClick={() => {
+                           updateCardState(collegeGroup.collegeName, { step: 1, courseId: null });
+                           if (globalSelected?.collegeName === collegeGroup.collegeName) setGlobalSelected(null);
+                         }}
+                         className="p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500"
+                       >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                       </button>
+                    )}
                   </div>
-                  <div className="space-y-3">
-                    {course.programs?.map((prog, pIdx) => (
-                      <div key={prog._id || pIdx} className="bg-slate-50 rounded-xl p-3 border border-slate-50">
-                        <p className="text-sm font-medium text-slate-700 mb-2">{prog.name}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-bold text-slate-900">
-                            <span className="text-slate-500 font-normal mr-1 text-[11px]">Pre Registration Fee :</span>
-                            {formatFullFee(prog.fee)}
-                          </span>
+                  
+                  {state.step === 1 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-in">
+                      {Object.keys(collegeGroup.categories).map((catName) => {
+                        return (
                           <button
-                            onClick={() => handleApply(course, prog)}
-                            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all active:scale-95"
+                            key={catName}
+                            onClick={() => updateCardState(collegeGroup.collegeName, { category: catName, step: 2 })}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left border-transparent bg-slate-50 hover:bg-slate-100`}
                           >
-                            Apply Now <ChevronRight size={14} />
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 border-slate-300`}>
+                            </div>
+                            <span className={`text-sm font-medium line-clamp-2 text-slate-700`}>
+                              {catName}
+                            </span>
                           </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-in">
+                      {collegeGroup.categories[state.category]?.map((item, pIdx) => {
+                        const isSelected = globalSelected?.collegeName === collegeGroup.collegeName && globalSelected?.courseId === item.course._id;
+                        return (
+                          <button
+                            key={item.course._id || pIdx}
+                            onClick={() => {
+                              updateCardState(collegeGroup.collegeName, { courseId: item.course._id });
+                              setGlobalSelected({ collegeName: collegeGroup.collegeName, category: state.category, courseId: item.course._id });
+                            }}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left ${isSelected ? 'border-indigo-500 bg-indigo-50/50' : 'border-transparent bg-slate-50 hover:bg-slate-100'}`}
+                          >
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-indigo-500' : 'border-slate-300'}`}>
+                              {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />}
+                            </div>
+                            <span className={`text-sm font-medium line-clamp-2 ${isSelected ? 'text-indigo-900' : 'text-slate-700'}`}>
+                              {item.displayName}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Removed inline apply bar in favor of global floating bar */}
                 </div>
               );
-            })}
+            });
+            })()}
           </div>
         )}
 
@@ -239,6 +349,33 @@ export default function CoursesPage() {
           </div>
         )}
       </div>
+
+      {globalSelected && (() => {
+        const collegeGroup = groupedData.find(g => g.collegeName === globalSelected.collegeName);
+        const selectedItem = collegeGroup?.categories[globalSelected.category]?.find(i => i.course._id === globalSelected.courseId);
+        
+        if (!selectedItem) return null;
+
+        return (
+          <div className="fixed bottom-6 left-0 right-0 z-[100] flex justify-center pointer-events-none px-4">
+            <div className="w-full max-w-4xl bg-white/95 backdrop-blur-xl border border-slate-200/60 rounded-2xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.15)] p-4 md:p-5 flex items-center justify-between pointer-events-auto animate-fade-up">
+              <div>
+                <p className="text-xs font-medium text-slate-500 mb-0.5">Pre Registration Fee</p>
+                <p className="text-xl md:text-2xl font-bold text-slate-900 leading-none">
+                  {formatFullFee(selectedItem.fee)}
+                </p>
+              </div>
+              <button
+                onClick={() => handleApply(selectedItem.course, selectedItem.program)}
+                className="flex items-center gap-2 px-6 py-3 md:px-8 md:py-3.5 rounded-xl text-sm font-bold text-white transition-all hover:shadow-lg hover:shadow-indigo-500/30 active:scale-95"
+                style={{ background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' }}
+              >
+                Apply Now <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {showWarningModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50 p-4">

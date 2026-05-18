@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
+  const [devOtpHint, setDevOtpHint] = useState('');
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -25,7 +26,12 @@ export default function LoginPage() {
       const res = await axios.post('/api/auth/send-otp', { contact, type: mode });
       setIsNewUser(res.data.isNewUser);
       setStep(2);
-      toast.success('OTP sent successfully!');
+      if (res.data.devOtp) {
+        setDevOtpHint(res.data.devOtp);
+        toast.success(`Development Mode: OTP is ${res.data.devOtp}`);
+      } else {
+        toast.success('OTP sent successfully!');
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to send OTP');
     } finally {
@@ -145,6 +151,13 @@ export default function LoginPage() {
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Sent to {contact}</p>
                 </div>
               </div>
+
+              {devOtpHint && (
+                <div className="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-100 animate-pulse">
+                  <p className="text-xs text-blue-700 font-bold mb-1">DEVELOPMENT MODE</p>
+                  <p className="text-sm text-blue-900">Your OTP is: <span className="font-mono font-black text-lg">{devOtpHint}</span></p>
+                </div>
+              )}
 
 
 

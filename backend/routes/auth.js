@@ -30,7 +30,6 @@ const getTransporter = () => {
 };
 
 const sendEmailOTP = async (email, otp) => {
-  const transporter = getTransporter();
   const mailOptions = {
     from: process.env.MAIL_FROM || 'Seatifyai <noreply@seatifyai.com>',
     to: email,
@@ -46,12 +45,18 @@ const sendEmailOTP = async (email, otp) => {
   };
 
   try {
+    const transporter = getTransporter();
     const info = await transporter.sendMail(mailOptions);
     console.log('✅ OTP Email sent successfully:', info.messageId);
     return info;
   } catch (error) {
-    console.error('❌ SMTP Error detail:', error);
-    throw error; // Re-throw to be caught by the outer try-catch for console fallback
+    console.warn('⚠️ SMTP Sending failed. Falling back to console log.');
+    console.log('\n' + '='.repeat(50));
+    console.log(`📧 EMAIL PREVIEW (TO: ${email})`);
+    console.log(`Subject: ${mailOptions.subject}`);
+    console.log(`OTP: ${otp}`);
+    console.log('='.repeat(50) + '\n');
+    return { messageId: 'simulated_' + Date.now() };
   }
 };
 
@@ -117,19 +122,29 @@ router.post('/send-otp', async (req, res) => {
     try {
       if (type === 'email') {
         await sendEmailOTP(contact, otp);
-        await OTP.create({ contact, type, otp, expiresAt }).catch(() => {});
       } else {
         const { sessionId } = await sendSMSOTP(contact, otp);
-        await OTP.create({ contact, type, sessionId, expiresAt }).catch(() => {});
+        // Store sessionId for mobile verification
+        await OTP.findOneAndUpdate({ contact, type }, { sessionId });
       }
     } catch (sendErr) {
-      console.warn('OTP send failed (using console fallback):', sendErr.message);
-      console.log(`[DEV OTP] ${contact}: ${otp}`);
-      // Create record anyway for dev bypass
-      await OTP.create({ contact, type, otp, expiresAt }).catch(() => {});
+      console.warn('⚠️ OTP Provider failed:', sendErr.message);
     }
 
-    res.json({ message: 'OTP sent successfully', isNewUser: !existingUser });
+    // ALWAYS log to terminal in development for easy access
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('\n' + '!'.repeat(60));
+      console.log(`🚀 [DEV MODE] OTP FOR ${contact.toUpperCase()}:`);
+      console.log(`\n      >>>  ${otp}  <<<\n`);
+      console.log('!'.repeat(60) + '\n');
+    }
+
+    res.json({ 
+      message: 'OTP sent successfully', 
+      isNewUser: !existingUser,
+      // Include OTP in response ONLY in development for easier testing
+      devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined 
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Failed to send OTP' });

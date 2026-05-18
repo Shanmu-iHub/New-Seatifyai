@@ -73,6 +73,7 @@ const applicationSchema = new mongoose.Schema({
   paymentId: String,
   razorpayOrderId: String,
   status: { type: String, enum: ['submitted', 'confirmed', 'rejected', 'pending', 'cancelled'], default: 'pending' },
+  isEdited: { type: Boolean, default: false },
 }, { timestamps: true });
 
 applicationSchema.pre('save', function(next) {

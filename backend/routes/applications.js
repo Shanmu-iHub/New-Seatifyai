@@ -5,132 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const auth = require('../middleware/auth');
 const { Application, Course } = require('../models');
-
-// POST /api/applications/:id/cancel
-router.post('/:id/cancel', async (req, res) => {
-  try {
-    const app = await Application.findOne({ applicationId: req.params.id });
-    if (!app) return res.status(404).json({ message: 'Application not found' });
-
-    const previousStatus = app.status;
-    app.status = 'cancelled';
-    await app.save();
-
-    // Release seat if it was previously confirmed
-    if (previousStatus === 'confirmed' || app.paymentStatus === 'completed') {
-      try {
-        const mongoose = require('mongoose');
-        if (mongoose.isValidObjectId(app.courseId)) {
-          const course = await Course.findById(app.courseId);
-          if (course) {
-            const prog = course.programs.id(app.programId);
-            if (prog) {
-              prog.seats = (prog.seats || 0) + 1;
-              await course.save();
-              console.log(`✅ Seat released for program: ${app.programName}`);
-            }
-          }
-        }
-      } catch (seatErr) {
-        console.warn('❌ Failed to release seat:', seatErr.message);
-      }
-    }
-
-    // Send cancellation email
-    try {
-      const nodemailer = require('nodemailer');
-      const port = Number(process.env.SES_SMTP_PORT || process.env.MAIL_PORT) || 587;
-      const secure = process.env.MAIL_SECURE !== undefined ? process.env.MAIL_SECURE === 'true' : port === 465;
-      const transporter = nodemailer.createTransport({
-        host: process.env.SES_SMTP_HOST || process.env.MAIL_HOST || 'smtp.gmail.com',
-        port: port,
-        secure: secure,
-        auth: {
-          user: process.env.SES_SMTP_USERNAME || process.env.MAIL_USER,
-          pass: process.env.SES_SMTP_PASSWORD || process.env.MAIL_PASS
-        },
-        tls: { rejectUnauthorized: false }
-      });
-
-      await transporter.sendMail({
-        from: process.env.MAIL_FROM || 'Seatifyai <noreply@seatifyai.com>',
-        to: app.email,
-        subject: `Admission Cancelled — ${app.applicationId}`,
-        html: `
-          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #0f172a; padding: 20px 10px;">
-            <tr>
-              <td align="center">
-                <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; width: 100%; max-width: 600px; background-color: #1a1d24; color: #f8fafc; border-radius: 16px; overflow: hidden; border: 1px solid #334155; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);">
-                  <!-- Header -->
-                  <div style="padding: 40px 20px 20px; text-align: center; background: linear-gradient(180deg, rgba(239, 68, 68, 0.1) 0%, rgba(26, 29, 36, 0) 100%);">
-                    <div style="width: 64px; height: 64px; background-color: #ef4444; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);">
-                      <span style="font-size: 32px; color: #ffffff;">✕</span>
-                    </div>
-                    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #ef4444; letter-spacing: -0.02em;">Admission Cancelled</h1>
-                    <p style="margin: 8px 0 0; color: #94a3b8; font-size: 14px;">The application has been successfully cancelled.</p>
-                  </div>
-
-                  <!-- Body -->
-                  <div style="padding: 20px 24px;">
-                    <p style="font-size: 16px; margin-bottom: 20px; font-weight: 500;">Dear ${app.fullName},</p>
-                    <p style="line-height: 1.6; color: #e2e8f0; margin-bottom: 30px; font-size: 15px;">
-                      Your admission has been cancelled for <strong>${app.courseName} — ${app.programName}</strong> at <strong>${app.collegeName || 'Seatifyai Institute'}</strong>.
-                    </p>
-
-                    <!-- Summary Box -->
-                    <div style="background-color: #0a0a0a; border-radius: 14px; padding: 24px; border: 1px solid #1e293b;">
-                      <h3 style="margin: 0 0 20px 0; font-size: 16px; font-weight: 600; color: #f8fafc; text-transform: uppercase; letter-spacing: 0.05em;">Cancellation Summary</h3>
-                      
-                      <div style="display: table; width: 100%; border-collapse: separate; border-spacing: 0 12px;">
-                        <div style="display: table-row;">
-                          <div style="display: table-cell; font-size: 14px; color: #94a3b8; padding-right: 12px; width: 40%;">Application ID</div>
-                          <div style="display: table-cell; font-size: 14px; color: #f8fafc; font-weight: 600;">${app.applicationId}</div>
-                        </div>
-                        <div style="display: table-row;">
-                          <div style="display: table-cell; font-size: 14px; color: #94a3b8; padding-right: 12px;">Institution</div>
-                          <div style="display: table-cell; font-size: 14px; color: #f8fafc;">${app.collegeName || 'Seatifyai Institute'}</div>
-                        </div>
-                        <div style="display: table-row;">
-                          <div style="display: table-cell; font-size: 14px; color: #94a3b8; padding-right: 12px;">Course Name</div>
-                          <div style="display: table-cell; font-size: 14px; color: #f8fafc;">${app.courseName}</div>
-                        </div>
-                        <div style="display: table-row;">
-                          <div style="display: table-cell; font-size: 14px; color: #94a3b8; padding-right: 12px;">Program Name</div>
-                          <div style="display: table-cell; font-size: 14px; color: #f8fafc;">${app.programName}</div>
-                        </div>
-                        <div style="display: table-row;">
-                          <div style="display: table-cell; font-size: 14px; color: #94a3b8; padding-right: 12px;">Cancellation Date</div>
-                          <div style="display: table-cell; font-size: 14px; color: #f8fafc;">${new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Footer -->
-                  <div style="padding: 32px 24px; background-color: #1e293b; text-align: center;">
-                    <p style="color: #94a3b8; font-size: 13px; line-height: 1.6; margin: 0;">
-                      If this cancellation was not authorized by you, or if you have questions regarding refunds, please contact our admissions office immediately.
-                    </p>
-                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(148, 163, 184, 0.1);">
-                      <p style="color: #64748b; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} Seatifyai. All rights reserved.</p>
-                    </div>
-                  </div>
-                </div>
-              </td>
-            </tr>
-          </table>
-        `,
-      });
-      console.log(`✅ Cancellation email sent to: ${app.email}`);
-    } catch (mailErr) {
-      console.warn('❌ Cancellation email failed:', mailErr.message);
-    }
-
-    res.json({ message: 'Admission cancelled successfully' });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+const axios = require('axios');
 
 const GOOGLE_DRIVE_SCRIPT_URL = process.env.GOOGLE_DRIVE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzV93O99qhhcvSKJ_smlu0q70nlD18IuKhQkZj1bkbSfbMDFQg0cP1_MTKut4PJk4in2w/exec';
 
@@ -192,6 +67,42 @@ const docFields = [
   { name: 'doc_birthCertificate', maxCount: 1 },
 ];
 
+// POST /api/applications/:id/cancel
+router.post('/:id/cancel', auth, async (req, res) => {
+  try {
+    const app = await Application.findOne({ applicationId: req.params.id, student: req.user._id });
+    if (!app) return res.status(404).json({ message: 'Application not found' });
+
+    const previousStatus = app.status;
+    app.status = 'cancelled';
+    await app.save();
+
+    // Release seat if it was previously confirmed
+    if (previousStatus === 'confirmed' || app.paymentStatus === 'completed') {
+      try {
+        const mongoose = require('mongoose');
+        if (mongoose.isValidObjectId(app.courseId)) {
+          const course = await Course.findById(app.courseId);
+          if (course) {
+            const prog = course.programs.id(app.programId);
+            if (prog) {
+              prog.seats = (prog.seats || 0) + 1;
+              await course.save();
+              console.log(`✅ Seat released for program: ${app.programName}`);
+            }
+          }
+        }
+      } catch (seatErr) {
+        console.warn('❌ Failed to release seat:', seatErr.message);
+      }
+    }
+
+    res.json({ message: 'Admission cancelled successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // POST /api/applications — submit application
 router.post('/', auth, upload.fields(docFields), async (req, res) => {
   try {
@@ -238,43 +149,22 @@ router.post('/', auth, upload.fields(docFields), async (req, res) => {
 
             if (driveRes.data && driveRes.data.success) {
               Object.assign(docs, driveRes.data.fileUrls);
-              // Store folder URL with fallbacks
               docs.driveFolder = driveRes.data.folderUrl || driveRes.data.url || driveRes.data.driveUrl;
             } else {
-              console.error('Google Drive Upload Failed:', driveRes.data.error || 'Unknown error');
-              console.log('Falling back to local storage');
-              // Fallback to local storage - write files from memory to disk
-              const uploadDir = path.join(__dirname, '../uploads');
-              if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
+              // Fallback to local
               Object.entries(req.files).forEach(([key, files]) => {
                 const docKey = key.replace('doc_', '');
                 if (files[0]) {
                   const ext = path.extname(files[0].originalname);
                   const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 6)}${ext}`;
-                  const filepath = path.join(uploadDir, filename);
+                  const filepath = path.join(__dirname, '../uploads', filename);
                   fs.writeFileSync(filepath, files[0].buffer);
                   docs[docKey] = `/uploads/${filename}`;
                 }
               });
             }
           } catch (err) {
-            console.error('Google Drive Upload Error:', err.message);
-            console.log('Falling back to local storage');
-            // Fallback to local storage - write files from memory to disk
-            const uploadDir = path.join(__dirname, '../uploads');
-            if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-            Object.entries(req.files).forEach(([key, files]) => {
-              const docKey = key.replace('doc_', '');
-              if (files[0]) {
-                const ext = path.extname(files[0].originalname);
-                const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 6)}${ext}`;
-                const filepath = path.join(uploadDir, filename);
-                fs.writeFileSync(filepath, files[0].buffer);
-                docs[docKey] = `/uploads/${filename}`;
-              }
-            });
+            console.error('Drive Upload Error:', err.message);
           }
         }
       } else {
@@ -293,10 +183,10 @@ router.post('/', auth, upload.fields(docFields), async (req, res) => {
       docs,
       folderUrl: docs.driveFolder,
       fee: Number(req.body.fee),
+      applicationId: `SEATIFY-${year}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
     };
 
     const application = await Application.create(data);
-    console.log(`✅ Application created: ${application.applicationId} for student ${req.user._id}`);
     res.status(201).json({
       applicationId: application.applicationId,
       _id: application._id,
@@ -307,7 +197,6 @@ router.post('/', auth, upload.fields(docFields), async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
-
 
 // GET /api/applications/my — student's applications
 router.get('/my', auth, async (req, res) => {
@@ -330,54 +219,100 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-// PUT /api/applications/:id — update personal details (within 1 hour only)
-router.put('/:id', auth, async (req, res) => {
+// PUT /api/applications/:id — update details (within 1 hour only)
+router.put('/:id', auth, upload.fields(docFields), async (req, res) => {
   try {
     const app = await Application.findOne({ applicationId: req.params.id, student: req.user._id });
     if (!app) return res.status(404).json({ message: 'Application not found' });
 
-    // Check if within 1 hour of creation
+    // 1 hour check
     const createdAt = new Date(app.createdAt);
     const now = new Date();
     const hoursDiff = (now - createdAt) / (1000 * 60 * 60);
     if (hoursDiff > 1) {
       return res.status(400).json({
-        message: 'You can only edit personal details within 1 hour of placing your order.'
+        message: 'You can only edit details within 1 hour of placing your order.'
       });
     }
 
-    // Only allow updating personal details (not course-related fields)
-    const allowedFields = ['fullName', 'dob', 'admissionType', 'email', 'mobile'];
-    const updates = {};
-
-    allowedFields.forEach(field => {
-      if (req.body[field] !== undefined) {
-        updates[field] = req.body[field];
-      }
-    });
-
-    // Prevent course-related fields from being updated
-    const protectedFields = ['courseId', 'courseName', 'programId', 'programName', 'fee', 'docs', 'paymentStatus', 'status'];
-    const attemptedProtectedUpdates = protectedFields.filter(field => req.body[field] !== undefined);
-    if (attemptedProtectedUpdates.length > 0) {
+    if (app.isEdited) {
       return res.status(400).json({
-        message: 'Course details cannot be modified. Only personal details can be edited.'
+        message: 'You have already edited your details once. Further edits are not allowed.'
       });
     }
 
-    Object.assign(app, updates);
-    await app.save();
+    // Handle Document Updates
+    let updatedDocs = { ...(app.docs || {}) };
+    if (req.files && Object.keys(req.files).length > 0) {
+      if (GOOGLE_DRIVE_SCRIPT_URL) {
+        const filesToUpload = [];
+        Object.entries(req.files).forEach(([key, files]) => {
+          if (files[0]) {
+            filesToUpload.push({
+              key: key.replace('doc_', ''),
+              name: files[0].originalname,
+              mimeType: files[0].mimetype,
+              data: files[0].buffer.toString('base64')
+            });
+          }
+        });
+
+        if (filesToUpload.length > 0) {
+          try {
+            const driveRes = await axios.post(GOOGLE_DRIVE_SCRIPT_URL, {
+              action: 'uploadFiles',
+              studentName: req.body.fullName || app.fullName,
+              files: filesToUpload
+            });
+            if (driveRes.data && driveRes.data.success) {
+              Object.assign(updatedDocs, driveRes.data.fileUrls);
+              if (driveRes.data.folderUrl) updatedDocs.driveFolder = driveRes.data.folderUrl;
+            }
+          } catch (driveErr) {
+            console.error('Drive Edit Upload Failed:', driveErr.message);
+          }
+        }
+      } else {
+        Object.entries(req.files).forEach(([key, files]) => {
+          const docKey = key.replace('doc_', '');
+          if (files[0]) {
+            const ext = path.extname(files[0].originalname);
+            const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 6)}${ext}`;
+            const filepath = path.join(__dirname, '../uploads', filename);
+            if (files[0].buffer) fs.writeFileSync(filepath, files[0].buffer);
+            updatedDocs[docKey] = `/uploads/${filename}`;
+          }
+        });
+      }
+    }
+
+    // Use findOneAndUpdate for absolute consistency
+    const updatedApp = await Application.findOneAndUpdate(
+      { applicationId: req.params.id, student: req.user._id },
+      { 
+        $set: { 
+          fullName: req.body.fullName || app.fullName,
+          dob: req.body.dob || app.dob,
+          admissionType: req.body.admissionType || app.admissionType,
+          email: req.body.email || app.email,
+          mobile: req.body.mobile || app.mobile,
+          docs: updatedDocs,
+          isEdited: true 
+        } 
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedApp) return res.status(404).json({ message: 'Application lost during update' });
 
     res.json({
-      message: 'Personal details updated successfully',
-      application: app
+      message: 'Details updated successfully',
+      application: updatedApp
     });
   } catch (err) {
-    console.error(err);
+    console.error('Edit Error:', err);
     res.status(500).json({ message: err.message });
   }
 });
-
-
 
 module.exports = router;

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { CheckCircle, Download, User, Home, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useAuth } from '../context/AuthContext';
@@ -14,22 +15,75 @@ export default function ConfirmationPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
+  const [showCancelPopup, setShowCancelPopup] = useState(false);
+  const [editTimeLeft, setEditTimeLeft] = useState('');
+  const [canEdit, setCanEdit] = useState(true);
 
-  const application = state?.application;
-  const course = state?.course;
-  const program = state?.program;
-  const paymentId = state?.paymentId;
+  const [application, setApplication] = useState(state?.application || null);
+  const [course, setCourse] = useState(state?.course || null);
+  const [program, setProgram] = useState(state?.program || null);
+  const [paymentId, setPaymentId] = useState(state?.paymentId || state?.application?.paymentId || null);
+
+  useEffect(() => {
+    if (state?.application) {
+      setApplication(state.application);
+      if (state.application.paymentId) setPaymentId(state.application.paymentId);
+    }
+    if (state?.course) setCourse(state.course);
+    if (state?.program) setProgram(state.program);
+  }, [state]);
 
   useEffect(() => {
     setTimeout(() => setVisible(true), 100);
     
+    const fetchData = async () => {
+      try {
+        const res = await axios.get(`/api/applications/${applicationId}`);
+        setApplication(res.data);
+        if (res.data.paymentId) setPaymentId(res.data.paymentId);
+        
+        const courseRes = await axios.get(`/api/courses/${res.data.courseId}`);
+        setCourse(courseRes.data);
+        const prog = courseRes.data.programs.find(p => p._id === res.data.programId);
+        setProgram(prog);
+      } catch (err) {
+        console.error('Error fetching application details:', err);
+      }
+    };
+
+    fetchData();
+
     // Automatically trigger download after 2 seconds
     const timer = setTimeout(() => {
       handleDownloadReceipt();
     }, 2000);
-    
+
     return () => clearTimeout(timer);
-  }, []);
+  }, [applicationId]);
+
+  useEffect(() => {
+    if (!application) return;
+    // 1 hour countdown timer
+    const createdAt = application.createdAt ? new Date(application.createdAt) : new Date();
+    const expiryTime = new Date(createdAt.getTime() + 60 * 60 * 1000);
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const diff = expiryTime - now;
+
+      if (diff <= 0) {
+        setEditTimeLeft('Expired');
+        setCanEdit(false);
+        clearInterval(interval);
+      } else {
+        const m = Math.floor(diff / (1000 * 60));
+        const s = Math.floor((diff % (1000 * 60)) / 1000);
+        setEditTimeLeft(`${m}m ${s}s left`);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [application]);
 
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
@@ -39,10 +93,10 @@ export default function ConfirmationPage() {
     ['Institution Name', application?.collegeName || course?.collegeName || 'SNS Institutions'],
     ['Application ID', applicationId],
     ['Student Name', application?.fullName || user?.name || 'Student'],
-    ['Program', program?.name || 'N/A'],
-    ['Course', course?.name || 'N/A'],
-    ['Amount Paid', `₹${((program?.fee || 0) + 1).toLocaleString('en-IN')}`],
-    ['Payment ID', paymentId || 'N/A'],
+    ['Program', program?.name || application?.programName || 'N/A'],
+    ['Course', course?.name || application?.courseName || 'N/A'],
+    ['Amount Paid', `₹${(application?.fee || program?.fee || 0).toLocaleString('en-IN')}`],
+    ['Payment ID', paymentId || application?.paymentId || 'N/A'],
     ['Date & Time', `${dateStr} at ${timeStr}`],
     ['Status', 'Pre Registration Confirmed'],
   ];
@@ -86,10 +140,10 @@ export default function ConfirmationPage() {
         ['INSTITUTION NAME', (application?.collegeName || course?.collegeName || 'SNS Institutions').toUpperCase()],
         ['APPLICATION ID', applicationId || 'N/A'],
         ['STUDENT NAME', studentName.toUpperCase()],
-        ['PROGRAM', (program?.name || 'N/A').toUpperCase()],
-        ['COURSE', (course?.name || 'N/A').toUpperCase()],
-        ['AMOUNT PAID', `INR ${((program?.fee || 0) + 1).toLocaleString('en-IN')}`],
-        ['PAYMENT ID', paymentId || 'N/A'],
+        ['PROGRAM', (program?.name || application?.programName || 'N/A').toUpperCase()],
+        ['COURSE', (course?.name || application?.courseName || 'N/A').toUpperCase()],
+        ['AMOUNT PAID', `INR ${(application?.fee || program?.fee || 0).toLocaleString('en-IN')}`],
+        ['PAYMENT ID', paymentId || application?.paymentId || 'N/A'],
         ['DATE & TIME', `${dateStr || 'N/A'} at ${timeStr || 'N/A'}`],
         ['STATUS', 'PRE REGISTRATION CONFIRMED']
       ];
@@ -198,8 +252,53 @@ export default function ConfirmationPage() {
             Success!
           </h1>
           <p className="text-gray-500 font-medium px-4">
-            Your admission for <span className="text-gray-900 font-bold">{program?.name || 'the program'}</span> at <span className="text-gray-900 font-bold">{application?.collegeName || course?.collegeName || 'SNS Institutions'}</span> has been successfully registered.
+            Your admission for <span className="text-gray-900 font-bold">{course?.name || application?.courseName || 'the program'}</span> at <span className="text-gray-900 font-bold">{application?.collegeName || course?.collegeName || 'SNS Institutions'}</span> has been successfully registered.
           </p>
+        </div>
+
+        {/* Application Status Progress */}
+        <div className={`bg-white rounded-[2rem] p-6 sm:p-8 mb-6 shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-gray-100 transition-all duration-1000 delay-150 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+          <h3 className="text-xl font-bold mb-8 text-gray-900">Application Status</h3>
+          
+          <div className="relative flex justify-between items-start w-full">
+            {/* Connecting Line */}
+            <div className="absolute top-[26px] left-[10%] right-[10%] h-[3px] bg-gray-200 z-0 rounded-full" />
+            
+            {/* Step 1: Applied (Active) */}
+            <div className="relative z-10 flex flex-col items-center w-1/4">
+              <div className="w-14 h-14 rounded-full bg-amber-500 flex items-center justify-center border-[6px] border-amber-100 shadow-sm mb-2 relative">
+                {/* Glowing ring */}
+                <div className="absolute inset-[-6px] rounded-full border border-amber-200 animate-ping opacity-20"></div>
+                <span className="text-2xl">📝</span>
+              </div>
+              <p className="text-sm font-bold text-gray-900 whitespace-nowrap">Applied</p>
+              <p className="text-[10px] font-bold text-amber-500 mt-0.5 text-center leading-tight">Application<br className="sm:hidden" /> submitted</p>
+            </div>
+
+            {/* Step 2: Docs Review */}
+            <div className="relative z-10 flex flex-col items-center w-1/4 pt-1">
+              <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center border-4 border-white mb-3">
+                <span className="text-xl">📋</span>
+              </div>
+              <p className="text-xs sm:text-sm font-medium text-gray-400 whitespace-nowrap">Docs Review</p>
+            </div>
+
+            {/* Step 3: Campus Visit */}
+            <div className="relative z-10 flex flex-col items-center w-1/4 pt-1">
+              <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center border-4 border-white mb-3">
+                <span className="text-xl">🏫</span>
+              </div>
+              <p className="text-xs sm:text-sm font-medium text-gray-400 whitespace-nowrap">Campus Visit</p>
+            </div>
+
+            {/* Step 4: Confirmed */}
+            <div className="relative z-10 flex flex-col items-center w-1/4 pt-1">
+              <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center border-4 border-white mb-3">
+                <span className="text-xl">✅</span>
+              </div>
+              <p className="text-xs sm:text-sm font-medium text-gray-400 whitespace-nowrap">Confirmed</p>
+            </div>
+          </div>
         </div>
 
         {/* Details card */}
@@ -227,13 +326,6 @@ export default function ConfirmationPage() {
 
         {/* Buttons */}
         <div className={`flex flex-col gap-3 transition-all duration-1000 delay-400 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-          <button
-            onClick={() => navigate('/profile')}
-            className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-base shadow-xl shadow-blue-100 transition-all hover:scale-[1.02] active:scale-95"
-            style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', color: '#fff' }}>
-            <User size={18} /> My Dashboard
-          </button>
-          
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => navigate('/courses')}
@@ -254,8 +346,30 @@ export default function ConfirmationPage() {
         {/* Policy Note (UI) */}
         <div className="mt-8 p-4 rounded-2xl bg-yellow-50 border border-yellow-100">
           <p className="text-[11px] leading-relaxed text-yellow-800 text-center font-medium">
-            <span className="font-black">NOTE:</span> This is a temporary seat confirmation only. Students are required to visit the college campus directly to verify and confirm their course admission.
+            <span className="font-black flex items-center justify-center gap-1 mb-1">⚠️ Important</span>
+            This booking is temporary. You must visit the campus with all original documents for physical verification and final confirmation of admission. Failure to do so may result in automatic cancellation.
           </p>
+        </div>
+
+        {/* New Action Buttons */}
+        <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 transition-all duration-1000 delay-500 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+          <button
+            onClick={() => {
+              if (!canEdit) return toast.error('Edit time has expired.');
+              if (application?.isEdited) return toast.error('You have already edited your details once.');
+              navigate(`/apply/${application.courseId}?editId=${application.applicationId}`);
+            }}
+            disabled={!canEdit || application?.isEdited}
+            className={`flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm border transition-all shadow-sm ${(canEdit && !application?.isEdited) ? 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50' : 'bg-gray-50 border-gray-100 text-gray-400 cursor-not-allowed'}`}
+          >
+            ✏️ Edit Details {(canEdit && !application?.isEdited) && editTimeLeft ? `(${editTimeLeft})` : (application?.isEdited ? '(Already Edited)' : '')}
+          </button>
+          <button
+            onClick={() => setShowCancelPopup(true)}
+            className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm bg-red-50 text-red-500 hover:bg-red-100 transition-all"
+          >
+            Cancel Booking (No Refund)
+          </button>
         </div>
 
         {/* Support link */}
@@ -263,6 +377,35 @@ export default function ConfirmationPage() {
           Need help? Contact support at <span className="text-blue-600 font-bold">+91 9600940618</span>
         </p>
       </div>
+
+      {/* Cancel Warning Popup */}
+      {showCancelPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl relative animate-fade-up">
+            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">⚠️</span>
+            </div>
+            <h3 className="text-xl font-bold text-center text-gray-900 mb-2">Cancel Booking?</h3>
+            <p className="text-center text-gray-500 text-sm mb-6">
+              Are you sure you want to cancel your booking? Please note that this action is permanent and there will be <span className="font-bold text-red-500">NO REFUND</span> for the amount paid.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCancelPopup(false)}
+                className="flex-1 py-3 rounded-xl font-bold text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all"
+              >
+                No, Keep it
+              </button>
+              <button
+                onClick={() => navigate(`/cancel-booking/${applicationId}`, { state: { application, course, program, paymentId } })}
+                className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-500 text-white hover:bg-red-600 transition-all shadow-lg shadow-red-200"
+              >
+                Yes, Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

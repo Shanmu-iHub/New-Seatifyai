@@ -109,7 +109,7 @@ export default function PaymentPage() {
   ];
 
   return (
-    <div className="min-h-screen py-10 px-4" style={{ background: 'var(--bg)' }}>
+    <div className="min-h-screen pt-10 pb-32 md:pb-10 px-4" style={{ background: 'var(--bg)' }}>
       {/* Full-screen Loading Overlay */}
       {loading && (
         <div className="fixed inset-0 bg-[#0f172a]/80 backdrop-blur-md z-[9999] flex flex-col items-center justify-center text-white">

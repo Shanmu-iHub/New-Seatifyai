@@ -201,7 +201,7 @@ export default function CoursesPage() {
           style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #EF4444 100%)' }} />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-10 pb-4 relative" style={{ zIndex: 1 }}>
+      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-10 pb-32 md:pb-8 relative" style={{ zIndex: 1 }}>
         <div className="text-center mb-10 animate-fade-up">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium mb-4"
             style={{ border: '1px solid var(--primary)', color: 'var(--primary)', background: 'rgba(79,70,229,0.08)' }}>

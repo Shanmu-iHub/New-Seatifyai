@@ -207,7 +207,7 @@ export default function SupportPage() {
   });
 
   return (
-    <div className="min-h-screen py-10 px-4 md:px-8" style={{ background: 'var(--bg)' }}>
+    <div className="min-h-screen pt-10 pb-32 md:pb-10 px-4 md:px-8" style={{ background: 'var(--bg)' }}>
       <div className="max-w-6xl mx-auto">
         
         {/* Support Header */}

@@ -415,7 +415,7 @@ export default function ApplicationForm() {
   );
 
   return (
-    <div className="min-h-screen py-8 px-4" style={{ background: 'var(--bg)' }}>
+    <div className="min-h-screen pt-8 pb-32 md:pb-8 px-4" style={{ background: 'var(--bg)' }}>
       <div className="max-w-2xl mx-auto">
 
         {/* Course info banner */}

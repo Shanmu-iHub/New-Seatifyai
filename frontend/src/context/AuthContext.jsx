@@ -11,8 +11,31 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('seatify_token');
     const userData = localStorage.getItem('seatify_user');
     if (token && userData) {
-      setUser(JSON.parse(userData));
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      // Dynamic Background Sync: Load latest database profile to sync complete fields (name, email, mobile, dob)
+      axios.get('/api/students/profile')
+        .then(res => {
+          if (res.data?.profile) {
+            const p = res.data.profile;
+            const updated = {
+              ...parsedUser,
+              name: p.fullName || parsedUser.name,
+              email: p.email || parsedUser.email,
+              mobile: p.mobile || parsedUser.mobile,
+              dob: p.dob || parsedUser.dob,
+              // ALWAYS preserve role — never overwrite with undefined
+              role: parsedUser.role || 'student',
+            };
+            if (JSON.stringify(parsedUser) !== JSON.stringify(updated)) {
+              localStorage.setItem('seatify_user', JSON.stringify(updated));
+              setUser(updated);
+            }
+          }
+        })
+        .catch(err => console.log('⚠️ Background profile sync failed:', err.message));
     }
     
     // Handle 401 globally
@@ -36,6 +59,26 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('seatify_user', JSON.stringify(userData));
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     setUser(userData);
+
+    // Sync immediately upon login to load any profile/application details already in the DB
+    axios.get('/api/students/profile')
+      .then(res => {
+        if (res.data?.profile) {
+          const p = res.data.profile;
+          const updated = {
+            ...userData,
+            name: p.fullName || userData.name,
+            email: p.email || userData.email,
+            mobile: p.mobile || userData.mobile,
+            dob: p.dob || userData.dob,
+            // ALWAYS preserve role from the original login response
+            role: userData.role || 'student',
+          };
+          localStorage.setItem('seatify_user', JSON.stringify(updated));
+          setUser(updated);
+        }
+      })
+      .catch(err => console.log('⚠️ Login profile sync failed:', err.message));
   };
 
   const logout = () => {
@@ -45,8 +88,14 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const updateUser = (newUserData) => {
+    const updated = { ...user, ...newUserData };
+    localStorage.setItem('seatify_user', JSON.stringify(updated));
+    setUser(updated);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

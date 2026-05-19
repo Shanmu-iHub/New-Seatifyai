@@ -95,7 +95,7 @@ export default function ConfirmationPage() {
     ['Student Name', application?.fullName || user?.name || 'Student'],
     ['Program', program?.name || application?.programName || 'N/A'],
     ['Course', course?.name || application?.courseName || 'N/A'],
-    ['Amount Paid', `₹${(application?.fee || program?.fee || 0).toLocaleString('en-IN')}`],
+    ['Amount Paid', `₹${(application?.fee || program?.fee || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
     ['Payment ID', paymentId || application?.paymentId || 'N/A'],
     ['Date & Time', `${dateStr} at ${timeStr}`],
     ['Status', 'Pre Registration Confirmed'],
@@ -142,7 +142,7 @@ export default function ConfirmationPage() {
         ['STUDENT NAME', studentName.toUpperCase()],
         ['PROGRAM', (program?.name || application?.programName || 'N/A').toUpperCase()],
         ['COURSE', (course?.name || application?.courseName || 'N/A').toUpperCase()],
-        ['AMOUNT PAID', `INR ${(application?.fee || program?.fee || 0).toLocaleString('en-IN')}`],
+        ['AMOUNT PAID', `INR ${(application?.fee || program?.fee || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
         ['PAYMENT ID', paymentId || application?.paymentId || 'N/A'],
         ['DATE & TIME', `${dateStr || 'N/A'} at ${timeStr || 'N/A'}`],
         ['STATUS', 'PRE REGISTRATION CONFIRMED']

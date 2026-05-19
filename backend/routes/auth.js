@@ -78,11 +78,11 @@ const sendSMSOTP = async (mobile, otp) => {
   }
 
   try {
-    // 2Factor.in AUTOGEN API
-    // Format: https://2factor.in/API/V1/{api_key}/SMS/{phone_number}/AUTOGEN/{template_name}
+    // 2Factor.in Custom SMS OTP API (SMS-only, prevents voice call fallback)
+    // Format: https://2factor.in/API/V1/{api_key}/SMS/{phone_number}/{otp_val}/{template_name}
     const senderId = process.env.TWO_FACTOR_SENDER_ID || 'SNSCPL';
-    const url = `https://2factor.in/API/V1/${apiKey}/SMS/${cleanMobile}/AUTOGEN/${template}?sender=${senderId}`;
-    console.log(`[2Factor] Sending to: ${cleanMobile} using template: ${template} and sender: ${senderId}`);
+    const url = `https://2factor.in/API/V1/${apiKey}/SMS/${cleanMobile}/${otp}/${template}?sender=${senderId}`;
+    console.log(`[2Factor] Sending Custom SMS OTP to: ${cleanMobile} using template: ${template} and sender: ${senderId}`);
     
     const response = await axios.get(url);
     
@@ -168,28 +168,8 @@ router.post('/verify-otp', async (req, res) => {
     if (!isDevMode) {
       if (!record) return res.status(400).json({ message: 'No valid OTP found' });
 
-      if (type === 'email') {
-        if (record.otp !== otp) return res.status(400).json({ message: 'Invalid OTP' });
-      } else {
-        // Verify with 2Factor.in for mobile
-        const apiKey = process.env.TWO_FACTOR_API_KEY;
-        if (apiKey && record.sessionId) {
-          try {
-            const url = `https://2factor.in/API/V1/${apiKey}/SMS/VERIFY/${record.sessionId}/${otp}`;
-            const response = await axios.get(url);
-            if (response.data.Status !== 'Success') {
-              return res.status(400).json({ message: response.data.Details || 'Invalid OTP' });
-            }
-          } catch (error) {
-            console.error('❌ 2Factor Verify Error:', error.response?.data || error.message);
-            // If it's a real error (not invalid OTP), maybe fallback to DB check if we have it? 
-            // But 2Factor generates the OTP so we don't have it.
-            return res.status(400).json({ message: 'OTP verification failed' });
-          }
-        } else if (record.otp !== otp) {
-          // Fallback to internal OTP if 2Factor is not configured or sessionId is missing
-          return res.status(400).json({ message: 'Invalid OTP' });
-        }
+      if (record.otp !== otp) {
+        return res.status(400).json({ message: 'Invalid OTP' });
       }
     }
 
@@ -209,6 +189,46 @@ router.post('/verify-otp', async (req, res) => {
       await user.save().catch(() => {});
     }
 
+    // Auto-sync profile details from latest Application if it exists in DB
+    try {
+      const { Application } = require('../models');
+      const latestApp = await Application.findOne({ student: user._id }).sort({ createdAt: -1 });
+      if (latestApp) {
+        let changed = false;
+        if (latestApp.fullName && (!user.name || user.name === 'Student')) { user.name = latestApp.fullName; changed = true; }
+        if (latestApp.email && !user.email) { user.email = latestApp.email; changed = true; }
+        if (latestApp.mobile && !user.mobile) { user.mobile = latestApp.mobile; changed = true; }
+        if (latestApp.dob && !user.dob) { user.dob = latestApp.dob; changed = true; }
+        if (changed) {
+          user = await user.save();
+        }
+      }
+    } catch (syncErr) {
+      console.warn('⚠️ Failed to auto-sync user from application:', syncErr.message);
+    }
+
+    // Dynamic Account Merger: Check if there is another User record with the same email or mobile
+    try {
+      if (user.email || user.mobile) {
+        const orConditions = [];
+        if (user.email) orConditions.push({ email: user.email });
+        if (user.mobile) orConditions.push({ mobile: user.mobile });
+
+        if (orConditions.length > 0) {
+          const otherUser = await User.findOne({
+            _id: { $ne: user._id },
+            $or: orConditions
+          });
+          if (otherUser) {
+            const { mergeUsers } = require('../utils/accountHelper');
+            user = await mergeUsers(user, otherUser);
+          }
+        }
+      }
+    } catch (mergeErr) {
+      console.warn('⚠️ Login account merge failed:', mergeErr.message);
+    }
+
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'seatify_dev_secret', {
       expiresIn: process.env.JWT_EXPIRES_IN || '7d'
     });
@@ -216,7 +236,7 @@ router.post('/verify-otp', async (req, res) => {
     res.json({
       message: 'Login successful',
       token,
-      user: { _id: user._id, name: user.name, email: user.email, mobile: user.mobile },
+      user: { _id: user._id, name: user.name, email: user.email, mobile: user.mobile, dob: user.dob, role: user.role },
     });
   } catch (err) {
     console.error(err);

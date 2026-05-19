@@ -26,7 +26,9 @@ export default function PaymentPage() {
   const [program, setProgram] = useState(state?.program);
   const baseFee = application?.fee || program?.fee || 0;
   const platformFee = 1;
-  const fee = baseFee + platformFee;
+  const gstPercentage = 18;
+  const gstAmount = parseFloat((platformFee * (gstPercentage / 100)).toFixed(2));
+  const fee = parseFloat((baseFee + platformFee + gstAmount).toFixed(2));
 
   useEffect(() => {
     if (!application) {
@@ -146,6 +148,7 @@ export default function PaymentPage() {
             {[
               ['Pre Registration Fee', `₹${baseFee.toLocaleString('en-IN')}`],
               ['Platform Fee', `₹${platformFee.toLocaleString('en-IN')}`],
+              ['GST (18% on Platform Fee)', `₹${gstAmount.toFixed(2)}`],
             ].map(([label, val]) => (
               <div key={label} className="flex justify-between items-start gap-4">
                 <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{label}</span>
@@ -158,7 +161,7 @@ export default function PaymentPage() {
             <div className="flex justify-between items-center">
               <span className="font-semibold">Total Amount</span>
               <span className="text-xl font-bold" style={{ color: 'var(--primary)' }}>
-                ₹{fee.toLocaleString('en-IN')}
+                ₹{fee.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
           </div>

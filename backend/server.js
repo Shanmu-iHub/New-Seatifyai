@@ -35,6 +35,8 @@ app.use('/api/courses', require('./routes/courses'));
 app.use('/api/applications', require('./routes/applications'));
 app.use('/api/payment', require('./routes/payment'));
 app.use('/api/students', require('./routes/students'));
+app.use('/api/tickets', require('./routes/tickets'));
+app.use('/api/admin', require('./routes/admin'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));
@@ -93,9 +95,7 @@ app.post('/api/cancel/:id', async (req, res) => {
                 <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; width: 100%; max-width: 600px; background-color: #1a1d24; color: #f8fafc; border-radius: 16px; overflow: hidden; border: 1px solid #334155; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);">
                   <!-- Header -->
                   <div style="padding: 40px 20px 20px; text-align: center; background: linear-gradient(180deg, rgba(239, 68, 68, 0.1) 0%, rgba(26, 29, 36, 0) 100%);">
-                    <div style="width: 64px; height: 64px; background-color: #ef4444; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);">
-                      <span style="font-size: 32px; color: #ffffff;">✕</span>
-                    </div>
+                    <div style="display: inline-block; width: 64px; height: 64px; line-height: 64px; text-align: center; background-color: #ef4444; border-radius: 50%; margin: 0 auto 20px; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); font-size: 32px; color: #ffffff; font-weight: bold;">✕</div>
                     <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #ef4444; letter-spacing: -0.02em;">Admission Cancelled</h1>
                     <p style="margin: 8px 0 0; color: #94a3b8; font-size: 14px;">The application has been successfully cancelled.</p>
                   </div>
@@ -170,13 +170,69 @@ app.use((err, req, res, next) => {
 
 // Connect DB — runs immediately (works in both serverless and traditional server)
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/seatifyai')
-  .then(() => console.log('✅ MongoDB connected'))
+  .then(async () => {
+    console.log('✅ MongoDB connected');
+    try {
+      const { User } = require('./models');
+      
+      // Check if user with mobile '9600940618' exists
+      const existingUser = await User.findOne({ mobile: '9600940618' });
+      if (existingUser) {
+        if (existingUser.role !== 'admin') {
+          existingUser.role = 'admin';
+          await existingUser.save();
+          console.log('🔑 Existing user with mobile 9600940618 promoted to Admin!');
+        }
+      } else {
+        // Double check if any default admin exists
+        const defaultAdmin = await User.findOne({ email: 'admin@seatifyai.com' });
+        if (!defaultAdmin) {
+          await User.create({
+            name: 'Support Admin',
+            mobile: '9600940618',
+            email: 'admin@seatifyai.com',
+            dob: '1990-01-01',
+            role: 'admin'
+          });
+          console.log('🔑 Default Admin account seeded: admin@seatifyai.com / 9600940618');
+        } else {
+          defaultAdmin.mobile = '9600940618';
+          await defaultAdmin.save();
+          console.log('🔑 Default Admin mobile updated to 9600940618');
+        }
+      }
+    } catch (seedErr) {
+      console.warn('⚠️ Seeding admin failed:', seedErr.message);
+    }
+  })
   .catch(err => console.error('❌ MongoDB connection failed:', err.message));
 
 // Only bind a port when NOT running on Vercel (local dev or VPS)
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => console.log(`🚀 Seatifyai server running on port ${PORT}`));
+  const server = app.listen(PORT, () => console.log(`🚀 Seatifyai server running on port ${PORT}`));
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`❌ Port ${PORT} in use. Attempting to kill occupant...`);
+      const { execSync } = require('child_process');
+      try {
+        execSync(`lsof -ti :${PORT} | xargs kill -9`);
+        console.log(`✅ Killed process on port ${PORT}. Retrying in 1 second...`);
+        setTimeout(() => {
+          server.listen(PORT);
+        }, 1000);
+      } catch (killErr) {
+        console.error('❌ Could not kill process:', killErr.message);
+        process.exit(1);
+      }
+    } else {
+      throw err;
+    }
+  });
 }
+
+// Initialize document reminder cron job
+require('./cron/documentReminder');
 
 module.exports = app;

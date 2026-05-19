@@ -134,7 +134,7 @@ export default function CoursesPage() {
           categories: {}
         };
       }
-      
+
       course.programs?.forEach(prog => {
         const catName = prog.name || 'General';
         if (!groups[college].categories[catName]) {
@@ -262,82 +262,90 @@ export default function CoursesPage() {
               const groupsToRender = activeCollege ? [activeCollege] : paginatedGroups;
 
               return groupsToRender.map((collegeGroup, idx) => {
-              const style = getIconStyle(collegeGroup.collegeName);
-              const state = cardStates[collegeGroup.collegeName] || { step: 1, category: null, courseId: null };
-              
-              return (
-                <div key={collegeGroup.collegeName || idx} className="rounded-2xl p-6 bg-white border border-slate-100 shadow-sm animate-fade-up">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl" style={{ background: style.bg, color: style.color }}>
-                      {collegeGroup.emoji || style.emoji}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-lg leading-tight" style={{ color: style.color || '#000' }}>{collegeGroup.collegeName}</h3>
+                const style = getIconStyle(collegeGroup.collegeName);
+                const state = cardStates[collegeGroup.collegeName] || { step: 1, category: null, courseId: null };
+
+                return (
+                  <div key={collegeGroup.collegeName || idx} className="rounded-2xl p-6 bg-white border border-slate-100 shadow-sm animate-fade-up">
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl overflow-hidden border border-slate-100/50 shadow-sm bg-white" style={{ background: style.bg, color: style.color }}>
+                        {typeof collegeGroup.emoji === 'string' && (collegeGroup.emoji.startsWith('http://') || collegeGroup.emoji.startsWith('https://') || collegeGroup.emoji.startsWith('/')) ? (
+                          <img 
+                            src={collegeGroup.emoji} 
+                            alt={collegeGroup.collegeName} 
+                            className="w-full h-full object-contain p-1"
+                          />
+                        ) : (
+                          collegeGroup.emoji || style.emoji
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-lg leading-tight" style={{ color: style.color || '#000' }}>{collegeGroup.collegeName}</h3>
+                        {state.step === 2 && (
+                          <p className="text-sm font-medium text-slate-500 mt-1">{state.category}</p>
+                        )}
+                      </div>
                       {state.step === 2 && (
-                        <p className="text-sm font-medium text-slate-500 mt-1">{state.category}</p>
+                        <button
+                          onClick={() => {
+                            updateCardState(collegeGroup.collegeName, { step: 1, courseId: null });
+                            if (globalSelected?.collegeName === collegeGroup.collegeName) setGlobalSelected(null);
+                          }}
+                          className="flex items-center justify-center w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-sm cursor-pointer"
+                          title="Go Back"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+                        </button>
                       )}
                     </div>
-                    {state.step === 2 && (
-                       <button 
-                         onClick={() => {
-                           updateCardState(collegeGroup.collegeName, { step: 1, courseId: null });
-                           if (globalSelected?.collegeName === collegeGroup.collegeName) setGlobalSelected(null);
-                         }}
-                         className="flex items-center justify-center w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-sm cursor-pointer"
-                         title="Go Back"
-                       >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                       </button>
-                    )}
-                  </div>
-                  
-                  {state.step === 1 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-in">
-                      {Object.keys(collegeGroup.categories).map((catName) => {
-                        return (
-                          <button
-                            key={catName}
-                            onClick={() => updateCardState(collegeGroup.collegeName, { category: catName, step: 2 })}
-                            className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left border-transparent bg-slate-50 hover:bg-slate-100`}
-                          >
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 border-slate-300`}>
-                            </div>
-                            <span className={`text-sm font-medium text-slate-700`}>
-                              {catName}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-in">
-                      {collegeGroup.categories[state.category]?.map((item, pIdx) => {
-                        const isSelected = globalSelected?.collegeName === collegeGroup.collegeName && globalSelected?.courseId === item.course._id;
-                        return (
-                          <button
-                            key={item.course._id || pIdx}
-                            onClick={() => {
-                              updateCardState(collegeGroup.collegeName, { courseId: item.course._id });
-                              setGlobalSelected({ collegeName: collegeGroup.collegeName, category: state.category, courseId: item.course._id });
-                            }}
-                            className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left ${isSelected ? 'border-indigo-500 bg-indigo-50/50' : 'border-transparent bg-slate-50 hover:bg-slate-100'}`}
-                          >
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-indigo-500' : 'border-slate-300'}`}>
-                              {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />}
-                            </div>
-                            <span className={`text-sm font-medium ${isSelected ? 'text-indigo-900' : 'text-slate-700'}`}>
-                              {item.displayName}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
 
-                  {/* Removed inline apply bar in favor of global floating bar */}
-                </div>
-              );
-            });
+                    {state.step === 1 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-in">
+                        {Object.keys(collegeGroup.categories).map((catName) => {
+                          return (
+                            <button
+                              key={catName}
+                              onClick={() => updateCardState(collegeGroup.collegeName, { category: catName, step: 2 })}
+                              className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left border-transparent bg-slate-50 hover:bg-slate-100`}
+                            >
+                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 border-slate-300`}>
+                              </div>
+                              <span className={`text-sm font-medium text-slate-700`}>
+                                {catName}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-in">
+                        {collegeGroup.categories[state.category]?.map((item, pIdx) => {
+                          const isSelected = globalSelected?.collegeName === collegeGroup.collegeName && globalSelected?.courseId === item.course._id;
+                          return (
+                            <button
+                              key={item.course._id || pIdx}
+                              onClick={() => {
+                                updateCardState(collegeGroup.collegeName, { courseId: item.course._id });
+                                setGlobalSelected({ collegeName: collegeGroup.collegeName, category: state.category, courseId: item.course._id });
+                              }}
+                              className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left ${isSelected ? 'border-indigo-500 bg-indigo-50/50' : 'border-transparent bg-slate-50 hover:bg-slate-100'}`}
+                            >
+                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-indigo-500' : 'border-slate-300'}`}>
+                                {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />}
+                              </div>
+                              <span className={`text-sm font-medium ${isSelected ? 'text-indigo-900' : 'text-slate-700'}`}>
+                                {item.displayName}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Removed inline apply bar in favor of global floating bar */}
+                  </div>
+                );
+              });
             })()}
           </div>
         )}
@@ -354,7 +362,7 @@ export default function CoursesPage() {
       {globalSelected && (() => {
         const collegeGroup = groupedData.find(g => g.collegeName === globalSelected.collegeName);
         const selectedItem = collegeGroup?.categories[globalSelected.category]?.find(i => i.course._id === globalSelected.courseId);
-        
+
         if (!selectedItem) return null;
 
         return (

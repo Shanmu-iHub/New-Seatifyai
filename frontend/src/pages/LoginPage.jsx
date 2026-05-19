@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -13,19 +13,53 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
   const [devOtpHint, setDevOtpHint] = useState('');
+  const [timer, setTimer] = useState(30);
 
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Countdown timer for Resend OTP
+  useEffect(() => {
+    let interval = null;
+    if (step === 2 && timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    } else {
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [step, timer]);
+
+  const handleContactChange = (val) => {
+    setContact(val);
+    const isEmail = val.includes('@') || /[a-zA-Z]/.test(val);
+    setMode(isEmail ? 'email' : 'mobile');
+  };
+
   const handleSendOtp = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!contact) return toast.error('Please enter your contact');
+
+    const isEmail = contact.includes('@') || /[a-zA-Z]/.test(contact);
+    if (isEmail) {
+      if (!contact.includes('@') || contact.length < 5) {
+        return toast.error('Please enter a valid email address');
+      }
+    } else {
+      const cleanNum = contact.replace(/\D/g, '');
+      if (cleanNum.length < 10) {
+        return toast.error('Please enter a valid 10-digit mobile number');
+      }
+    }
+
     setLoading(true);
     try {
-      const res = await axios.post('/api/auth/send-otp', { contact, type: mode });
+      const res = await axios.post('/api/auth/send-otp', { contact, type: isEmail ? 'email' : 'mobile' });
       setIsNewUser(res.data.isNewUser);
       setStep(2);
+      setTimer(30); // Reset timer to 30s
       if (res.data.devOtp) {
         setDevOtpHint(res.data.devOtp);
         toast.success(`Development Mode: OTP is ${res.data.devOtp}`);
@@ -40,12 +74,48 @@ export default function LoginPage() {
   };
 
   const handleOtpChange = (idx, val) => {
+    // If user pasted/autofilled multiple characters directly
+    if (val.length > 1) {
+      const digits = val.replace(/\D/g, '').slice(0, 6 - idx);
+      if (digits) {
+        const newOtp = [...otp];
+        for (let i = 0; i < digits.length; i++) {
+          if (idx + i < 6) {
+            newOtp[idx + i] = digits[i];
+          }
+        }
+        setOtp(newOtp);
+        const nextFocus = Math.min(idx + digits.length, 5);
+        document.getElementById(`otp-${nextFocus}`)?.focus();
+      }
+      return;
+    }
+
     if (!/^\d*$/.test(val)) return;
     const newOtp = [...otp];
-    newOtp[idx] = val.slice(-1);
+    newOtp[idx] = val;
     setOtp(newOtp);
     if (val && idx < 5) document.getElementById(`otp-${idx + 1}`)?.focus();
     if (!val && idx > 0) document.getElementById(`otp-${idx - 1}`)?.focus();
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').trim();
+    const digits = pastedData.replace(/\D/g, '').slice(0, 6);
+    if (!digits) return;
+
+    const newOtp = [...otp];
+    for (let i = 0; i < 6; i++) {
+      if (digits[i] !== undefined) {
+        newOtp[i] = digits[i];
+      }
+    }
+    setOtp(newOtp);
+
+    // Focus last or next input
+    const focusIndex = Math.min(digits.length, 5);
+    document.getElementById(`otp-${focusIndex}`)?.focus();
   };
 
   const handleVerifyOtp = async (e) => {
@@ -104,30 +174,18 @@ export default function LoginPage() {
           {step === 1 ? (
             <>
               <h2 className="text-xl font-bold mb-1" style={{ fontFamily: 'Clash Display' }}>Sign In / Register</h2>
-              <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Enter your contact to receive an OTP</p>
-
-              {/* Mode toggle */}
-              <div className="flex rounded-xl p-1 mb-6" style={{ background: '#F3F4F6' }}>
-                {[{ id: 'email', label: 'Email', icon: Mail }, { id: 'mobile', label: 'Mobile', icon: Phone }].map(({ id, label, icon: Icon }) => (
-                  <button key={id} onClick={() => { setMode(id); setContact(''); }}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all"
-                    style={{ background: mode === id ? '#fff' : 'transparent', color: mode === id ? 'var(--primary)' : '#6B7280', boxShadow: mode === id ? '0 4px 12px rgba(0,0,0,0.05)' : 'none' }}>
-                    <Icon size={15} /> {label}
-                  </button>
-                ))}
-              </div>
 
               <form onSubmit={handleSendOtp}>
 
                 <div className="mb-5">
                   <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-muted)' }}>
-                    {mode === 'email' ? 'Email Address' : 'Mobile Number'}
+                    Mobile Number or Email Address
                   </label>
                   <input
-                    type={mode === 'email' ? 'email' : 'tel'}
+                    type="text"
                     value={contact}
-                    onChange={e => setContact(e.target.value)}
-                    placeholder={mode === 'email' ? 'student@email.com' : '+91 98765 43210'}
+                    onChange={e => handleContactChange(e.target.value)}
+                    placeholder="9876543210 or student@gmail.com"
                     className="w-full rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-blue-50 transition-all outline-none"
                     style={{ background: '#fff', border: '1px solid var(--card-border)', color: 'var(--text)' }}
                     required
@@ -148,7 +206,17 @@ export default function LoginPage() {
                   className="text-sm" style={{ color: 'var(--primary)' }}>← Back</button>
                 <div>
                   <h2 className="text-xl font-bold" style={{ fontFamily: 'Clash Display' }}>Verify OTP</h2>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Sent to {contact}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Sent to {contact}</p>
+                    <button
+                      type="button"
+                      onClick={() => { setStep(1); setOtp(['','','','','','']); }}
+                      className="text-xs font-semibold hover:underline animate-fade-up"
+                      style={{ color: 'var(--primary)', background: 'none', border: 'none', padding: 0 }}
+                    >
+                      (Edit)
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -169,6 +237,7 @@ export default function LoginPage() {
                       key={idx} id={`otp-${idx}`} type="text" inputMode="numeric"
                       value={digit} onChange={e => handleOtpChange(idx, e.target.value)}
                       onKeyDown={e => e.key === 'Backspace' && !digit && idx > 0 && document.getElementById(`otp-${idx-1}`)?.focus()}
+                      onPaste={handlePaste}
                       maxLength={1}
                       className="w-full text-center text-lg font-bold rounded-xl py-3 min-w-0"
                       style={{ background: '#fff', border: `1.5px solid ${digit ? 'var(--primary)' : 'var(--card-border)'}`, color: 'var(--text)' }}
@@ -181,10 +250,20 @@ export default function LoginPage() {
                   {loading ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Verifying...</>
                     : <><span>Verify & Continue</span><ArrowRight size={16} /></>}
                 </button>
-                <button type="button" onClick={handleSendOtp}
-                  className="w-full mt-3 flex items-center justify-center gap-1 text-sm py-2"
-                  style={{ color: 'var(--text-muted)' }}>
-                  <RefreshCw size={13} /> Resend OTP
+                <button 
+                  type="button" 
+                  disabled={timer > 0 || loading}
+                  onClick={handleSendOtp}
+                  className="w-full mt-3 flex items-center justify-center gap-1 text-sm py-2 transition-all"
+                  style={{ 
+                    color: timer > 0 ? 'var(--text-muted)' : 'var(--primary)',
+                    opacity: (timer > 0 || loading) ? 0.5 : 1,
+                    cursor: (timer > 0 || loading) ? 'not-allowed' : 'pointer',
+                    fontWeight: timer > 0 ? 'normal' : 'bold'
+                  }}
+                >
+                  <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> 
+                  {timer > 0 ? `Resend OTP in ${timer}s` : 'Resend OTP'}
                 </button>
               </form>
             </>

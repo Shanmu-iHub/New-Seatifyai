@@ -1,14 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
-import { User, BookOpen, CreditCard, FileText, CheckCircle, Clock, AlertCircle, Edit, X, Save, Download } from 'lucide-react';
+import { User, BookOpen, CreditCard, FileText, CheckCircle, Clock, AlertCircle, Edit, X, Save, Download, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 import { logoBase64 } from '../assets/logoBase64';
 
-const TABS = ['Overview', 'Admissions'];
+// Static tabs are replaced by dynamic tabs inside the component
+
+const getDocumentRequirements = (courseName, category) => {
+  if (!courseName) return [];
+  const docs = [
+    { id: 'aadhar', label: 'Aadhar Card *' },
+    { id: 'birthCertificate', label: 'Birth Certificate' },
+    { id: 'community', label: 'Community Certificate' },
+  ];
+  
+  const name = courseName.toLowerCase();
+  
+  if (category === 'K-12') {
+    if (name.includes('grade 11') || name.includes('grade 12')) {
+      docs.push({ id: 'marksheet10', label: '10th Mark Sheet' });
+      docs.push({ id: 'previousSchoolTC', label: 'Transfer Certificate (TC)' });
+    } else if (!name.includes('pre kg')) {
+      docs.push({ id: 'previousSchoolTC', label: 'Transfer Certificate (TC)' });
+    }
+  } else {
+    docs.push({ id: 'marksheet10', label: '10th Mark Sheet' });
+    docs.push({ id: 'marksheet12', label: '12th Mark Sheet / Diploma Certificate' });
+  }
+  docs.push({ id: 'admissionForm', label: 'Admission Form' });
+  
+  return docs;
+};
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -16,6 +42,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState(null);
   const [admissions, setAdmissions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [activeDocSubTab, setActiveDocSubTab] = useState('Pending Documents');
 
   useEffect(() => {
     fetchProfile();
@@ -31,6 +58,38 @@ export default function ProfilePage() {
       toast.error('Could not load profile history');
     }
   };
+
+  const confirmedAdmissions = admissions.filter(adm => adm.status === 'confirmed');
+  
+  let hasPendingDocs = false;
+  confirmedAdmissions.forEach(adm => {
+    const requiredDocs = getDocumentRequirements(adm.courseName, adm.category);
+    const uploadedDocs = adm.docs || {};
+    const missingDocs = requiredDocs.filter(d => !uploadedDocs[d.id]);
+    if (missingDocs.length > 0) {
+      hasPendingDocs = true;
+    }
+  });
+
+  const tabsList = ['Overview', 'Admissions'];
+  if (confirmedAdmissions.length > 0) {
+    tabsList.push('Documents');
+  }
+
+  // Set default document sub tab based on pending status
+  useEffect(() => {
+    if (confirmedAdmissions.length > 0) {
+      if (hasPendingDocs) {
+        setActiveDocSubTab('Pending Documents');
+      } else {
+        setActiveDocSubTab('Uploaded Documents');
+      }
+    } else {
+      if (activeTab === 'Documents') {
+        setActiveTab('Overview');
+      }
+    }
+  }, [admissions, hasPendingDocs]);
   const handleCancelAdmission = async (adm) => {
     if (!window.confirm("Are you sure you want to cancel this admission? This action cannot be undone.")) return;
     
@@ -42,6 +101,39 @@ export default function ProfilePage() {
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.message || err.message || "Failed to cancel admission");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUploadPendingDoc = async (applicationId, docId, file) => {
+    if (!file) return;
+    const toastId = toast.loading('Uploading document...');
+    try {
+      const fd = new FormData();
+      fd.append(`doc_${docId}`, file);
+      await axios.post(`/api/applications/${applicationId}/documents`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      toast.success('Document uploaded successfully!', { id: toastId });
+      fetchProfile();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to upload document', { id: toastId });
+    }
+  };
+
+  const handleRemoveDoc = async (applicationId, docKey) => {
+    if (!window.confirm("Are you sure you want to remove this document? You will need to upload it again.")) return;
+    
+    setLoading(true);
+    try {
+      await axios.delete(`/api/applications/${applicationId}/documents/${docKey}`);
+      toast.success("Document removed successfully.");
+      fetchProfile();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || err.message || "Failed to remove document");
     } finally {
       setLoading(false);
     }
@@ -89,7 +181,7 @@ export default function ProfilePage() {
         ['STUDENT NAME', studentName.toUpperCase()],
         ['PROGRAM', (adm.programName || 'N/A').toUpperCase()],
         ['COURSE', (adm.courseName || 'N/A').toUpperCase()],
-        ['AMOUNT PAID', `INR ${((adm.fee || 0) + 1).toLocaleString('en-IN')}`],
+        ['AMOUNT PAID', `INR ${((adm.fee || 0)).toLocaleString('en-IN')}`],
         ['PAYMENT ID', adm.paymentId || 'N/A'],
         ['DATE & TIME', `${dateStr} at ${timeStr}`],
         ['STATUS', 'PRE REGISTRATION CONFIRMED']
@@ -203,7 +295,7 @@ export default function ProfilePage() {
 
         {/* Tabs */}
         <div className="flex gap-1 mb-6 overflow-x-auto tabs-scroll">
-          {TABS.map(tab => (
+          {tabsList.map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className="flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-all"
               style={{
@@ -227,10 +319,18 @@ export default function ProfilePage() {
               </div>
               {profile ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Field label="Full Name" value={profile.fullName} />
-                    <Field label="Email" value={profile.email} />
-                    <Field label="Mobile" value={profile.mobile} />
+                    <Field label="Student Name" value={profile.fullName} />
+                    <Field label="Student contact number" value={profile.mobile} />
                     <Field label="Date of Birth" value={profile.dob} />
+                    <Field label="Community" value={profile.community} />
+                    <Field label="Parent name" value={profile.parentName} />
+                    <Field label="Parent occupation" value={profile.parentOccupation} />
+                    <Field label="Parent contact number" value={profile.parentMobile} />
+                    <Field label="Home Town" value={profile.homeTown} />
+                    <Field label="District" value={profile.district === 'Other' ? profile.districtOther : profile.district} />
+                    <Field label="Current Qualification" value={profile.currentQualification} />
+                    <Field label="Aadhar Number" value={profile.aadhar} />
+                    <Field label="Email ID" value={profile.email} />
                     <Field label="Admission Type" value={profile.admissionType || 'Regular'} />
                   </div>
               ) : (
@@ -295,6 +395,97 @@ export default function ProfilePage() {
                   <p className="text-sm mt-1">Apply for a course to see your records here.</p>
                 </div>
               )}
+            </>
+          )}
+
+          {activeTab === 'Documents' && (
+            <>
+              <h2 className="text-lg font-bold mb-5 flex items-center gap-2" style={{ fontFamily: 'Clash Display' }}>
+                <FileText size={18} style={{ color: 'var(--primary)' }} /> Documents
+              </h2>
+
+              <div className="space-y-8">
+                {confirmedAdmissions.map(adm => {
+                  const requiredDocs = getDocumentRequirements(adm.courseName, adm.category);
+                  const uploadedDocs = adm.docs || {};
+                  
+                  const missingDocs = requiredDocs.filter(d => !uploadedDocs[d.id]);
+                  const actualUploaded = requiredDocs.filter(d => typeof uploadedDocs[d.id] === 'string' && uploadedDocs[d.id].trim() !== '');
+
+                  return (
+                    <div key={adm._id} className="rounded-xl p-6 space-y-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--card-border)' }}>
+                      <div>
+                        <p className="font-semibold text-lg">{adm.courseName}</p>
+                        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{adm.programName} | ID: {adm.applicationId}</p>
+                      </div>
+
+                      {/* 1. Pending Documents Section (Above) */}
+                      {missingDocs.length > 0 && (
+                        <div className="space-y-3">
+                          <h4 className="text-xs font-extrabold uppercase tracking-wider text-red-500 flex items-center gap-1.5 mb-2">
+                            <AlertCircle size={14} /> Pending Documents ({missingDocs.length})
+                          </h4>
+                          <div className="space-y-3">
+                            {missingDocs.map(doc => (
+                              <div key={doc.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border border-red-100 bg-red-50/30">
+                                <span className="font-medium text-sm text-red-900">{doc.label}</span>
+                                <label className="cursor-pointer bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors flex items-center gap-2 justify-center w-full sm:w-auto">
+                                  <Upload size={14} /> Upload
+                                  <input 
+                                    type="file" 
+                                    className="hidden" 
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    onChange={(e) => handleUploadPendingDoc(adm.applicationId, doc.id, e.target.files[0])}
+                                  />
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 2. Uploaded Documents Section (Below) */}
+                      <div className="space-y-3 pt-4 border-t" style={{ borderColor: 'var(--card-border)' }}>
+                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-emerald-600 flex items-center gap-1.5 mb-2">
+                          <CheckCircle size={14} /> Uploaded Documents ({actualUploaded.length})
+                        </h4>
+                        {actualUploaded.length > 0 ? (
+                          <div className="space-y-2">
+                            {actualUploaded.map(doc => {
+                              const docUrl = uploadedDocs[doc.id];
+                              const finalUrl = docUrl.startsWith('http') || docUrl.startsWith('/') ? docUrl : `/uploads/${docUrl}`;
+                              
+                              return (
+                                <div key={doc.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border border-slate-100 bg-slate-50/50">
+                                  <span className="font-medium text-sm text-slate-700">{doc.label}</span>
+                                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                                    <a 
+                                      href={finalUrl} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="flex-1 sm:flex-none px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors text-center"
+                                    >
+                                      View
+                                    </a>
+                                    <button 
+                                      onClick={() => handleRemoveDoc(adm.applicationId, doc.id)}
+                                      className="flex-1 sm:flex-none px-4 py-2 bg-rose-50 text-rose-600 border border-rose-100 rounded-lg text-xs font-bold hover:bg-rose-100 transition-colors text-center"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-slate-400">No documents uploaded yet.</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </>
           )}
         </div>

@@ -41,6 +41,101 @@ const SelectField = ({ label, options, required, ...props }) => (
   </div>
 );
 
+const RadioField = ({ label, name, options, value, onChange, required }) => (
+  <div className="sm:col-span-2">
+    <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>
+      {label} {required && <span style={{ color: '#EF4444' }}>*</span>}
+    </label>
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      {options.map(opt => {
+        const isSelected = value === opt;
+        return (
+          <label
+            key={opt}
+            className="flex items-center gap-2 px-3 py-2.5 rounded-xl border cursor-pointer text-xs font-bold transition-all select-none"
+            style={{
+              background: isSelected ? 'rgba(79,70,229,0.06)' : '#fff',
+              border: isSelected ? '2px solid var(--primary)' : '1px solid var(--card-border)',
+              color: isSelected ? 'var(--primary)' : 'var(--text)',
+            }}
+          >
+            <input
+              type="radio"
+              name={name}
+              value={opt}
+              checked={isSelected}
+              onChange={() => onChange(opt)}
+              className="hidden"
+            />
+            <div
+              className="w-3.5 h-3.5 rounded-full flex items-center justify-center border transition-all"
+              style={{
+                borderColor: isSelected ? 'var(--primary)' : 'var(--card-border)',
+                borderWidth: isSelected ? '4.5px' : '1px',
+                background: '#fff'
+              }}
+            />
+            <span>{opt}</span>
+          </label>
+        );
+      })}
+    </div>
+  </div>
+);
+
+const DISTRICTS = [
+  "Ariyalur", "Chengalpattu", "Chennai", "Coimbatore", "Cuddalore",
+  "Dharmapuri", "Dindigul", "Erode", "Kallakurichi", "Kanchipuram",
+  "Kanyakumari", "Karur", "Krishnagiri", "Madurai", "Mayiladuthurai",
+  "Nagapattinam", "Namakkal", "Nilgiris", "Perambalur", "Pudukkottai",
+  "Ramanathapuram", "Ranipet", "Salem", "Sivaganga", "Tenkasi",
+  "Thanjavur", "Theni", "Thoothukudi", "Tiruchirappalli", "Tirunelveli",
+  "Tirupathur", "Tiruppur", "Tiruvallur", "Tiruvannamalai", "Tiruvarur",
+  "Vellore", "Viluppuram", "Virudhunagar", "Other"
+];
+
+const GridRadioField = ({ label, name, options, value, onChange, required }) => (
+  <div className="sm:col-span-2">
+    <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>
+      {label} {required && <span style={{ color: '#EF4444' }}>*</span>}
+    </label>
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-52 overflow-y-auto p-3 border rounded-xl" style={{ borderColor: 'var(--card-border)', background: '#fcfcfc' }}>
+      {options.map(opt => {
+        const isSelected = value === opt;
+        return (
+          <label
+            key={opt}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer text-[11px] font-bold transition-all select-none"
+            style={{
+              background: isSelected ? 'rgba(79,70,229,0.06)' : '#fff',
+              border: isSelected ? '2px solid var(--primary)' : '1px solid var(--card-border)',
+              color: isSelected ? 'var(--primary)' : 'var(--text-muted)',
+            }}
+          >
+            <input
+              type="radio"
+              name={name}
+              value={opt}
+              checked={isSelected}
+              onChange={() => onChange(opt)}
+              className="hidden"
+            />
+            <div
+              className="w-3 h-3 rounded-full flex items-center justify-center border transition-all"
+              style={{
+                borderColor: isSelected ? 'var(--primary)' : 'var(--card-border)',
+                borderWidth: isSelected ? '3.5px' : '1px',
+                background: '#fff'
+              }}
+            />
+            <span className="truncate">{opt}</span>
+          </label>
+        );
+      })}
+    </div>
+  </div>
+);
+
 export default function ApplicationForm() {
   const { state } = useLocation();
   const { user } = useAuth();
@@ -58,7 +153,17 @@ export default function ApplicationForm() {
     dob: '',
     admissionType: 'Regular',
     email: user?.email || '', mobile: user?.mobile || '',
-    docs: { aadhar: null, previousSchoolTC: null, community: null, birthCertificate: null, marksheet10: null, marksheet12: null, diplomaCertificate: null }
+    community: '',
+    parentName: '',
+    parentOccupation: '',
+    parentMobile: '',
+    homeTown: '',
+    district: '',
+    districtOther: '',
+    currentQualification: '',
+    aadhar: '',
+    physicalApplicationNo: '',
+    docs: { aadhar: null, previousSchoolTC: null, community: null, birthCertificate: null, marksheet10: null, marksheet12: null, diplomaCertificate: null, admissionForm: null }
   });
 
   const update = (field, val) => setFormData(prev => ({ ...prev, [field]: val }));
@@ -77,11 +182,21 @@ export default function ApplicationForm() {
           
           setFormData(prev => ({
             ...prev,
-            fullName: app.fullName,
-            dob: app.dob,
+            fullName: app.fullName || '',
+            dob: app.dob || '',
             admissionType: app.admissionType || 'Regular',
-            email: app.email,
-            mobile: app.mobile,
+            email: app.email || '',
+            mobile: app.mobile || '',
+            community: app.community || '',
+            parentName: app.parentName || '',
+            parentOccupation: app.parentOccupation || '',
+            parentMobile: app.parentMobile || '',
+            homeTown: app.homeTown || '',
+            district: app.district || '',
+            districtOther: app.districtOther || '',
+            currentQualification: app.currentQualification || '',
+            aadhar: app.aadhar || '',
+            physicalApplicationNo: app.physicalApplicationNo || '',
           }));
           setExistingDocs(app.docs || {});
 
@@ -131,17 +246,49 @@ export default function ApplicationForm() {
 
   const handleNext = () => {
     if (step === 1) {
-      const requiredFields = ['fullName', 'dob', 'email', 'mobile'];
+      const requiredFields = [
+        'fullName', 
+        'dob', 
+        'email', 
+        'mobile', 
+        'community', 
+        'parentName', 
+        'parentOccupation', 
+        'parentMobile', 
+        'homeTown', 
+        'district', 
+        'currentQualification', 
+        'aadhar'
+      ];
       const missing = requiredFields.filter(f => !formData[f]);
       if (missing.length > 0) {
         toast.error('Please fill all required fields');
         return;
       }
 
-      // Validate mobile number - must be 10 digits only
+      // If other district, must specify
+      if (formData.district === 'Other' && !formData.districtOther?.trim()) {
+        toast.error('Please enter your district name');
+        return;
+      }
+
+      // Validate student mobile number - must be 10 digits only
       const mobileRegex = /^[0-9]{10}$/;
       if (!mobileRegex.test(formData.mobile)) {
-        toast.error('Mobile number must be exactly 10 digits');
+        toast.error('Student contact number must be exactly 10 digits');
+        return;
+      }
+
+      // Validate parent contact number - must be 10 digits only
+      if (!mobileRegex.test(formData.parentMobile)) {
+        toast.error('Parent contact number must be exactly 10 digits');
+        return;
+      }
+
+      // Validate Aadhar Number - must be exactly 12 digits
+      const aadharRegex = /^[0-9]{12}$/;
+      if (!aadharRegex.test(formData.aadhar)) {
+        toast.error('Aadhar Number must be exactly 12 digits');
         return;
       }
     }
@@ -183,6 +330,8 @@ export default function ApplicationForm() {
   };
 
   const handleSubmit = async () => {
+    // Validate Admission Form Group (Optional)
+
     const requiredDocs = getDocumentRequirements().filter(d => d.required);
     const missing = requiredDocs.filter(d => !formData.docs[d.id] && !existingDocs[d.id]);
 
@@ -320,24 +469,97 @@ export default function ApplicationForm() {
           {step === 1 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
-                <InputField label="Full Name" value={formData.fullName} onChange={e => update('fullName', e.target.value)} required />
+                <InputField label="Student Name" value={formData.fullName} onChange={e => update('fullName', e.target.value)} required />
               </div>
+              <InputField label="Student contact number" type="tel" value={formData.mobile} onChange={e => update('mobile', e.target.value.replace(/[^0-9]/g, '').slice(0, 10))} required pattern="[0-9]{10}" maxLength={10} />
               <InputField label="Date of Birth" type="date" value={formData.dob} onChange={e => update('dob', e.target.value)} required />
-              {course?.category === 'Engineering & Tech' && (
-                <SelectField label="Admission Type" value={formData.admissionType} onChange={e => update('admissionType', e.target.value)}
-                  options={['Regular', 'Lateral Entry']} required />
+              
+              <SelectField 
+                label="Community" 
+                value={formData.community} 
+                onChange={e => update('community', e.target.value)} 
+                options={['OC', 'BC', 'BCM', 'MBC', 'DNC', 'SC', 'ST']} 
+                required 
+              />
+              
+              <InputField label="Parent name" value={formData.parentName} onChange={e => update('parentName', e.target.value)} required />
+              <InputField label="Parent occupation" value={formData.parentOccupation} onChange={e => update('parentOccupation', e.target.value)} required />
+              <InputField label="Parent contact number" type="tel" value={formData.parentMobile} onChange={e => update('parentMobile', e.target.value.replace(/[^0-9]/g, '').slice(0, 10))} required pattern="[0-9]{10}" maxLength={10} />
+              <InputField label="Home Town" value={formData.homeTown} onChange={e => update('homeTown', e.target.value)} required />
+              
+              <SelectField 
+                label="District" 
+                value={formData.district} 
+                onChange={e => update('district', e.target.value)} 
+                options={DISTRICTS} 
+                required 
+              />
+              
+              {formData.district === 'Other' && (
+                <div className="sm:col-span-2">
+                  <InputField 
+                    label="Please specify District Name" 
+                    value={formData.districtOther} 
+                    onChange={e => update('districtOther', e.target.value)} 
+                    required 
+                    placeholder="Enter district name"
+                  />
+                </div>
               )}
+              
+              <RadioField 
+                label="Current Qualification" 
+                name="currentQualification" 
+                options={['12th Standard', 'UG (Degree Completed / Pursuing)', 'Lateral Entry (Diploma)']} 
+                value={formData.currentQualification} 
+                onChange={val => update('currentQualification', val)} 
+                required 
+              />
+              
+              <InputField label="Aadhar Number" type="text" value={formData.aadhar} onChange={e => update('aadhar', e.target.value.replace(/[^0-9]/g, '').slice(0, 12))} required pattern="[0-9]{12}" maxLength={12} placeholder="12-digit number" />
               <InputField label="Email ID" type="email" value={formData.email} onChange={e => update('email', e.target.value)} required />
-              <InputField label="Mobile Number" type="tel" value={formData.mobile} onChange={e => update('mobile', e.target.value.replace(/[^0-9]/g, '').slice(0, 10))} required pattern="[0-9]{10}" maxLength={10} />
+              
             </div>
           )}
 
           {step === 2 && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
                 Upload clear scans or photos (PDF, JPG, PNG. Max 10MB).
               </p>
 
+              {/* Grouped Admission Form Option */}
+              <div className="rounded-2xl p-5 space-y-4 border border-blue-100 bg-blue-50/10 shadow-sm">
+                <div className="flex items-center gap-2 pb-2 border-b border-blue-50">
+                  <span className="text-xl">📝</span>
+                  <h3 className="font-extrabold text-sm uppercase tracking-wider text-blue-900" style={{ fontFamily: 'Clash Display' }}>
+                    Admission Form Verification
+                  </h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col justify-center">
+                    <InputField 
+                      label="Application Number (Optional)" 
+                      value={formData.physicalApplicationNo} 
+                      onChange={e => update('physicalApplicationNo', e.target.value)} 
+                      placeholder="Enter physical application no."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                      Upload Photo Copy (Optional)
+                    </label>
+                    <DocUpload
+                      label="Upload Photo Copy"
+                      field="admissionForm"
+                      accept=".pdf,image/*"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Other Documents */}
               {getDocumentRequirements().map(doc => (
                 <DocUpload
                   key={doc.id}

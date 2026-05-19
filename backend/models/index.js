@@ -17,6 +17,8 @@ const userSchema = new mongoose.Schema({
   name: String,
   email: { type: String, sparse: true, index: true },
   mobile: { type: String, sparse: true, index: true },
+  dob: String,
+  role: { type: String, enum: ['student', 'admin'], default: 'student' },
   isActive: { type: Boolean, default: true },
   currentAcademicYear: String,
 }, { timestamps: true });
@@ -52,7 +54,10 @@ const applicationSchema = new mongoose.Schema({
   // Personal
   fullName: String, dob: String, gender: String,
   fatherName: String, motherName: String,
+  parentName: String, parentOccupation: String, parentMobile: String,
+  homeTown: String, district: String, districtOther: String, currentQualification: String,
   email: String, mobile: String,
+  physicalApplicationNo: String,
   street: String, city: String, state: String, pin: String,
   nationality: String, religion: String, community: String, aadhar: String,
   // Academic
@@ -65,6 +70,7 @@ const applicationSchema = new mongoose.Schema({
   docs: {
     photo: String, aadhar: String, previousSchoolTC: String, marksheet10: String,
     marksheet12: String, diplomaCertificate: String, tc: String, community: String, birthCertificate: String,
+    admissionForm: String,
   },
   folderUrl: String,
   gradeLevel: String,
@@ -90,4 +96,33 @@ applicationSchema.pre('save', function(next) {
 });
 const Application = mongoose.model('Application', applicationSchema);
 
-module.exports = { OTP, User, Course, Application };
+// Ticket Model
+const ticketReplySchema = new mongoose.Schema({
+  sender: { type: String, enum: ['student', 'support'], required: true },
+  message: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now },
+});
+
+const ticketSchema = new mongoose.Schema({
+  ticketId: { type: String, unique: true },
+  student: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  category: { type: String, enum: ['Admission', 'Payment', 'Document Verification', 'General Inquiry'], required: true },
+  priority: { type: String, enum: ['Low', 'Medium', 'High'], default: 'Medium' },
+  subject: { type: String, required: true },
+  description: { type: String, required: true },
+  status: { type: String, enum: ['open', 'in_progress', 'resolved'], default: 'open' },
+  replies: [ticketReplySchema],
+}, { timestamps: true });
+
+ticketSchema.pre('save', function(next) {
+  if (!this.ticketId) {
+    const year = new Date().getFullYear();
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    this.ticketId = `TIC-${year}-${rand}`;
+  }
+  next();
+});
+
+const Ticket = mongoose.model('Ticket', ticketSchema);
+
+module.exports = { OTP, User, Course, Application, Ticket };

@@ -65,6 +65,7 @@ const docFields = [
   { name: 'doc_tc', maxCount: 1 },
   { name: 'doc_community', maxCount: 1 },
   { name: 'doc_birthCertificate', maxCount: 1 },
+  { name: 'doc_admissionForm', maxCount: 1 },
 ];
 
 // POST /api/applications/:id/cancel
@@ -296,6 +297,16 @@ router.put('/:id', auth, upload.fields(docFields), async (req, res) => {
           admissionType: req.body.admissionType || app.admissionType,
           email: req.body.email || app.email,
           mobile: req.body.mobile || app.mobile,
+          community: req.body.community || app.community,
+          parentName: req.body.parentName || app.parentName,
+          parentOccupation: req.body.parentOccupation || app.parentOccupation,
+          parentMobile: req.body.parentMobile || app.parentMobile,
+          homeTown: req.body.homeTown || app.homeTown,
+          district: req.body.district || app.district,
+          districtOther: req.body.districtOther || app.districtOther,
+          currentQualification: req.body.currentQualification || app.currentQualification,
+          aadhar: req.body.aadhar || app.aadhar,
+          physicalApplicationNo: req.body.physicalApplicationNo || app.physicalApplicationNo,
           docs: updatedDocs,
           isEdited: true 
         } 
@@ -311,6 +322,88 @@ router.put('/:id', auth, upload.fields(docFields), async (req, res) => {
     });
   } catch (err) {
     console.error('Edit Error:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/applications/:id/documents — append pending documents
+router.post('/:id/documents', auth, upload.fields(docFields), async (req, res) => {
+  try {
+    const app = await Application.findOne({ applicationId: req.params.id, student: req.user._id });
+    if (!app) return res.status(404).json({ message: 'Application not found' });
+
+    let updatedDocs = { ...(app.docs || {}) };
+    if (req.files && Object.keys(req.files).length > 0) {
+      if (GOOGLE_DRIVE_SCRIPT_URL) {
+        const filesToUpload = [];
+        Object.entries(req.files).forEach(([key, files]) => {
+          if (files[0]) {
+            filesToUpload.push({
+              key: key.replace('doc_', ''),
+              name: files[0].originalname,
+              mimeType: files[0].mimetype,
+              data: files[0].buffer.toString('base64')
+            });
+          }
+        });
+
+        if (filesToUpload.length > 0) {
+          try {
+            const driveRes = await axios.post(GOOGLE_DRIVE_SCRIPT_URL, {
+              action: 'uploadFiles',
+              studentName: app.fullName || 'Student',
+              files: filesToUpload
+            });
+            if (driveRes.data && driveRes.data.success) {
+              Object.assign(updatedDocs, driveRes.data.fileUrls);
+              if (driveRes.data.folderUrl && !updatedDocs.driveFolder) {
+                updatedDocs.driveFolder = driveRes.data.folderUrl;
+              }
+            }
+          } catch (driveErr) {
+            console.error('Drive Edit Upload Failed:', driveErr.message);
+          }
+        }
+      } else {
+        Object.entries(req.files).forEach(([key, files]) => {
+          const docKey = key.replace('doc_', '');
+          if (files[0]) {
+            const ext = path.extname(files[0].originalname);
+            const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 6)}${ext}`;
+            const filepath = path.join(__dirname, '../uploads', filename);
+            if (files[0].buffer) fs.writeFileSync(filepath, files[0].buffer);
+            updatedDocs[docKey] = `/uploads/${filename}`;
+          }
+        });
+      }
+    }
+
+    app.docs = updatedDocs;
+    app.markModified('docs');
+    await app.save();
+    res.json({ message: 'Documents uploaded successfully', application: app });
+  } catch (err) {
+    console.error('Document Upload Error:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// DELETE /api/applications/:id/documents/:docKey — delete a single document
+router.delete('/:id/documents/:docKey', auth, async (req, res) => {
+  try {
+    const app = await Application.findOne({ applicationId: req.params.id, student: req.user._id });
+    if (!app) return res.status(404).json({ message: 'Application not found' });
+
+    let updatedDocs = { ...(app.docs || {}) };
+    delete updatedDocs[req.params.docKey];
+
+    app.docs = updatedDocs;
+    app.markModified('docs');
+    await app.save();
+
+    res.json({ message: 'Document removed successfully', application: app });
+  } catch (err) {
+    console.error('Document Remove Error:', err);
     res.status(500).json({ message: err.message });
   }
 });

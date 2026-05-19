@@ -113,7 +113,13 @@ router.post('/verify', auth, async (req, res) => {
             marksheet12: application.docs?.marksheet12 || '',
             aadhaar: application.docs?.aadhar || '',
             tc: application.docs?.previousSchoolTC || application.docs?.tc || '',
-            community: application.docs?.community || '',
+            community: application.community || application.docs?.community || '',
+            parentName: application.parentName || '',
+            parentOccupation: application.parentOccupation || '',
+            parentMobile: application.parentMobile || '',
+            homeTown: application.homeTown || '',
+            district: application.district === 'Other' ? (application.districtOther || '') : (application.district || ''),
+            currentQualification: application.currentQualification || '',
             date: new Date(application.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
           });
           console.log(`✅ Google Sheet Response:`, sheetRes.data);
@@ -163,9 +169,7 @@ router.post('/verify', auth, async (req, res) => {
                   <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; width: 100%; max-width: 600px; background-color: #1a1d24; color: #f8fafc; border-radius: 16px; overflow: hidden; border: 1px solid #334155; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);">
                     <!-- Header -->
                     <div style="padding: 40px 20px 20px; text-align: center; background: linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, rgba(26, 29, 36, 0) 100%);">
-                      <div style="width: 64px; height: 64px; background-color: #10b981; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);">
-                        <span style="font-size: 32px; color: #ffffff;">✓</span>
-                      </div>
+                      <div style="display: inline-block; width: 64px; height: 64px; line-height: 64px; text-align: center; background-color: #10b981; border-radius: 50%; margin: 0 auto 20px; box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); font-size: 32px; color: #ffffff; font-weight: bold;">✓</div>
                       <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #10b981; letter-spacing: -0.02em;">Admission Confirmed!</h1>
                       <p style="margin: 8px 0 0; color: #94a3b8; font-size: 14px;">Your seat has been successfully reserved.</p>
                     </div>

@@ -169,6 +169,48 @@ export default function ApplicationForm() {
   const update = (field, val) => setFormData(prev => ({ ...prev, [field]: val }));
   const updateDoc = (field, file) => setFormData(prev => ({ ...prev, docs: { ...prev.docs, [field]: file } }));
 
+  // Load draft from localStorage on mount (only for new applications, not edit modes)
+  useEffect(() => {
+    if (!editId) {
+      const draftKey = `seatify_app_draft_${user?.email || 'guest'}`;
+      try {
+        const saved = localStorage.getItem(draftKey);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setFormData(prev => ({
+            ...prev,
+            ...parsed,
+            docs: prev.docs // Keep docs empty/default as Files can't be JSON serialized
+          }));
+          toast.success('Restored draft from autosave 💾', { id: 'draft-restore' });
+        }
+      } catch (err) {
+        console.error('Failed to load application draft:', err);
+      }
+    }
+  }, [editId, user]);
+
+  // Autosave to localStorage on form text fields changes
+  useEffect(() => {
+    if (!editId) {
+      const draftKey = `seatify_app_draft_${user?.email || 'guest'}`;
+      const { docs, ...textData } = formData;
+      
+      // Check if at least one field has been custom-entered by checking values different from initial defaults
+      const hasCustomData = Object.entries(textData).some(([k, val]) => {
+        if (k === 'fullName' && val === (user?.name || '')) return false;
+        if (k === 'email' && val === (user?.email || '')) return false;
+        if (k === 'mobile' && val === (user?.mobile || '')) return false;
+        if (k === 'admissionType' && val === 'Regular') return false;
+        return val !== '';
+      });
+      
+      if (hasCustomData) {
+        localStorage.setItem(draftKey, JSON.stringify(textData));
+      }
+    }
+  }, [formData, editId, user]);
+
   // Fetch data if editing
   useEffect(() => {
     let isMounted = true;
@@ -379,6 +421,11 @@ export default function ApplicationForm() {
         const res = await axios.post('/api/applications', fd, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
+
+        // Clear autosave draft on successful submission
+        const draftKey = `seatify_app_draft_${user?.email || 'guest'}`;
+        localStorage.removeItem(draftKey);
+
         toast.success('Application submitted! Proceeding to payment...');
         navigate(`/payment/${res.data.applicationId}`, {
           state: { application: res.data, course, program }

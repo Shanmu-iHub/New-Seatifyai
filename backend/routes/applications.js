@@ -326,13 +326,13 @@ router.put('/:id', auth, upload.fields(docFields), async (req, res) => {
   }
 });
 
-// POST /api/applications/:id/documents — append pending documents
+// POST /api/applications/:id/documents — append pending documents atomically
 router.post('/:id/documents', auth, upload.fields(docFields), async (req, res) => {
   try {
     const app = await Application.findOne({ applicationId: req.params.id, student: req.user._id });
     if (!app) return res.status(404).json({ message: 'Application not found' });
 
-    let updatedDocs = { ...(app.docs || {}) };
+    const setQuery = {};
     if (req.files && Object.keys(req.files).length > 0) {
       if (GOOGLE_DRIVE_SCRIPT_URL) {
         const filesToUpload = [];
@@ -355,13 +355,39 @@ router.post('/:id/documents', auth, upload.fields(docFields), async (req, res) =
               files: filesToUpload
             });
             if (driveRes.data && driveRes.data.success) {
-              Object.assign(updatedDocs, driveRes.data.fileUrls);
-              if (driveRes.data.folderUrl && !updatedDocs.driveFolder) {
-                updatedDocs.driveFolder = driveRes.data.folderUrl;
+              Object.entries(driveRes.data.fileUrls).forEach(([docKey, fileUrl]) => {
+                setQuery[`docs.${docKey}`] = fileUrl;
+              });
+              if (driveRes.data.folderUrl) {
+                setQuery['docs.driveFolder'] = driveRes.data.folderUrl;
+                setQuery['folderUrl'] = driveRes.data.folderUrl;
               }
+            } else {
+              // Fallback to local
+              Object.entries(req.files).forEach(([key, files]) => {
+                const docKey = key.replace('doc_', '');
+                if (files[0]) {
+                  const ext = path.extname(files[0].originalname);
+                  const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 6)}${ext}`;
+                  const filepath = path.join(__dirname, '../uploads', filename);
+                  if (files[0].buffer) fs.writeFileSync(filepath, files[0].buffer);
+                  setQuery[`docs.${docKey}`] = `/uploads/${filename}`;
+                }
+              });
             }
           } catch (driveErr) {
             console.error('Drive Edit Upload Failed:', driveErr.message);
+            // Fallback to local
+            Object.entries(req.files).forEach(([key, files]) => {
+              const docKey = key.replace('doc_', '');
+              if (files[0]) {
+                const ext = path.extname(files[0].originalname);
+                const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 6)}${ext}`;
+                const filepath = path.join(__dirname, '../uploads', filename);
+                if (files[0].buffer) fs.writeFileSync(filepath, files[0].buffer);
+                setQuery[`docs.${docKey}`] = `/uploads/${filename}`;
+              }
+            });
           }
         }
       } else {
@@ -372,36 +398,39 @@ router.post('/:id/documents', auth, upload.fields(docFields), async (req, res) =
             const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 6)}${ext}`;
             const filepath = path.join(__dirname, '../uploads', filename);
             if (files[0].buffer) fs.writeFileSync(filepath, files[0].buffer);
-            updatedDocs[docKey] = `/uploads/${filename}`;
+            setQuery[`docs.${docKey}`] = `/uploads/${filename}`;
           }
         });
       }
     }
 
-    app.docs = updatedDocs;
-    app.markModified('docs');
-    await app.save();
-    res.json({ message: 'Documents uploaded successfully', application: app });
+    if (Object.keys(setQuery).length > 0) {
+      const updatedApp = await Application.findOneAndUpdate(
+        { applicationId: req.params.id, student: req.user._id },
+        { $set: setQuery },
+        { new: true }
+      );
+      if (!updatedApp) return res.status(404).json({ message: 'Application lost during update' });
+      res.json({ message: 'Documents uploaded successfully', application: updatedApp });
+    } else {
+      res.json({ message: 'No documents uploaded', application: app });
+    }
   } catch (err) {
     console.error('Document Upload Error:', err);
     res.status(500).json({ message: err.message });
   }
 });
 
-// DELETE /api/applications/:id/documents/:docKey — delete a single document
+// DELETE /api/applications/:id/documents/:docKey — delete a single document atomically
 router.delete('/:id/documents/:docKey', auth, async (req, res) => {
   try {
-    const app = await Application.findOne({ applicationId: req.params.id, student: req.user._id });
-    if (!app) return res.status(404).json({ message: 'Application not found' });
-
-    let updatedDocs = { ...(app.docs || {}) };
-    delete updatedDocs[req.params.docKey];
-
-    app.docs = updatedDocs;
-    app.markModified('docs');
-    await app.save();
-
-    res.json({ message: 'Document removed successfully', application: app });
+    const updatedApp = await Application.findOneAndUpdate(
+      { applicationId: req.params.id, student: req.user._id },
+      { $unset: { [`docs.${req.params.docKey}`]: 1 } },
+      { new: true }
+    );
+    if (!updatedApp) return res.status(404).json({ message: 'Application not found' });
+    res.json({ message: 'Document removed successfully', application: updatedApp });
   } catch (err) {
     console.error('Document Remove Error:', err);
     res.status(500).json({ message: err.message });

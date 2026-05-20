@@ -43,6 +43,25 @@ export default function ProfilePage() {
   const [admissions, setAdmissions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeDocSubTab, setActiveDocSubTab] = useState('Pending Documents');
+  const [uploadProgress, setUploadProgress] = useState({}); // { [docId]: percent }
+  const [confirmDelete, setConfirmDelete] = useState(null); // { applicationId, docKey, label }
+  const [isEditing, setIsEditing] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved' | 'error'
+  const [editForm, setEditForm] = useState({
+    fullName: '',
+    mobile: '',
+    dob: '',
+    community: '',
+    parentName: '',
+    parentOccupation: '',
+    parentMobile: '',
+    homeTown: '',
+    district: '',
+    districtOther: '',
+    currentQualification: '',
+    aadhar: '',
+    email: ''
+  });
 
   useEffect(() => {
     fetchProfile();
@@ -58,6 +77,70 @@ export default function ProfilePage() {
       toast.error('Could not load profile history');
     }
   };
+
+  useEffect(() => {
+    if (!isEditing || !profile) return;
+
+    // Check if form values actually changed from current profile values
+    const hasChanged = 
+      editForm.fullName !== (profile.fullName || '') ||
+      editForm.mobile !== (profile.mobile || '') ||
+      editForm.dob !== (profile.dob || '') ||
+      editForm.community !== (profile.community || '') ||
+      editForm.parentName !== (profile.parentName || '') ||
+      editForm.parentOccupation !== (profile.parentOccupation || '') ||
+      editForm.parentMobile !== (profile.parentMobile || '') ||
+      editForm.homeTown !== (profile.homeTown || '') ||
+      editForm.district !== (profile.district || '') ||
+      editForm.districtOther !== (profile.districtOther || '') ||
+      editForm.currentQualification !== (profile.currentQualification || '') ||
+      editForm.aadhar !== (profile.aadhar || '') ||
+      editForm.email !== (profile.email || '');
+
+    if (!hasChanged) {
+      setSaveStatus('saved');
+      return;
+    }
+
+    if (!editForm.fullName || !editForm.email || !editForm.mobile || !editForm.dob) {
+      setSaveStatus('error');
+      return;
+    }
+
+    setSaveStatus('saving');
+
+    const delayDebounce = setTimeout(async () => {
+      try {
+        await axios.put('/api/students/profile', {
+          name: editForm.fullName,
+          email: editForm.email,
+          mobile: editForm.mobile,
+          dob: editForm.dob,
+          fullName: editForm.fullName,
+          community: editForm.community,
+          parentName: editForm.parentName,
+          parentOccupation: editForm.parentOccupation,
+          parentMobile: editForm.parentMobile,
+          homeTown: editForm.homeTown,
+          district: editForm.district,
+          districtOther: editForm.districtOther,
+          currentQualification: editForm.currentQualification,
+          aadhar: editForm.aadhar
+        });
+        setSaveStatus('saved');
+        
+        // Fetch profile silently to sync the student card info without flashing or taking focus away
+        const res = await axios.get('/api/students/profile');
+        setProfile(res.data.profile);
+        setAdmissions(res.data.admissions || []);
+      } catch (err) {
+        console.error(err);
+        setSaveStatus('error');
+      }
+    }, 1000); // 1-second debounce
+
+    return () => clearTimeout(delayDebounce);
+  }, [editForm, isEditing]);
 
   const confirmedAdmissions = admissions.filter(adm => adm.status === 'confirmed');
   
@@ -108,24 +191,32 @@ export default function ProfilePage() {
 
   const handleUploadPendingDoc = async (applicationId, docId, file) => {
     if (!file) return;
-    const toastId = toast.loading('Uploading document...');
+    setUploadProgress(prev => ({ ...prev, [docId]: 0 }));
     try {
       const fd = new FormData();
       fd.append(`doc_${docId}`, file);
       await axios.post(`/api/applications/${applicationId}/documents`, fd, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (progressEvent) => {
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(prev => ({ ...prev, [docId]: percent }));
+        }
       });
-      toast.success('Document uploaded successfully!', { id: toastId });
-      fetchProfile();
+      toast.success('Document uploaded successfully!');
+      await fetchProfile();
     } catch (err) {
       console.error(err);
-      toast.error('Failed to upload document', { id: toastId });
+      toast.error('Failed to upload document');
+    } finally {
+      setUploadProgress(prev => {
+        const next = { ...prev };
+        delete next[docId];
+        return next;
+      });
     }
   };
 
   const handleRemoveDoc = async (applicationId, docKey) => {
-    if (!window.confirm("Are you sure you want to remove this document? You will need to upload it again.")) return;
-    
     setLoading(true);
     try {
       await axios.delete(`/api/applications/${applicationId}/documents/${docKey}`);
@@ -316,8 +407,75 @@ export default function ProfilePage() {
                 <h2 className="text-lg font-bold flex items-center gap-2" style={{ fontFamily: 'Clash Display' }}>
                   <User size={18} style={{ color: 'var(--primary)' }} /> Personal Information
                 </h2>
+                {profile && !isEditing && (
+                  <button
+                    onClick={() => {
+                      setEditForm({
+                        fullName: profile.fullName || '',
+                        mobile: profile.mobile || '',
+                        dob: profile.dob || '',
+                        community: profile.community || '',
+                        parentName: profile.parentName || '',
+                        parentOccupation: profile.parentOccupation || '',
+                        parentMobile: profile.parentMobile || '',
+                        homeTown: profile.homeTown || '',
+                        district: profile.district || '',
+                        districtOther: profile.districtOther || '',
+                        currentQualification: profile.currentQualification || '',
+                        aadhar: profile.aadhar || '',
+                        email: profile.email || ''
+                      });
+                      setIsEditing(true);
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-extrabold bg-slate-900 text-white hover:bg-black transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Edit size={12} /> Edit Profile
+                  </button>
+                )}
+                {profile && isEditing && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-semibold flex items-center gap-1.5 px-3 py-1 rounded-full transition-all border"
+                      style={{
+                        borderColor: saveStatus === 'saving' ? '#FFE4E6' : saveStatus === 'saved' ? '#D1FAE5' : saveStatus === 'error' ? '#FEE2E2' : 'transparent',
+                        background: saveStatus === 'saving' ? '#FFF1F2' : saveStatus === 'saved' ? '#ECFDF5' : saveStatus === 'error' ? '#FEF2F2' : 'transparent',
+                        color: saveStatus === 'saving' ? '#E11D48' : saveStatus === 'saved' ? '#059669' : saveStatus === 'error' ? '#DC2626' : '#64748B'
+                      }}>
+                      {saveStatus === 'saving' && (
+                        <>
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                          Saving...
+                        </>
+                      )}
+                      {saveStatus === 'saved' && (
+                        <>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          Saved successfully
+                        </>
+                      )}
+                      {saveStatus === 'error' && (
+                        <>
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                          Required fields missing
+                        </>
+                      )}
+                      {saveStatus === 'idle' && (
+                        <>
+                          All changes saved
+                        </>
+                      )}
+                    </span>
+                    
+                    <button
+                      onClick={() => setIsEditing(false)}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-extrabold bg-slate-900 text-white hover:bg-black transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      <CheckCircle size={12} /> Done
+                    </button>
+                  </div>
+                )}
               </div>
               {profile ? (
+                !isEditing ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Field label="Student Name" value={profile.fullName} />
                     <Field label="Student contact number" value={profile.mobile} />
@@ -329,10 +487,152 @@ export default function ProfilePage() {
                     <Field label="Home Town" value={profile.homeTown} />
                     <Field label="District" value={profile.district === 'Other' ? profile.districtOther : profile.district} />
                     <Field label="Current Qualification" value={profile.currentQualification} />
-                    <Field label="Aadhar Number" value={profile.aadhar} />
+                    <Field label="Aadhar Number" value={profile.aadhar ? 'XXXXXXXX' + String(profile.aadhar).slice(-4) : '—'} />
                     <Field label="Email ID" value={profile.email} />
-                    <Field label="Admission Type" value={profile.admissionType || 'Regular'} />
                   </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold mb-1 text-slate-500">Student Name *</label>
+                      <input
+                        type="text"
+                        value={editForm.fullName}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, fullName: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1 text-slate-500">Student contact number *</label>
+                      <input
+                        type="text"
+                        value={editForm.mobile}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, mobile: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1 text-slate-500">Date of Birth *</label>
+                      <input
+                        type="date"
+                        value={editForm.dob}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, dob: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1 text-slate-500">Community</label>
+                      <select
+                        value={editForm.community}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, community: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                      >
+                        <option value="">Select Community</option>
+                        <option value="OC">OC</option>
+                        <option value="BC">BC</option>
+                        <option value="BCM">BCM</option>
+                        <option value="MBC">MBC</option>
+                        <option value="SC">SC</option>
+                        <option value="SCA">SCA</option>
+                        <option value="ST">ST</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1 text-slate-500">Parent name</label>
+                      <input
+                        type="text"
+                        value={editForm.parentName}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, parentName: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1 text-slate-500">Parent occupation</label>
+                      <input
+                        type="text"
+                        value={editForm.parentOccupation}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, parentOccupation: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1 text-slate-500">Parent contact number</label>
+                      <input
+                        type="text"
+                        value={editForm.parentMobile}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, parentMobile: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1 text-slate-500">Home Town</label>
+                      <input
+                        type="text"
+                        value={editForm.homeTown}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, homeTown: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1 text-slate-500">District</label>
+                      <select
+                        value={editForm.district}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, district: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                      >
+                        <option value="">Select District</option>
+                        {['Ariyalur', 'Chengalpattu', 'Chennai', 'Coimbatore', 'Cuddalore', 'Dharmapuri', 'Dindigul', 'Erode', 'Kallakurichi', 'Kanchipuram', 'Kanniyakumari', 'Karur', 'Krishnagiri', 'Madurai', 'Mayiladuthurai', 'Nagapattinam', 'Namakkal', 'Nilgiris', 'Perambalur', 'Pudukkottai', 'Ramanathapuram', 'Ranipet', 'Salem', 'Sivaganga', 'Tenkasi', 'Thanjavur', 'Theni', 'Thoothukudi', 'Tiruchirappalli', 'Tirunelveli', 'Tirupathur', 'Tiruppur', 'Tiruvallur', 'Tiruvannamalai', 'Tiruvarur', 'Vellore', 'Viluppuram', 'Virudhunagar', 'Other'].map(d => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {editForm.district === 'Other' && (
+                      <div>
+                        <label className="block text-xs font-semibold mb-1 text-slate-500">Specify District</label>
+                        <input
+                          type="text"
+                          value={editForm.districtOther}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, districtOther: e.target.value }))}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <label className="block text-xs font-semibold mb-1 text-slate-500">Current Qualification</label>
+                      <select
+                        value={editForm.currentQualification}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, currentQualification: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                      >
+                        <option value="">Select Qualification</option>
+                        <option value="10th Std (SSLC)">10th Std (SSLC)</option>
+                        <option value="12th Std (HSC)">12th Std (HSC)</option>
+                        <option value="Diploma Holder">Diploma Holder</option>
+                        <option value="UG (Degree Completed / Pursuing)">UG (Degree Completed / Pursuing)</option>
+                        <option value="PG (Degree Completed / Pursuing)">PG (Degree Completed / Pursuing)</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1 text-slate-500">Aadhar Number</label>
+                      <input
+                        type="text"
+                        value={editForm.aadhar}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, aadhar: e.target.value }))}
+                        maxLength={12}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1 text-slate-500">Email ID *</label>
+                      <input
+                        type="email"
+                        value={editForm.email}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                      />
+                    </div>
+                  </div>
+                )
               ) : (
                 <div className="text-center py-8" style={{ color: 'var(--text-muted)' }}>
                   <User size={40} className="mx-auto mb-3 opacity-30" />
@@ -426,20 +726,41 @@ export default function ProfilePage() {
                             <AlertCircle size={14} /> Pending Documents ({missingDocs.length})
                           </h4>
                           <div className="space-y-3">
-                            {missingDocs.map(doc => (
-                              <div key={doc.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border border-red-100 bg-red-50/30">
-                                <span className="font-medium text-sm text-red-900">{doc.label}</span>
-                                <label className="cursor-pointer bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors flex items-center gap-2 justify-center w-full sm:w-auto">
-                                  <Upload size={14} /> Upload
-                                  <input 
-                                    type="file" 
-                                    className="hidden" 
-                                    accept=".pdf,.jpg,.jpeg,.png"
-                                    onChange={(e) => handleUploadPendingDoc(adm.applicationId, doc.id, e.target.files[0])}
-                                  />
-                                </label>
-                              </div>
-                            ))}
+                            {missingDocs.map(doc => {
+                              const isUploadingThis = uploadProgress && uploadProgress[doc.id] !== undefined;
+                              const currentPercent = isUploadingThis ? uploadProgress[doc.id] : 0;
+                              return (
+                                <div key={doc.id} className="flex flex-col gap-2.5 p-3 rounded-xl border border-red-100 bg-red-50/30">
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <span className="font-medium text-sm text-red-900">{doc.label}</span>
+                                    {!isUploadingThis ? (
+                                      <label className="cursor-pointer bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors flex items-center gap-2 justify-center w-full sm:w-auto">
+                                        <Upload size={14} /> Upload
+                                        <input 
+                                          type="file" 
+                                          className="hidden" 
+                                          accept=".pdf,.jpg,.jpeg,.png"
+                                          onChange={(e) => handleUploadPendingDoc(adm.applicationId, doc.id, e.target.files[0])}
+                                        />
+                                      </label>
+                                    ) : (
+                                      <span className="text-xs font-extrabold text-emerald-600 animate-pulse">
+                                        Uploading... {currentPercent}%
+                                      </span>
+                                    )}
+                                  </div>
+                                  
+                                  {isUploadingThis && (
+                                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mt-0.5">
+                                      <div 
+                                        className="h-full bg-emerald-500 transition-all duration-300 rounded-full" 
+                                        style={{ width: `${currentPercent}%` }}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -468,7 +789,7 @@ export default function ProfilePage() {
                                       View
                                     </a>
                                     <button 
-                                      onClick={() => handleRemoveDoc(adm.applicationId, doc.id)}
+                                      onClick={() => setConfirmDelete({ applicationId: adm.applicationId, docKey: doc.id, label: doc.label })}
                                       className="flex-1 sm:flex-none px-4 py-2 bg-rose-50 text-rose-600 border border-rose-100 rounded-lg text-xs font-bold hover:bg-rose-100 transition-colors text-center"
                                     >
                                       Remove
@@ -490,6 +811,46 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {/* Custom Confirm Modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md bg-white rounded-2xl border border-slate-100 p-6 shadow-xl animate-scale-up">
+            <div className="flex items-center gap-3 mb-4 text-rose-600">
+              <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 flex-shrink-0">
+                <AlertCircle size={24} />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg text-slate-900">Remove Document</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Confirm document deletion</p>
+              </div>
+            </div>
+            
+            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+              Are you sure you want to remove <strong className="text-slate-800">"{confirmDelete.label}"</strong>? You will need to upload it again to complete your admission checklist.
+            </p>
+            
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold border border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 hover:text-slate-900 transition-all cursor-pointer text-center animate-fade-in"
+              >
+                No, Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  const { applicationId, docKey } = confirmDelete;
+                  setConfirmDelete(null);
+                  await handleRemoveDoc(applicationId, docKey);
+                }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-rose-600 text-white hover:bg-rose-700 transition-all cursor-pointer text-center shadow-sm"
+              >
+                Yes, Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

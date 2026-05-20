@@ -102,6 +102,25 @@ router.put('/profile', auth, async (req, res) => {
       await user.save();
     }
 
+    // Update the latest application's personal details if one exists
+    const latest = await Application.findOne({ student: user._id }).sort({ createdAt: -1 });
+    if (latest) {
+      latest.fullName = req.body.fullName || name || latest.fullName;
+      latest.email = email || latest.email;
+      latest.mobile = mobile || latest.mobile;
+      latest.dob = dob || latest.dob;
+      if (req.body.community !== undefined) latest.community = req.body.community;
+      if (req.body.parentName !== undefined) latest.parentName = req.body.parentName;
+      if (req.body.parentOccupation !== undefined) latest.parentOccupation = req.body.parentOccupation;
+      if (req.body.parentMobile !== undefined) latest.parentMobile = req.body.parentMobile;
+      if (req.body.homeTown !== undefined) latest.homeTown = req.body.homeTown;
+      if (req.body.district !== undefined) latest.district = req.body.district;
+      if (req.body.districtOther !== undefined) latest.districtOther = req.body.districtOther;
+      if (req.body.currentQualification !== undefined) latest.currentQualification = req.body.currentQualification;
+      if (req.body.aadhar !== undefined) latest.aadhar = req.body.aadhar;
+      await latest.save();
+    }
+
     res.json({
       message: 'Profile updated successfully',
       user: {

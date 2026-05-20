@@ -1,16 +1,74 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 
 const AuthContext = createContext();
 
+// Session timeout: 30 minutes of inactivity
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showTimeoutModal, setShowTimeoutModal] = useState(false);
+  const timeoutRef = useRef(null);
+  const warningRef = useRef(null);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('seatify_token');
+    localStorage.removeItem('seatify_user');
+    localStorage.removeItem('seatify_last_activity');
+    delete axios.defaults.headers.common['Authorization'];
+    setUser(null);
+    setShowTimeoutModal(false);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (warningRef.current) clearTimeout(warningRef.current);
+  }, []);
+
+  // Reset inactivity timer on user activity
+  const resetTimer = useCallback(() => {
+    if (!user) return;
+    localStorage.setItem('seatify_last_activity', Date.now().toString());
+
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (warningRef.current) clearTimeout(warningRef.current);
+
+    // Show warning 2 minutes before timeout
+    warningRef.current = setTimeout(() => {
+      setShowTimeoutModal(true);
+    }, SESSION_TIMEOUT_MS - 2 * 60 * 1000);
+
+    // Auto-logout on timeout
+    timeoutRef.current = setTimeout(() => {
+      setShowTimeoutModal(false);
+      logout();
+      window.location.href = '/login';
+    }, SESSION_TIMEOUT_MS);
+  }, [user, logout]);
+
+  // Check if session expired on page load (e.g. after tab was closed)
+  const checkSessionExpiry = useCallback(() => {
+    const lastActivity = localStorage.getItem('seatify_last_activity');
+    if (lastActivity) {
+      const elapsed = Date.now() - parseInt(lastActivity, 10);
+      if (elapsed > SESSION_TIMEOUT_MS) {
+        logout();
+        return true; // expired
+      }
+    }
+    return false;
+  }, [logout]);
 
   useEffect(() => {
     const token = localStorage.getItem('seatify_token');
     const userData = localStorage.getItem('seatify_user');
+
     if (token && userData) {
+      // Check if session timed out while tab was away
+      if (checkSessionExpiry()) {
+        setLoading(false);
+        return;
+      }
+
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -54,9 +112,27 @@ export const AuthProvider = ({ children }) => {
     return () => axios.interceptors.response.eject(interceptor);
   }, []);
 
+  // Activity listeners for session timeout
+  useEffect(() => {
+    if (!user) return;
+
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    const handler = () => resetTimer();
+
+    events.forEach(e => window.addEventListener(e, handler, { passive: true }));
+    resetTimer(); // Start the timer
+
+    return () => {
+      events.forEach(e => window.removeEventListener(e, handler));
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (warningRef.current) clearTimeout(warningRef.current);
+    };
+  }, [user, resetTimer]);
+
   const login = (userData, token) => {
     localStorage.setItem('seatify_token', token);
     localStorage.setItem('seatify_user', JSON.stringify(userData));
+    localStorage.setItem('seatify_last_activity', Date.now().toString());
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     setUser(userData);
 
@@ -81,13 +157,6 @@ export const AuthProvider = ({ children }) => {
       .catch(err => console.log('⚠️ Login profile sync failed:', err.message));
   };
 
-  const logout = () => {
-    localStorage.removeItem('seatify_token');
-    localStorage.removeItem('seatify_user');
-    delete axios.defaults.headers.common['Authorization'];
-    setUser(null);
-  };
-
   const updateUser = (newUserData) => {
     const updated = { ...user, ...newUserData };
     localStorage.setItem('seatify_user', JSON.stringify(updated));
@@ -97,6 +166,36 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>
       {children}
+
+      {/* Session Timeout Warning Modal */}
+      {showTimeoutModal && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" style={{ animation: 'fadeIn 0.2s ease' }}>
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl text-center" style={{ animation: 'slideUp 0.3s ease' }}>
+            <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">⏰</span>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Session Expiring</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Your session will expire in <span className="font-bold text-red-500">2 minutes</span> due to inactivity. Click below to stay logged in.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { logout(); window.location.href = '/login'; }}
+                className="flex-1 py-3 rounded-xl font-bold text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all"
+              >
+                Logout
+              </button>
+              <button
+                onClick={() => { setShowTimeoutModal(false); resetTimer(); }}
+                className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition-all shadow-lg"
+                style={{ background: 'var(--primary, #4F46E5)' }}
+              >
+                Stay Logged In
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AuthContext.Provider>
   );
 };

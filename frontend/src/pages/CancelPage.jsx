@@ -21,7 +21,7 @@ export default function CancelPage() {
   useEffect(() => {
     const cancelApplication = async () => {
       try {
-        await axios.post(`/api/cancel/${applicationId}`);
+        await axios.post(`/api/applications/${applicationId}/cancel`);
         setCancelStatus('success');
       } catch (err) {
         console.error('Error cancelling application:', err);

@@ -40,6 +40,11 @@ export default function PaymentPage() {
     setLoading(true);
     try {
       const res = await axios.get(`/api/applications/${applicationId}`);
+      if (res.data.paymentStatus === 'completed') {
+        toast.error('Payment already completed for this application.');
+        navigate('/courses', { replace: true });
+        return;
+      }
       setApplication(res.data);
     } catch (err) {
       toast.error('Could not load application details');
@@ -82,7 +87,7 @@ export default function PaymentPage() {
           try {
             await axios.post('/api/payment/verify', { ...response, applicationId });
             toast.success('Payment successful!');
-            navigate(`/confirmation/${applicationId}`, { state: { paymentId: response.razorpay_payment_id, application, course, program } });
+            navigate(`/confirmation/${applicationId}`, { replace: true, state: { paymentId: response.razorpay_payment_id, application, course, program } });
           } catch {
             toast.error('Payment verification failed');
             setLoading(false);
@@ -187,7 +192,7 @@ export default function PaymentPage() {
               if (window.confirm("Are you sure you want to cancel this application?")) {
                 setLoading(true);
                 try {
-                  await axios.post(`/api/cancel/${applicationId}`);
+                  await axios.post(`/api/applications/${applicationId}/cancel`);
                   toast.success("Application cancelled");
                   navigate('/courses');
                 } catch (err) {

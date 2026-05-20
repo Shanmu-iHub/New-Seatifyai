@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, GraduationCap, Building2, CreditCard, LifeBuoy, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, GraduationCap, Building2, CreditCard, Landmark, LifeBuoy, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function AdminSidebar() {
@@ -18,6 +18,7 @@ export default function AdminSidebar() {
     { name: 'Colleges', path: '/admin/colleges', icon: <Building2 size={20} /> },
     { name: 'Students', path: '/admin/students', icon: <Users size={20} /> },
     { name: 'Orders & Payments', path: '/admin/orders', icon: <CreditCard size={20} /> },
+    { name: 'Settlements', path: '/admin/settlements', icon: <Landmark size={20} /> },
     { name: 'Support Desk', path: '/admin/support', icon: <LifeBuoy size={20} /> },
     { name: 'Settings', path: '/admin/settings', icon: <Settings size={20} /> },
   ];

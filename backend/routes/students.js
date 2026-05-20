@@ -40,6 +40,7 @@ router.get('/profile', auth, async (req, res) => {
         yearOfPassing: latest.yearOfPassing,
         percentage: latest.percentage,
         docs: latest.docs,
+        category: latest.category,
       } : {
         fullName: req.user.name,
         email: req.user.email,
@@ -75,6 +76,12 @@ router.put('/profile', auth, async (req, res) => {
       return res.status(400).json({ message: 'All fields (Full Name, Email, Mobile, Date of Birth) are required' });
     }
 
+    // Validate mobile: exactly 10 digits
+    const cleanMobile = mobile.replace(/\D/g, '');
+    if (cleanMobile.length !== 10) {
+      return res.status(400).json({ message: 'Mobile number must be exactly 10 digits' });
+    }
+
     let user = req.user;
     
     // Check if another user already exists with this email or mobile
@@ -83,21 +90,21 @@ router.put('/profile', auth, async (req, res) => {
       _id: { $ne: user._id },
       $or: [
         { email: email.trim().toLowerCase() },
-        { mobile: mobile.trim() }
+        { mobile: cleanMobile }
       ]
     });
 
     if (otherUser) {
       user.name = name;
       user.email = email.trim().toLowerCase();
-      user.mobile = mobile.trim();
+      user.mobile = cleanMobile;
       user.dob = dob;
       const { mergeUsers } = require('../utils/accountHelper');
       user = await mergeUsers(user, otherUser);
     } else {
       user.name = name;
       user.email = email.trim().toLowerCase();
-      user.mobile = mobile.trim();
+      user.mobile = cleanMobile;
       user.dob = dob;
       await user.save();
     }

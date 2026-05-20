@@ -22,6 +22,7 @@ import AdminCollegeDetails from './pages/admin/AdminCollegeDetails';
 import AdminStudents from './pages/admin/AdminStudents';
 import AdminOrders from './pages/admin/AdminOrders';
 import AdminSettings from './pages/admin/AdminSettings';
+import AdminSettlements from './pages/admin/AdminSettlements';
 
 const isProfileComplete = (user) => {
   return user && user.name && user.email && user.mobile && user.dob;
@@ -94,6 +95,7 @@ const AppRoutes = () => {
           <Route path="colleges/:collegeName" element={<AdminCollegeDetails />} />
           <Route path="students" element={<AdminStudents />} />
           <Route path="orders" element={<AdminOrders />} />
+          <Route path="settlements" element={<AdminSettlements />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="support" element={<SupportPage />} />
           <Route path="*" element={<div className="p-8 text-center text-slate-500">Module coming soon...</div>} />

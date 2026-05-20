@@ -107,6 +107,18 @@ export default function ProfilePage() {
       return;
     }
 
+    const mobileRegex = /^[0-9]{10}$/;
+    if (!mobileRegex.test(editForm.mobile)) {
+      toast.error('Student contact number must be exactly 10 digits');
+      setSaveStatus('error');
+      return;
+    }
+    if (editForm.parentMobile && !mobileRegex.test(editForm.parentMobile)) {
+      toast.error('Parent contact number must be exactly 10 digits');
+      setSaveStatus('error');
+      return;
+    }
+
     setSaveStatus('saving');
 
     const delayDebounce = setTimeout(async () => {
@@ -178,7 +190,7 @@ export default function ProfilePage() {
     
     setLoading(true);
     try {
-      await axios.post(`/api/cancel/${adm.applicationId}`);
+      await axios.post(`/api/applications/${adm.applicationId}/cancel`);
       toast.success("Admission cancelled successfully. You can now book another course.");
       fetchProfile();
     } catch (err) {
@@ -486,7 +498,9 @@ export default function ProfilePage() {
                     <Field label="Parent contact number" value={profile.parentMobile} />
                     <Field label="Home Town" value={profile.homeTown} />
                     <Field label="District" value={profile.district === 'Other' ? profile.districtOther : profile.district} />
-                    <Field label="Current Qualification" value={profile.currentQualification} />
+                    {!(profile.category && (profile.category.toLowerCase() === 'k12' || profile.category.toLowerCase() === 'k-12')) && (
+                      <Field label="Current Qualification" value={profile.currentQualification} />
+                    )}
                     <Field label="Aadhar Number" value={profile.aadhar ? 'XXXXXXXX' + String(profile.aadhar).slice(-4) : '—'} />
                     <Field label="Email ID" value={profile.email} />
                   </div>
@@ -506,7 +520,9 @@ export default function ProfilePage() {
                       <input
                         type="text"
                         value={editForm.mobile}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, mobile: e.target.value }))}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, mobile: e.target.value.replace(/[^0-9]/g, '').slice(0, 10) }))}
+                        maxLength={10}
+                        placeholder="10-digit mobile number"
                         className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                       />
                     </div>
@@ -559,7 +575,9 @@ export default function ProfilePage() {
                       <input
                         type="text"
                         value={editForm.parentMobile}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, parentMobile: e.target.value }))}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, parentMobile: e.target.value.replace(/[^0-9]/g, '').slice(0, 10) }))}
+                        maxLength={10}
+                        placeholder="10-digit mobile number"
                         className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                       />
                     </div>
@@ -596,22 +614,24 @@ export default function ProfilePage() {
                         />
                       </div>
                     )}
-                    <div>
-                      <label className="block text-xs font-semibold mb-1 text-slate-500">Current Qualification</label>
-                      <select
-                        value={editForm.currentQualification}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, currentQualification: e.target.value }))}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
-                      >
-                        <option value="">Select Qualification</option>
-                        <option value="10th Std (SSLC)">10th Std (SSLC)</option>
-                        <option value="12th Std (HSC)">12th Std (HSC)</option>
-                        <option value="Diploma Holder">Diploma Holder</option>
-                        <option value="UG (Degree Completed / Pursuing)">UG (Degree Completed / Pursuing)</option>
-                        <option value="PG (Degree Completed / Pursuing)">PG (Degree Completed / Pursuing)</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
+                    {!(profile.category && (profile.category.toLowerCase() === 'k12' || profile.category.toLowerCase() === 'k-12')) && (
+                      <div>
+                        <label className="block text-xs font-semibold mb-1 text-slate-500">Current Qualification</label>
+                        <select
+                          value={editForm.currentQualification}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, currentQualification: e.target.value }))}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                        >
+                          <option value="">Select Qualification</option>
+                          <option value="10th Std (SSLC)">10th Std (SSLC)</option>
+                          <option value="12th Std (HSC)">12th Std (HSC)</option>
+                          <option value="Diploma Holder">Diploma Holder</option>
+                          <option value="UG (Degree Completed / Pursuing)">UG (Degree Completed / Pursuing)</option>
+                          <option value="PG (Degree Completed / Pursuing)">PG (Degree Completed / Pursuing)</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                    )}
                     <div>
                       <label className="block text-xs font-semibold mb-1 text-slate-500">Aadhar Number</label>
                       <input

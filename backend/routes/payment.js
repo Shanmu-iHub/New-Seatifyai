@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const auth = require('../middleware/auth');
-const { Application, Course } = require('../models');
+const { Application, Course, CollegeAccount, SettlementLedger } = require('../models');
 
 let Razorpay;
 try { Razorpay = require('razorpay'); } catch { }
@@ -26,16 +26,53 @@ router.post('/create-order', auth, async (req, res) => {
     }
 
     const application = await Application.findOne({ applicationId });
-    
-    const order = await razorpay.orders.create({
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
+
+    const orderPayload = {
       amount: Math.round(amount * 100), // paise
       currency: 'INR',
       receipt: applicationId,
       notes: { 
         applicationId,
-        collegeName: application?.collegeName || 'N/A'
+        collegeName: application.collegeName || 'N/A'
       },
-    });
+    };
+
+    // Split Payment Configuration (Razorpay Route)
+    if (application.collegeName) {
+      const collegeAcc = await CollegeAccount.findOne({ 
+        collegeName: application.collegeName,
+        active: true
+      });
+
+      if (collegeAcc && collegeAcc.payoutMode === 'razorpay_route' && collegeAcc.razorpayAccountId) {
+        // Calculate Pre-registration base fee (amount minus Platform fee & GST)
+        // 1 INR Platform Fee + 0.18 INR GST = 1.18 INR Platform Cost
+        const baseFee = amount > 1.18 ? (amount - 1.18) : amount;
+        
+        orderPayload.transfers = [
+          {
+            account: collegeAcc.razorpayAccountId,
+            amount: Math.round(baseFee * 100), // in paise
+            currency: 'INR',
+            notes: {
+              info: `Pre-Registration Fee for ${application.collegeName}`,
+              applicationId
+            },
+            on_hold: false
+          }
+        ];
+        console.log(`🔀 Configuring payment split of ₹${baseFee} to Razorpay Connected Account ID: ${collegeAcc.razorpayAccountId}`);
+      } else if (collegeAcc) {
+        console.log(`ℹ️ College "${application.collegeName}" payout method is set to "${collegeAcc.payoutMode}". 100% of funds collected to primary account first, then settled via payout engine.`);
+      } else {
+        console.log(`ℹ️ No active Razorpay Linked Account mapping found for college: "${application.collegeName}". 100% of payment goes to Primary account.`);
+      }
+    }
+
+    const order = await razorpay.orders.create(orderPayload);
 
     // Store order ID
     await Application.findOneAndUpdate(
@@ -90,6 +127,40 @@ router.post('/verify', auth, async (req, res) => {
 
     if (application) {
       console.log(`✅ Payment verified and application updated: ${applicationId}`);
+
+      // Settlement Ledger Entry (Swiggy/Zepto Ledger Model)
+      try {
+        const collegeAcc = await CollegeAccount.findOne({ 
+          collegeName: application.collegeName, 
+          active: true 
+        });
+        const platformFee = 1.18; // Platform Fee (₹1) + GST (₹0.18)
+        const totalAmount = application.fee || 0;
+        const collegeShare = totalAmount > platformFee ? (totalAmount - platformFee) : totalAmount;
+        const payoutMode = collegeAcc?.payoutMode || 'direct_bank';
+
+        // Only create ledger for non-razorpay_route modes (Route splits are instant at gateway)
+        // For razorpay_route, mark as already settled
+        const settlementStatus = payoutMode === 'razorpay_route' ? 'settled' : 'pending';
+
+        await SettlementLedger.findOneAndUpdate(
+          { applicationId: application.applicationId },
+          {
+            collegeName: application.collegeName || 'Unknown',
+            studentName: application.fullName || 'Unknown',
+            totalAmount,
+            platformFee,
+            collegeShare,
+            payoutMode,
+            settlementStatus,
+            settledAt: payoutMode === 'razorpay_route' ? new Date() : null
+          },
+          { upsert: true, new: true }
+        );
+        console.log(`📒 Settlement ledger entry created: ₹${collegeShare} → ${application.collegeName} (${payoutMode}, ${settlementStatus})`);
+      } catch (ledgerErr) {
+        console.warn('⚠️ Settlement ledger entry failed:', ledgerErr.message);
+      }
 
       const scriptUrl = process.env.GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzV93O99qhhcvSKJ_smlu0q70nlD18IuKhQkZj1bkbSfbMDFQg0cP1_MTKut4PJk4in2w/exec';
       if (scriptUrl) {

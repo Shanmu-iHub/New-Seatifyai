@@ -32,6 +32,19 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, [step, timer]);
 
+  // Auto-focus the first OTP input box when step becomes 2
+  useEffect(() => {
+    if (step === 2) {
+      const focusTimer = setTimeout(() => {
+        const firstInput = document.getElementById('otp-0');
+        if (firstInput) {
+          firstInput.focus();
+        }
+      }, 50);
+      return () => clearTimeout(focusTimer);
+    }
+  }, [step]);
+
   const handleContactChange = (val) => {
     setContact(val);
     const isEmail = val.includes('@') || /[a-zA-Z]/.test(val);
@@ -49,14 +62,15 @@ export default function LoginPage() {
       }
     } else {
       const cleanNum = contact.replace(/\D/g, '');
-      if (cleanNum.length < 10) {
+      if (cleanNum.length !== 10) {
         return toast.error('Please enter a valid 10-digit mobile number');
       }
     }
 
     setLoading(true);
     try {
-      const res = await axios.post('/api/auth/send-otp', { contact, type: isEmail ? 'email' : 'mobile' });
+      const sendContact = isEmail ? contact : contact.replace(/\D/g, '').slice(0, 10);
+      const res = await axios.post('/api/auth/send-otp', { contact: sendContact, type: isEmail ? 'email' : 'mobile' });
       setIsNewUser(res.data.isNewUser);
       setStep(2);
       setTimer(30); // Reset timer to 30s

@@ -107,6 +107,13 @@ router.post('/send-otp', async (req, res) => {
     if (!contact || !['email', 'mobile'].includes(type))
       return res.status(400).json({ message: 'Invalid request' });
 
+    // Validate mobile: must be exactly 10 digits
+    if (type === 'mobile') {
+      const cleanMobile = contact.replace(/\D/g, '');
+      if (cleanMobile.length !== 10)
+        return res.status(400).json({ message: 'Mobile number must be exactly 10 digits' });
+    }
+
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + (Number(process.env.OTP_EXPIRY_MINUTES) || 10) * 60 * 1000);
 
@@ -181,8 +188,8 @@ router.post('/verify-otp', async (req, res) => {
     let user = await User.findOne(query).catch(() => null);
 
     if (!user) {
-      user = await User.create({ ...query, name: name || 'Student' }).catch(() => ({
-        _id: 'demo_' + Date.now(), name: name || 'Student', email: type === 'email' ? contact : '', mobile: type === 'mobile' ? contact : ''
+      user = await User.create({ ...query, name: name || '' }).catch(() => ({
+        _id: 'demo_' + Date.now(), name: name || '', email: type === 'email' ? contact : '', mobile: type === 'mobile' ? contact : ''
       }));
     } else if (name && !user.name) {
       user.name = name;
@@ -195,7 +202,7 @@ router.post('/verify-otp', async (req, res) => {
       const latestApp = await Application.findOne({ student: user._id }).sort({ createdAt: -1 });
       if (latestApp) {
         let changed = false;
-        if (latestApp.fullName && (!user.name || user.name === 'Student')) { user.name = latestApp.fullName; changed = true; }
+        if (latestApp.fullName && (!user.name || user.name === 'Student' || user.name === '')) { user.name = latestApp.fullName; changed = true; }
         if (latestApp.email && !user.email) { user.email = latestApp.email; changed = true; }
         if (latestApp.mobile && !user.mobile) { user.mobile = latestApp.mobile; changed = true; }
         if (latestApp.dob && !user.dob) { user.dob = latestApp.dob; changed = true; }

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { User, Application, Ticket } = require('../models');
+const { User, Application, Ticket, Course, CollegeAccount, SettlementLedger } = require('../models');
 const auth = require('../middleware/auth');
 const { google } = require('googleapis');
 const path = require('path');
@@ -28,58 +28,137 @@ router.use(isAdmin);
 // GET /api/admin/stats
 router.get('/stats', async (req, res) => {
   try {
-    // Total completed applications
-    const completedApps = await Application.find({ paymentStatus: 'completed' });
+    const allApps = await Application.find().populate('student', 'name email mobile').sort({ createdAt: -1 });
+    const completedApps = allApps.filter(a => a.paymentStatus === 'completed');
+    const pendingApps = allApps.filter(a => a.paymentStatus === 'pending');
+    const cancelledApps = allApps.filter(a => a.status === 'cancelled');
+    const confirmedApps = allApps.filter(a => a.status === 'confirmed');
+
+    // === KPI Cards ===
     const totalAdmissions = completedApps.length;
-    
-    // Total Revenue (Assuming fee is platform fee per app)
     const totalRevenue = completedApps.reduce((acc, app) => acc + (app.fee || 0), 0);
-    
-    // Total Students
     const totalStudents = await User.countDocuments({ role: 'student' });
-    
-    // Active Tickets
     const activeTickets = await Ticket.countDocuments({ status: { $in: ['open', 'in_progress'] } });
 
-    // Revenue per day for the chart (last 7 days)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
-    const recentApps = await Application.find({ 
-      paymentStatus: 'completed',
-      createdAt: { $gte: sevenDaysAgo }
+    // === Admission Funnel ===
+    const admissionFunnel = [
+      { stage: 'Registered', count: totalStudents, fill: '#6366f1' },
+      { stage: 'Applied', count: allApps.length, fill: '#8b5cf6' },
+      { stage: 'Payment Done', count: completedApps.length, fill: '#10b981' },
+      { stage: 'Confirmed', count: confirmedApps.length, fill: '#059669' },
+      { stage: 'Cancelled', count: cancelledApps.length, fill: '#f43f5e' },
+    ];
+
+    // === College-wise Admissions (Bar) ===
+    // Smart abbreviation: remove filler words, abbreviate remaining
+    const abbreviate = (name) => {
+      const fillers = new Set(['college', 'of', 'the', 'and', '&', 'for', 'a', 'an', 'in']);
+      const words = name.split(/\s+/).filter(w => w.length > 0);
+      const meaningful = words.filter(w => !fillers.has(w.toLowerCase()));
+      if (meaningful.length === 0) return name.slice(0, 10);
+      // If 4+ meaningful words → initials of all
+      if (meaningful.length >= 4) {
+        return meaningful.map(w => w[0].toUpperCase()).join('');
+      }
+      // 2–3 meaningful words → keep first word full + shorten rest
+      return meaningful.map((w, i) => i === 0 ? w : w.slice(0, 4)).join(' ');
+    };
+
+    const collegeMap = {};
+    completedApps.forEach(app => {
+      const cn = app.collegeName || 'Unknown';
+      collegeMap[cn] = (collegeMap[cn] || 0) + 1;
     });
+    const collegeAdmissions = Object.entries(collegeMap)
+      .map(([college, count]) => ({ college, short: abbreviate(college), count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
 
+    // === Course-wise Seat Availability (Bar) ===
+    const allCourses = await Course.find({});
+    const courseSeats = [];
+    allCourses.forEach(course => {
+      (course.programs || []).forEach(prog => {
+        const total = prog.seats || 0;
+        const available = prog.seatsAvailable !== undefined ? prog.seatsAvailable : total;
+        const filled = Math.max(0, total - available);
+        if (total > 0) {
+          courseSeats.push({
+            name: (prog.name || course.name || 'Unknown').slice(0, 20),
+            available,
+            filled,
+            total
+          });
+        }
+      });
+    });
+    const courseSeatChart = courseSeats.sort((a, b) => b.filled - a.filled).slice(0, 8);
+
+    // === Revenue per day (last 14 days) ===
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 13);
     const revenueByDay = {};
-    for (let i = 0; i < 7; i++) {
+    const admissionsByDay = {};
+    for (let i = 0; i < 14; i++) {
       const d = new Date();
-      d.setDate(d.getDate() - i);
-      revenueByDay[d.toISOString().split('T')[0]] = 0;
+      d.setDate(d.getDate() - (13 - i));
+      const key = d.toISOString().split('T')[0];
+      revenueByDay[key] = 0;
+      admissionsByDay[key] = 0;
     }
-
-    recentApps.forEach(app => {
+    completedApps.forEach(app => {
       const dateStr = new Date(app.createdAt).toISOString().split('T')[0];
       if (revenueByDay[dateStr] !== undefined) {
         revenueByDay[dateStr] += (app.fee || 0);
+        admissionsByDay[dateStr] += 1;
       }
     });
-
     const revenueChart = Object.keys(revenueByDay).sort().map(date => ({
-      date,
-      revenue: revenueByDay[date]
+      date: date.slice(5), // MM-DD
+      revenue: revenueByDay[date],
+      admissions: admissionsByDay[date]
     }));
+
+    // === Real-Time Activity Feed (last 10 events) ===
+    const recentActivity = allApps.slice(0, 10).map(app => ({
+      id: app._id,
+      applicationId: app.applicationId,
+      studentName: app.student?.name || app.fullName || 'Unknown',
+      college: app.collegeName || '—',
+      program: app.programName || app.program || '—',
+      status: app.status,
+      paymentStatus: app.paymentStatus,
+      fee: app.fee || 0,
+      createdAt: app.createdAt
+    }));
+
+    // === Payment method breakdown ===
+    const paymentBreakdown = [
+      { name: 'Completed', value: completedApps.length, fill: '#10b981' },
+      { name: 'Pending', value: pendingApps.length, fill: '#f59e0b' },
+      { name: 'Cancelled', value: cancelledApps.length, fill: '#f43f5e' },
+    ];
 
     res.json({
       totalAdmissions,
       totalRevenue,
       totalStudents,
       activeTickets,
-      revenueChart
+      admissionFunnel,
+      collegeAdmissions,
+      courseSeatChart,
+      revenueChart,
+      recentActivity,
+      paymentBreakdown,
+      platformRevenue: totalRevenue,
+      pendingCount: pendingApps.length,
     });
   } catch (err) {
+    console.error('Stats error:', err);
     res.status(500).json({ message: 'Failed to fetch stats' });
   }
 });
+
 
 // GET /api/admin/admissions
 router.get('/admissions', async (req, res) => {
@@ -108,9 +187,9 @@ router.post('/promote', async (req, res) => {
     const user = await User.findOne({
       $or: [{ email: identifier }, { mobile: identifier }]
     });
-    
+
     if (!user) return res.status(404).json({ message: 'User not found with that email or mobile' });
-    
+
     user.role = 'admin';
     await user.save();
     res.json({ message: 'User promoted to Admin successfully', user });
@@ -119,12 +198,42 @@ router.post('/promote', async (req, res) => {
   }
 });
 
+// GET /api/admin/orders — Orders from MongoDB
+router.get('/orders', async (req, res) => {
+  try {
+    const apps = await Application.find({ paymentStatus: 'completed' })
+      .sort({ createdAt: -1 })
+      .populate('student', 'name email mobile');
+
+    const orders = apps.map(a => ({
+      applicationId: a.applicationId,
+      studentName: a.student?.name || a.fullName || '—',
+      email: a.student?.email || a.email || '—',
+      mobile: a.student?.mobile || a.mobile || '—',
+      college: a.collegeName || '—',
+      course: a.courseName || '—',
+      program: a.programName || '—',
+      category: a.category || '—',
+      fee: a.fee || 0,
+      paymentStatus: a.paymentStatus,
+      paymentId: a.paymentId || '—',
+      status: a.status,
+      date: a.createdAt
+    }));
+
+    res.json(orders);
+  } catch (err) {
+    console.error('Failed to fetch orders:', err.message);
+    res.status(500).json({ message: 'Failed to fetch orders' });
+  }
+});
+
 // GET /api/admin/orders-from-sheet
 router.get('/orders-from-sheet', async (req, res) => {
   try {
     const sheetId = extractSheetId(SHEET_URL);
     const keyPath = path.join(__dirname, '../google-key.json');
-    
+
     let authClient;
     if (process.env.GOOGLE_PRIVATE_KEY) {
       try {
@@ -204,6 +313,110 @@ router.get('/orders-from-sheet', async (req, res) => {
   } catch (err) {
     console.error('Failed to fetch Orders from Sheet:', err.message);
     res.status(500).json({ message: 'Failed to fetch Orders from Sheet' });
+  }
+});
+
+// GET /api/admin/college-accounts
+router.get('/college-accounts', isAdmin, async (req, res) => {
+  try {
+    const accounts = await CollegeAccount.find({});
+    res.json(accounts);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/admin/college-accounts
+router.post('/college-accounts', isAdmin, async (req, res) => {
+  try {
+    const { 
+      collegeName, 
+      payoutMode,
+      razorpayAccountId, 
+      paytmWalletNumber,
+      paytmMerchantId,
+      bankDetails,
+      contactEmail, 
+      contactPhone, 
+      active 
+    } = req.body;
+
+    if (!collegeName || !payoutMode) {
+      return res.status(400).json({ message: 'College name and Payout Mode are required' });
+    }
+
+    const account = await CollegeAccount.findOneAndUpdate(
+      { collegeName },
+      { 
+        payoutMode,
+        razorpayAccountId, 
+        paytmWalletNumber,
+        paytmMerchantId,
+        bankDetails,
+        contactEmail, 
+        contactPhone, 
+        active 
+      },
+      { new: true, upsert: true }
+    );
+    res.json({ message: 'College Account configuration saved successfully', account });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/admin/settlements - Fetch all settlement ledger entries
+router.get('/settlements', isAdmin, async (req, res) => {
+  try {
+    const { status, college } = req.query;
+    const filter = {};
+    if (status) filter.settlementStatus = status;
+    if (college) filter.collegeName = { $regex: college, $options: 'i' };
+
+    const entries = await SettlementLedger.find(filter).sort({ createdAt: -1 });
+
+    // Aggregate summary stats
+    const allEntries = await SettlementLedger.find({});
+    const totalCollected = allEntries.reduce((sum, e) => sum + (e.totalAmount || 0), 0);
+    const totalPlatformFee = allEntries.reduce((sum, e) => sum + (e.platformFee || 0), 0);
+    const totalCollegeShare = allEntries.reduce((sum, e) => sum + (e.collegeShare || 0), 0);
+    const pendingCount = allEntries.filter(e => e.settlementStatus === 'pending').length;
+    const settledCount = allEntries.filter(e => e.settlementStatus === 'settled').length;
+    const pendingAmount = allEntries.filter(e => e.settlementStatus === 'pending').reduce((sum, e) => sum + (e.collegeShare || 0), 0);
+
+    res.json({
+      entries,
+      summary: {
+        totalCollected,
+        totalPlatformFee,
+        totalCollegeShare,
+        pendingCount,
+        settledCount,
+        pendingAmount
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/admin/settlements/:id/settle - Mark a ledger entry as settled
+router.post('/settlements/:id/settle', isAdmin, async (req, res) => {
+  try {
+    const { referenceId } = req.body;
+    const entry = await SettlementLedger.findByIdAndUpdate(
+      req.params.id,
+      {
+        settlementStatus: 'settled',
+        referenceId: referenceId || `MANUAL-${Date.now()}`,
+        settledAt: new Date()
+      },
+      { new: true }
+    );
+    if (!entry) return res.status(404).json({ message: 'Ledger entry not found' });
+    res.json({ message: 'Settlement marked as completed', entry });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 

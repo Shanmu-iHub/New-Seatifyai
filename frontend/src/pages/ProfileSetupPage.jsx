@@ -17,7 +17,7 @@ export default function ProfileSetupPage() {
 
   useEffect(() => {
     if (user) {
-      setName(user.name || '');
+      setName(user.name === 'Student' ? '' : (user.name || ''));
       setEmail(user.email || '');
       setMobile(user.mobile || '');
       setDob(user.dob || '');
@@ -28,7 +28,7 @@ export default function ProfileSetupPage() {
     e.preventDefault();
     if (!name.trim()) return toast.error('Please enter your full name');
     if (!email.trim() || !email.includes('@')) return toast.error('Please enter a valid email address');
-    if (!mobile.trim() || mobile.replace(/\D/g, '').length < 10) return toast.error('Please enter a valid 10-digit mobile number');
+    if (!mobile.trim() || mobile.replace(/\D/g, '').length !== 10) return toast.error('Please enter a valid 10-digit mobile number');
     if (!dob) return toast.error('Please select your date of birth');
 
     setLoading(true);
@@ -36,7 +36,7 @@ export default function ProfileSetupPage() {
       const res = await axios.put('/api/students/profile', {
         name: name.trim(),
         email: email.trim().toLowerCase(),
-        mobile: mobile.trim(),
+        mobile: mobile.replace(/\D/g, '').slice(0, 10),
         dob
       });
       
@@ -140,8 +140,9 @@ export default function ProfileSetupPage() {
                 <input
                   type="tel"
                   value={mobile}
-                  onChange={e => setMobile(e.target.value)}
+                  onChange={e => setMobile(e.target.value.replace(/[^0-9]/g, '').slice(0, 10))}
                   placeholder="9876543210"
+                  maxLength={10}
                   className="w-full rounded-xl pl-10 pr-4 py-3 text-sm focus:ring-4 focus:ring-blue-50 transition-all outline-none"
                   style={{ background: '#fff', border: '1px solid var(--card-border)', color: 'var(--text)' }}
                   required

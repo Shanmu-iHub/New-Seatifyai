@@ -125,4 +125,57 @@ ticketSchema.pre('save', function(next) {
 
 const Ticket = mongoose.model('Ticket', ticketSchema);
 
-module.exports = { OTP, User, Course, Application, Ticket };
+// College Account Split Mapping Model
+const collegeAccountSchema = new mongoose.Schema({
+  collegeName: { type: String, required: true, unique: true },
+  payoutMode: { 
+    type: String, 
+    enum: ['razorpay_route', 'paytm_payout', 'direct_bank'], 
+    default: 'razorpay_route' 
+  },
+  razorpayAccountId: String,
+  paytmWalletNumber: String,
+  paytmMerchantId: String,
+  bankDetails: {
+    accountNumber: String,
+    ifscCode: String,
+    beneficiaryName: String,
+    bankName: String
+  },
+  contactEmail: String,
+  contactPhone: String,
+  active: { type: Boolean, default: true }
+}, { timestamps: true });
+
+const CollegeAccount = mongoose.model('CollegeAccount', collegeAccountSchema);
+
+// Settlement Ledger Model (Swiggy/Zepto Ledger Model)
+const settlementLedgerSchema = new mongoose.Schema({
+  applicationId: { type: String, required: true, unique: true },
+  collegeName: { type: String, required: true },
+  studentName: { type: String, required: true },
+  totalAmount: { type: Number, required: true },
+  platformFee: { type: Number, default: 1.18 }, // Platform Fee + GST
+  collegeShare: { type: Number, required: true }, // Total minus Platform Fee
+  payoutMode: { type: String, enum: ['razorpay_route', 'paytm_payout', 'direct_bank'], required: true },
+  settlementStatus: { type: String, enum: ['pending', 'processing', 'settled', 'failed'], default: 'pending' },
+  referenceId: String, // Payout transaction hash or reference
+  settledAt: Date
+}, { timestamps: true });
+
+const SettlementLedger = mongoose.model('SettlementLedger', settlementLedgerSchema);
+
+// Platform Configuration Model (singleton — only one doc ever exists)
+const platformConfigSchema = new mongoose.Schema({
+  platformFee: { type: Number, default: 1.00 },      // Base platform fee in ₹
+  platformGST: { type: Number, default: 18 },         // GST % applied on platformFee
+  supportEmail: { type: String, default: 'support@seatifyai.com' },
+  platformName: { type: String, default: 'Seatifyai' },
+  razorpayKeyId: { type: String, default: '' },        // Overrideable from UI
+  maintenanceMode: { type: Boolean, default: false },
+}, { timestamps: true });
+
+const PlatformConfig = mongoose.model('PlatformConfig', platformConfigSchema);
+
+module.exports = { OTP, User, Course, Application, Ticket, CollegeAccount, SettlementLedger, PlatformConfig };
+

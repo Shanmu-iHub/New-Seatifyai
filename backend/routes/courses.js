@@ -257,17 +257,80 @@ const SEED_COURSES = [
   },
 ];
 
+// --- Caching Layer for Google Sheets Data ---
+let cachedCourses = null;
+let lastFetchTime = null;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache TTL
+let isFetching = false;
+
+const updateCache = async () => {
+  if (isFetching) return;
+  isFetching = true;
+  try {
+    console.log('📡 Background fetching courses from Google Sheets...');
+    const sheetCourses = await fetchCoursesFromSheet();
+    if (sheetCourses && sheetCourses.length > 0) {
+      cachedCourses = sheetCourses;
+      lastFetchTime = Date.now();
+      console.log(`✅ Cached ${cachedCourses.length} courses from Google Sheets.`);
+    }
+  } catch (err) {
+    console.error('❌ Failed to update courses cache from Google Sheets:', err.message);
+  } finally {
+    isFetching = false;
+  }
+};
+
+// Start background fetch immediately on load
+setTimeout(updateCache, 1000);
+
+// Periodically refresh the cache in background every 5 minutes
+setInterval(updateCache, CACHE_TTL);
+
 // GET /api/courses
 router.get('/', async (req, res) => {
   try {
-    // Try fetching from Google Sheets first
+    const forceRefresh = req.query.refresh === 'true';
+
+    // If force refresh is requested, bypass cache and fetch live
+    if (forceRefresh) {
+      console.log('🔄 Forced refresh requested. Fetching live courses from Google Sheets...');
+      try {
+        const sheetCourses = await fetchCoursesFromSheet();
+        if (sheetCourses && sheetCourses.length > 0) {
+          cachedCourses = sheetCourses;
+          lastFetchTime = Date.now();
+          return res.json(sheetCourses);
+        }
+      } catch (sheetErr) {
+        console.warn('Google Sheets fetch failed during forced refresh:', sheetErr.message);
+      }
+    }
+
+    // 1. Serve immediately from cache if available (Instant load)
+    if (cachedCourses && cachedCourses.length > 0) {
+      // If cache is expired, trigger background update (doesn't block response)
+      if (!lastFetchTime || (Date.now() - lastFetchTime > CACHE_TTL)) {
+        console.log('🔄 Cache expired. Triggering background cache update...');
+        updateCache().catch(err => console.error('Error updating cache in background:', err.message));
+      }
+      return res.json(cachedCourses);
+    }
+
+    // 2. Cache is empty (e.g., first request right after server starts). Fetch synchronously once.
+    console.log('⏳ Cache empty. Fetching live courses synchronously...');
     try {
       const sheetCourses = await fetchCoursesFromSheet();
-      if (sheetCourses.length > 0) return res.json(sheetCourses);
+      if (sheetCourses && sheetCourses.length > 0) {
+        cachedCourses = sheetCourses;
+        lastFetchTime = Date.now();
+        return res.json(sheetCourses);
+      }
     } catch (sheetErr) {
       console.warn('Google Sheets fetch failed, falling back to DB/Seed:', sheetErr.message);
     }
 
+    // 3. Database / Seed fallback if Google Sheets fetch fails completely
     let courses = await Course.find({ active: true });
     if (courses.length === 0) {
       try {

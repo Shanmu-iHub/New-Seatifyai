@@ -20,6 +20,27 @@ const ICON_BG = {
 
 const NAME_COLOR = { 'default': '#000' };
 
+const SEARCH_ALIASES = {
+  'eee': ['electrical', 'electronics'],
+  'ece': ['electronics & communication', 'electronics and communication'],
+  'cse': ['computer science'],
+  'it': ['information technology'],
+  'mech': ['mechanical', 'mechatronics'],
+  'civil': ['civil'],
+  'aids': ['artificial intelligence & data science', 'artificial intelligence and data science', 'ai & data science'],
+  'aiml': ['artificial intelligence & machine learning', 'artificial intelligence and machine learning', 'ai & machine learning'],
+  'ai': ['artificial intelligence'],
+  'ds': ['data science'],
+  'mba': ['mba', 'business administration'],
+  'mca': ['mca', 'computer applications'],
+  'bca': ['bca', 'computer applications'],
+  'bsc': ['b.sc', 'science'],
+  'bcom': ['b.com', 'commerce'],
+  'bba': ['bba', 'business administration'],
+  'bed': ['b.ed', 'education'],
+  'k12': ['k-12', 'school', 'kindergarten', 'primary', 'secondary']
+};
+
 const MOCK_COURSES = [
   {
     _id: '1', name: 'AI & Data Science', type: 'B.E./B.Tech', category: 'Engineering & Tech', collegeName: 'SNS Institutions',
@@ -108,15 +129,28 @@ export default function CoursesPage() {
         activeTab === 'All' ||
         (course.category || '').trim().toLowerCase() === activeTab.trim().toLowerCase();
 
-      const q = searchQuery.toLowerCase().replace(/\s+/g, '');
+      const q = searchQuery.toLowerCase().trim();
+      const qNormalized = q.replace(/\s+/g, '');
+
+      // Build list of terms to search (supports short abbreviations/aliases)
+      const searchTerms = [qNormalized];
+      Object.entries(SEARCH_ALIASES).forEach(([alias, expansions]) => {
+        if (qNormalized === alias || qNormalized.includes(alias)) {
+          expansions.forEach(exp => {
+            searchTerms.push(exp.toLowerCase().replace(/\s+/g, ''));
+          });
+        }
+      });
 
       const matchesSearch =
         !searchQuery ||
-        (course.name || '').toLowerCase().replace(/\s+/g, '').includes(q) ||
-        (course.category || '').toLowerCase().replace(/\s+/g, '').includes(q) ||
-        (course.collegeName || '').toLowerCase().replace(/\s+/g, '').includes(q) ||
-        course.programs?.some(p =>
-          (p.name || '').toLowerCase().replace(/\s+/g, '').includes(q)
+        searchTerms.some(term =>
+          (course.name || '').toLowerCase().replace(/\s+/g, '').includes(term) ||
+          (course.category || '').toLowerCase().replace(/\s+/g, '').includes(term) ||
+          (course.collegeName || '').toLowerCase().replace(/\s+/g, '').includes(term) ||
+          course.programs?.some(p =>
+            (p.name || '').toLowerCase().replace(/\s+/g, '').includes(term)
+          )
         );
 
       return matchesTab && matchesSearch;
@@ -144,7 +178,8 @@ export default function CoursesPage() {
           course: course,
           program: prog,
           displayName: course.name,
-          fee: prog.fee
+          fee: prog.fee,
+          categoryName: catName
         });
       });
     });
@@ -264,6 +299,7 @@ export default function CoursesPage() {
               return groupsToRender.map((collegeGroup, idx) => {
                 const style = getIconStyle(collegeGroup.collegeName);
                 const state = cardStates[collegeGroup.collegeName] || { step: 1, category: null, courseId: null };
+                const showDirectCourses = searchQuery.trim() !== '';
 
                 return (
                   <div key={collegeGroup.collegeName || idx} className="rounded-2xl p-6 bg-white border border-slate-100 shadow-sm animate-fade-up">
@@ -281,11 +317,11 @@ export default function CoursesPage() {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-bold text-lg leading-tight" style={{ color: style.color || '#000' }}>{collegeGroup.collegeName}</h3>
-                        {state.step === 2 && (
+                        {state.step === 2 && !showDirectCourses && (
                           <p className="text-sm font-medium text-slate-500 mt-1">{state.category}</p>
                         )}
                       </div>
-                      {state.step === 2 && (
+                      {state.step === 2 && !showDirectCourses && (
                         <button
                           onClick={() => {
                             updateCardState(collegeGroup.collegeName, { step: 1, courseId: null });
@@ -299,7 +335,7 @@ export default function CoursesPage() {
                       )}
                     </div>
 
-                    {state.step === 1 ? (
+                    {state.step === 1 && !showDirectCourses ? (
                       <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-in">
                         {Object.keys(collegeGroup.categories).map((catName) => {
                           return (
@@ -319,14 +355,18 @@ export default function CoursesPage() {
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-in">
-                        {collegeGroup.categories[state.category]?.map((item, pIdx) => {
+                        {(showDirectCourses ? Object.values(collegeGroup.categories).flat() : collegeGroup.categories[state.category])?.map((item, pIdx) => {
                           const isSelected = globalSelected?.collegeName === collegeGroup.collegeName && globalSelected?.courseId === item.course._id;
                           return (
                             <button
                               key={item.course._id || pIdx}
                               onClick={() => {
                                 updateCardState(collegeGroup.collegeName, { courseId: item.course._id });
-                                setGlobalSelected({ collegeName: collegeGroup.collegeName, category: state.category, courseId: item.course._id });
+                                setGlobalSelected({ 
+                                  collegeName: collegeGroup.collegeName, 
+                                  category: item.categoryName || state.category, 
+                                  courseId: item.course._id 
+                                });
                               }}
                               className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left ${isSelected ? 'border-indigo-500 bg-indigo-50/50' : 'border-transparent bg-slate-50 hover:bg-slate-100'}`}
                             >

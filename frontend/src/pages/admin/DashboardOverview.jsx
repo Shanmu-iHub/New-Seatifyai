@@ -247,9 +247,26 @@ export default function DashboardOverview() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.courseSeatChart} margin={{ top: 0, right: 10, left: 0, bottom: 0 }} barCategoryGap="15%">
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 10 }} angle={-20} textAnchor="end" height={45} />
+                  <XAxis dataKey="short" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 10 }} angle={-20} textAnchor="end" height={45} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                  <Tooltip cursor={{ fill: '#f8fafc' }} />
+                  <Tooltip 
+                    cursor={{ fill: '#f8fafc' }} 
+                    content={({ active, payload }) => {
+                      if (active && payload?.length) {
+                        const d = payload[0].payload;
+                        return (
+                          <div className="bg-white border border-slate-100 rounded-xl shadow-lg p-3 text-sm max-w-[240px]">
+                            <p className="font-bold text-slate-800 mb-2 leading-snug">{d.name}</p>
+                            <div className="flex flex-col gap-1">
+                              <p className="text-indigo-600 font-semibold flex items-center justify-between"><span>Filled Seats:</span> <span>{d.filled}</span></p>
+                              <p className="text-emerald-500 font-semibold flex items-center justify-between"><span>Available:</span> <span>{d.available}</span></p>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
                   <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '11px' }} />
                   <Bar dataKey="filled" name="Filled" fill="#6366f1" radius={[4, 4, 0, 0]} maxBarSize={35} />
                   <Bar dataKey="available" name="Available" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={35} />

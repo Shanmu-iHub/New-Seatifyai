@@ -75,22 +75,51 @@ router.get('/stats', async (req, res) => {
       .slice(0, 8);
 
     // === Course-wise Seat Availability (Bar) ===
-    const allCourses = await Course.find({});
-    const courseSeats = [];
-    allCourses.forEach(course => {
-      (course.programs || []).forEach(prog => {
-        const total = prog.seats || 0;
-        const available = prog.seatsAvailable !== undefined ? prog.seatsAvailable : total;
-        const filled = Math.max(0, total - available);
-        if (total > 0) {
-          courseSeats.push({
-            name: (prog.name || course.name || 'Unknown').slice(0, 20),
-            available,
-            filled,
-            total
-          });
-        }
-      });
+    const courseSeatMap = {};
+    completedApps.forEach(app => {
+      const cName = app.courseName || app.programName || 'Unknown Course';
+      courseSeatMap[cName] = (courseSeatMap[cName] || 0) + 1;
+    });
+    
+    const abbreviateCourse = (name) => {
+      const known = {
+        'Electronics & Communication Engineering': 'ECE',
+        'Computer Science and Engineering': 'CSE',
+        'Computer Science (AI, ML & DS)': 'CS (AIML)',
+        'Mechanical Engineering': 'MECH',
+        'Information Technology': 'IT',
+        'Artificial Intelligence & Data Science': 'AIDS',
+        'AI and Data Science': 'AIDS',
+        'Internet of Things': 'IOT',
+        'Master of Business Administration': 'MBA',
+        'Master of Computer Application': 'MCA',
+        'Electrical & Electronics Engineering': 'EEE',
+        'Civil Engineering': 'CIVIL',
+        'Bachelor of Physiotherapy (BPT)': 'BPT',
+        'Doctor of Pharmacy (Pharm.D)': 'Pharm.D',
+        'Bachelor of Pharmacy': 'B.Pharm',
+        'Generative AI': 'GenAI',
+        'Agentic AI': 'Agentic AI'
+      };
+      if (known[name]) return known[name];
+      
+      // Fallback: initials for multiple words
+      const fillers = new Set(['of', 'the', 'and', '&', 'for', 'in', 'and']);
+      const words = name.replace(/[^a-zA-Z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 0);
+      const meaningful = words.filter(w => !fillers.has(w.toLowerCase()));
+      if (meaningful.length > 1) return meaningful.map(w => w[0].toUpperCase()).join('');
+      return name.slice(0, 8);
+    };
+
+    const courseSeats = Object.entries(courseSeatMap).map(([name, filled]) => {
+      const total = 60; // Default capacity assumption for UI scale
+      return {
+        name,
+        short: abbreviateCourse(name),
+        filled,
+        available: Math.max(0, total - filled),
+        total
+      };
     });
     const courseSeatChart = courseSeats.sort((a, b) => b.filled - a.filled).slice(0, 8);
 

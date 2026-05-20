@@ -55,12 +55,9 @@ export default function AdminCollegeDetails() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {courses.map(course => (
             <div key={course._id} className="border border-slate-200 rounded-2xl p-6 bg-white hover:border-indigo-300 hover:shadow-lg transition-all flex flex-col">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-4xl">{course.emoji || '🎓'}</span>
-                <div>
-                  <h3 className="font-bold text-lg text-slate-800 leading-tight">{course.name}</h3>
-                  <p className="text-xs font-bold text-indigo-500 uppercase tracking-wider mt-1">{course.category}</p>
-                </div>
+              <div className="mb-4">
+                <h3 className="font-bold text-lg text-slate-800 leading-tight">{course.name}</h3>
+                <p className="text-xs font-bold text-indigo-500 uppercase tracking-wider mt-1">{course.category}</p>
               </div>
               
               <div className="mt-auto space-y-2 border-t border-slate-100 pt-4">

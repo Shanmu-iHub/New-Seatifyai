@@ -100,14 +100,13 @@ export default function AdminAdmissions() {
                 <th className="p-4 font-bold">Application ID</th>
                 <th className="p-4 font-bold">Student Name</th>
                 <th className="p-4 font-bold">College & Course</th>
-                <th className="p-4 font-bold">Payment</th>
                 <th className="p-4 font-bold">Status</th>
                 <th className="p-4 font-bold">Applied On</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan="6" className="p-8 text-center text-slate-500">No admissions found.</td></tr>
+                <tr><td colSpan="5" className="p-8 text-center text-slate-500">No admissions found.</td></tr>
               ) : (
                 filtered.map(app => (
                   <tr key={app._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
@@ -119,13 +118,6 @@ export default function AdminAdmissions() {
                     <td className="p-4">
                       <p className="font-bold text-slate-700">{app.collegeName}</p>
                       <p className="text-xs text-slate-500">{app.courseName} - {app.programName}</p>
-                    </td>
-                    <td className="p-4">
-                      {app.paymentStatus === 'completed' ? (
-                        <span className="text-emerald-600 font-bold text-sm">Paid (₹{app.fee})</span>
-                      ) : (
-                        <span className="text-amber-500 font-bold text-sm">{app.paymentStatus}</span>
-                      )}
                     </td>
                     <td className="p-4">{getStatusBadge(app.status)}</td>
                     <td className="p-4 text-sm text-slate-500">

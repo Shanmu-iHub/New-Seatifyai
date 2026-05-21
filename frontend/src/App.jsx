@@ -12,8 +12,12 @@ import ProfilePage from './pages/ProfilePage';
 import ProfileSetupPage from './pages/ProfileSetupPage';
 import CancelPage from './pages/CancelPage';
 import SupportPage from './pages/SupportPage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import RefundPolicyPage from './pages/RefundPolicyPage';
 import WhatsAppButton from './components/WhatsAppButton';
 import SupportButton from './components/SupportButton';
+import Footer from './components/Footer';
 import AdminLayout from './pages/admin/AdminLayout';
 import DashboardOverview from './pages/admin/DashboardOverview';
 import AdminAdmissions from './pages/admin/AdminAdmissions';
@@ -74,33 +78,41 @@ const AppRoutes = () => {
   const hasIncompleteProfile = user && (!user.name || !user.email || !user.mobile || !user.dob);
 
   return (
-    <div className={user && !isAdminPath ? "pb-24 md:pb-0" : ""}>
+    <div className={`min-h-screen flex flex-col ${user && !isAdminPath ? "pb-24 md:pb-0" : ""}`}>
       {!isAdminPath && <Navbar />}
-      <Routes>
-        <Route path="/" element={hasIncompleteProfile ? <Navigate to="/profile-setup" /> : (user?.role === 'admin' ? <Navigate to="/admin" /> : <CoursesPage />)} />
-        <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-        <Route path="/courses" element={hasIncompleteProfile ? <Navigate to="/profile-setup" /> : (user?.role === 'admin' ? <Navigate to="/admin" /> : <CoursesPage />)} />
-        <Route path="/apply/:courseId" element={<ProtectedRoute><ApplicationForm /></ProtectedRoute>} />
-        <Route path="/payment/:applicationId" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
-        <Route path="/confirmation/:applicationId" element={<ProtectedRoute><ConfirmationPage /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-        <Route path="/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
-        <Route path="/profile-setup" element={<ProfileSetupRoute><ProfileSetupPage /></ProfileSetupRoute>} />
-        <Route path="/cancel-booking/:applicationId" element={<ProtectedRoute><CancelPage /></ProtectedRoute>} />
-        
-        <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
-          <Route index element={<DashboardOverview />} />
-          <Route path="admissions" element={<AdminAdmissions />} />
-          <Route path="colleges" element={<AdminColleges />} />
-          <Route path="colleges/:collegeName" element={<AdminCollegeDetails />} />
-          <Route path="students" element={<AdminStudents />} />
-          <Route path="orders" element={<AdminOrders />} />
-          <Route path="settlements" element={<AdminSettlements />} />
-          <Route path="settings" element={<AdminSettings />} />
-          <Route path="support" element={<SupportPage />} />
-          <Route path="*" element={<div className="p-8 text-center text-slate-500">Module coming soon...</div>} />
-        </Route>
-      </Routes>
+      <div className="flex-grow">
+        <Routes>
+          <Route path="/" element={hasIncompleteProfile ? <Navigate to="/profile-setup" /> : (user?.role === 'admin' ? <Navigate to="/admin" /> : <CoursesPage />)} />
+          <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+          <Route path="/courses" element={hasIncompleteProfile ? <Navigate to="/profile-setup" /> : (user?.role === 'admin' ? <Navigate to="/admin" /> : <CoursesPage />)} />
+          <Route path="/apply/:courseId" element={<ProtectedRoute><ApplicationForm /></ProtectedRoute>} />
+          <Route path="/payment/:applicationId" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
+          <Route path="/confirmation/:applicationId" element={<ProtectedRoute><ConfirmationPage /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
+          <Route path="/profile-setup" element={<ProfileSetupRoute><ProfileSetupPage /></ProfileSetupRoute>} />
+          <Route path="/cancel-booking/:applicationId" element={<ProtectedRoute><CancelPage /></ProtectedRoute>} />
+          
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+          <Route path="/refund-policy" element={<RefundPolicyPage />} />
+          
+          <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+            <Route index element={<DashboardOverview />} />
+            <Route path="admissions" element={<AdminAdmissions />} />
+            <Route path="colleges" element={<AdminColleges />} />
+            <Route path="colleges/:collegeName" element={<AdminCollegeDetails />} />
+            <Route path="students" element={<AdminStudents />} />
+            <Route path="orders" element={<AdminOrders />} />
+            <Route path="settlements" element={<AdminSettlements />} />
+            <Route path="settings" element={<AdminSettings />} />
+            <Route path="support" element={<SupportPage />} />
+            <Route path="*" element={<div className="p-8 text-center text-slate-500">Module coming soon...</div>} />
+          </Route>
+        </Routes>
+      </div>
+      
+      {!isAdminPath && <Footer />}
       {!isAdminPath && <WhatsAppButton />}
       {!isAdminPath && <SupportButton />}
     </div>

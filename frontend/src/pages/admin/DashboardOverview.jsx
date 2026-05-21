@@ -144,8 +144,8 @@ export default function DashboardOverview() {
           <h2 className="text-lg font-bold text-slate-800 mb-1 flex items-center gap-2"><Activity size={18} className="text-indigo-500" /> Admission Funnel</h2>
           <p className="text-xs text-slate-500 mb-5">Student lifecycle from registration to confirmation</p>
           <div className="space-y-3">
-            {stats.admissionFunnel.map((item, i) => {
-              const maxCount = stats.admissionFunnel[0]?.count || 1;
+            {stats.admissionFunnel.map((item, i, arr) => {
+              const maxCount = Math.max(...arr.map(a => a.count)) || 1;
               const pct = Math.round((item.count / maxCount) * 100);
               return (
                 <div key={i}>

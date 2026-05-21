@@ -488,6 +488,10 @@ router.post('/:id/pay-later', auth, async (req, res) => {
     const app = await Application.findOne({ applicationId: req.params.id, student: req.user._id });
     if (!app) return res.status(404).json({ message: 'Application not found' });
 
+    if (['cancelled', 'rejected'].includes(app.status)) {
+      return res.status(400).json({ message: 'This application is not active.' });
+    }
+
     if (app.paymentStatus === 'completed') {
       return res.status(400).json({ message: 'Payment already completed for this application' });
     }

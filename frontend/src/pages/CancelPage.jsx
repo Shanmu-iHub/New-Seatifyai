@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+  import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { XCircle, Home, FileX } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -20,6 +20,12 @@ export default function CancelPage() {
 
   useEffect(() => {
     const cancelApplication = async () => {
+      if (application?.status === 'cancelled') {
+        setCancelStatus('success');
+        setLoading(false);
+        return;
+      }
+
       try {
         await axios.post(`/api/applications/${applicationId}/cancel`);
         setCancelStatus('success');
@@ -41,8 +47,8 @@ export default function CancelPage() {
     ['Application ID', applicationId],
     ['Student Name', application?.fullName || user?.name || 'Student'],
     ['Institution', application?.collegeName || course?.collegeName || 'SNS Institutions'],
-    ['Program', program?.name || 'N/A'],
-    ['Course', course?.name || 'N/A'],
+    ['Program', program?.name || application?.programName || 'N/A'],
+    ['Course', course?.name || application?.courseName || 'N/A'],
     ['Amount Paid', `₹${(application?.fee || program?.fee || 0).toLocaleString('en-IN')}`],
     ['Refund Status', 'No Refund Applicable'],
   ];

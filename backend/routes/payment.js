@@ -32,6 +32,21 @@ router.post('/create-order', auth, async (req, res) => {
       return res.status(404).json({ message: 'Application not found' });
     }
 
+    if (['cancelled', 'rejected'].includes(application.status)) {
+      return res.status(400).json({ message: 'This application is not active and cannot be paid.' });
+    }
+
+    const activeConfirmed = await Application.findOne({
+      student: application.student,
+      academicYear: application.academicYear,
+      paymentStatus: 'completed',
+      status: { $nin: ['cancelled', 'rejected'] },
+      applicationId: { $ne: applicationId }
+    });
+    if (activeConfirmed) {
+      return res.status(400).json({ message: 'You already have a confirmed admission for this academic year.' });
+    }
+
     if (!hasAcceptedPolicy(application)) {
       return res.status(400).json({
         success: false,

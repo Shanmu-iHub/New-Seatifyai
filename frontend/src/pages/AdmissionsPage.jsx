@@ -28,8 +28,33 @@ export default function AdmissionsPage() {
     }
   };
 
-  const getStatusBadge = (paymentStatus) => {
-    switch (paymentStatus) {
+  const isInactiveAdmission = (admission) => ['cancelled', 'rejected'].includes(admission.status);
+  const isConfirmedAdmission = (admission) =>
+    admission.paymentStatus === 'completed' && !isInactiveAdmission(admission);
+  const isPaidCancelledAdmission = (admission) =>
+    admission.paymentStatus === 'completed' && admission.status === 'cancelled';
+
+  const hasActiveConfirmedAdmission = admissions.some(isConfirmedAdmission);
+  const isBlockedByAdmissionLimit = (admission) =>
+    hasActiveConfirmedAdmission &&
+    !isConfirmedAdmission(admission) &&
+    !isInactiveAdmission(admission) &&
+    ['pending', 'pay_later', 'failed'].includes(admission.paymentStatus);
+
+  const getStatusBadge = (admission) => {
+    if (isBlockedByAdmissionLimit(admission)) {
+      return { icon: AlertCircle, label: 'Cancelled', bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200' };
+    }
+
+    if (admission.status === 'cancelled') {
+      return { icon: AlertCircle, label: 'Cancelled', bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200' };
+    }
+
+    if (admission.status === 'rejected') {
+      return { icon: AlertCircle, label: 'Rejected', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' };
+    }
+
+    switch (admission.paymentStatus) {
       case 'completed':
         return { icon: CheckCircle, label: 'Confirmed', bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' };
       case 'pay_later':
@@ -43,6 +68,16 @@ export default function AdmissionsPage() {
   };
 
   const handlePayNow = (admission) => {
+    if (isInactiveAdmission(admission)) {
+      toast.error('This application is cancelled and cannot be paid.');
+      return;
+    }
+
+    if (hasActiveConfirmedAdmission) {
+      toast.error('You already have a confirmed admission for this academic year.');
+      return;
+    }
+
     navigate(`/payment/${admission.applicationId}`, {
       state: { application: admission }
     });
@@ -88,8 +123,14 @@ export default function AdmissionsPage() {
         ) : (
           <div className="grid gap-4">
             {admissions.map((admission) => {
-              const statusInfo = getStatusBadge(admission.paymentStatus);
+              const statusInfo = getStatusBadge(admission);
               const StatusIcon = statusInfo.icon;
+              const canPay =
+                !hasActiveConfirmedAdmission &&
+                !isInactiveAdmission(admission) &&
+                (admission.paymentStatus === 'pending' || admission.paymentStatus === 'pay_later' || admission.paymentStatus === 'failed');
+              const blockedByLimit = isBlockedByAdmissionLimit(admission);
+              const paidCancelled = isPaidCancelledAdmission(admission);
 
               return (
                 <div
@@ -141,7 +182,7 @@ export default function AdmissionsPage() {
 
                       {/* Action Buttons */}
                       <div className="flex flex-col w-full md:w-auto gap-2">
-                        {admission.paymentStatus === 'pending' || admission.paymentStatus === 'pay_later' ? (
+                        {canPay ? (
                           <>
                             <button
                               onClick={() => handlePayNow(admission)}
@@ -175,7 +216,7 @@ export default function AdmissionsPage() {
                               </button>
                             )} */}
                           </>
-                        ) : admission.paymentStatus === 'completed' ? (
+                        ) : isConfirmedAdmission(admission) ? (
                           <button
                             onClick={() => navigate(`/confirmation/${admission.applicationId}`)}
                             className="px-4 py-2 rounded-lg font-bold text-sm transition-all whitespace-nowrap"
@@ -187,15 +228,23 @@ export default function AdmissionsPage() {
                           >
                             View Details
                           </button>
-                        ) : (
+                        ) : paidCancelled ? (
                           <button
-                            onClick={() => handlePayNow(admission)}
-                            className="px-4 py-2 rounded-lg font-bold text-sm text-white transition-all whitespace-nowrap"
-                            style={{ background: 'var(--primary)' }}
+                            onClick={() => navigate(`/cancel-booking/${admission.applicationId}`, { state: { application: admission } })}
+                            className="px-4 py-2 rounded-lg font-bold text-sm transition-all whitespace-nowrap"
+                            style={{
+                              background: 'rgba(239,68,68,0.08)',
+                              color: '#EF4444',
+                              border: '1px solid rgba(239,68,68,0.2)'
+                            }}
                           >
-                            Retry Payment
+                            View Details
                           </button>
-                        )}
+                        ) : blockedByLimit ? (
+                          <p className="max-w-[220px] text-xs font-semibold text-right text-slate-500">
+                            You have reached the limit for this year.
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                   </div>

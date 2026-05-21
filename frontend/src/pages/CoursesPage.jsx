@@ -70,8 +70,17 @@ export default function CoursesPage() {
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [cardStates, setCardStates] = useState({});
   const [globalSelected, setGlobalSelected] = useState(null);
+  const [isSticky, setIsSticky] = useState(false);
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsSticky(window.scrollY > 80);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleApply = (course, program) => {
     if (!user) {
@@ -226,7 +235,7 @@ export default function CoursesPage() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden" style={{ background: '#F8FAFC' }}>
+    <div className="min-h-screen relative overflow-clip" style={{ background: '#F8FAFC' }}>
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
         <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full opacity-20 blur-[120px]"
           style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)' }} />
@@ -236,7 +245,7 @@ export default function CoursesPage() {
           style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #EF4444 100%)' }} />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-10 pb-32 md:pb-8 relative" style={{ zIndex: 1 }}>
+      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-10 relative" style={{ zIndex: 1 }}>
         <div className="text-center mb-10 animate-fade-up">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium mb-4"
             style={{ border: '1px solid var(--primary)', color: 'var(--primary)', background: 'rgba(79,70,229,0.08)' }}>
@@ -250,39 +259,45 @@ export default function CoursesPage() {
             Explore admissions for K12, UG, PG & career-focused programs all in one place.
           </p>
         </div>
+      </div>
 
-        <div className="max-w-xl mx-auto mb-10 animate-fade-up">
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-              <Search size={18} style={{ color: 'var(--text-muted)' }} />
+      <div className={`sticky top-[65px] z-50 w-full py-4 mb-8 transition-all duration-300 ${isSticky ? 'bg-white/90 backdrop-blur-xl border-b border-slate-200/50 shadow-sm' : 'bg-transparent border-transparent shadow-none'}`}>
+        <div className="max-w-7xl mx-auto px-4 md:px-8">
+          <div className="max-w-3xl mx-auto">
+            <div className="relative group mb-4">
+              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                <Search size={18} style={{ color: 'var(--text-muted)' }} />
+              </div>
+              <input
+                type="text"
+                placeholder="Search courses, degrees, or subjects..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                className="w-full pl-12 pr-12 py-3.5 rounded-2xl text-sm outline-none bg-slate-50 border border-slate-200 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                style={{ color: 'var(--text)' }}
+              />
             </div>
-            <input
-              type="text"
-              placeholder="Search courses, degrees, or subjects..."
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              className="w-full pl-12 pr-12 py-3.5 rounded-2xl text-sm outline-none shadow-sm"
-              style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid var(--card-border)', color: 'var(--text)' }}
-            />
+
+            <div className="flex gap-2 overflow-x-auto pb-1 animate-fade-up justify-start custom-scrollbar">
+              {CATEGORIES.map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => { setActiveTab(tab); setCurrentPage(1); }}
+                  className={`flex-shrink-0 px-6 py-2.5 rounded-full text-sm font-bold transition-all relative shadow-sm hover:shadow-md hover:-translate-y-0.5`}
+                  style={{
+                    background: activeTab === tab ? 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' : '#fff',
+                    color: activeTab === tab ? '#fff' : '#64748B',
+                    border: activeTab === tab ? 'none' : '1px solid rgba(0,0,0,0.06)',
+                  }}>
+                  {tab}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
+      </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-8 animate-fade-up">
-          {CATEGORIES.map(tab => (
-            <button
-              key={tab}
-              onClick={() => { setActiveTab(tab); setCurrentPage(1); }}
-              className={`flex-shrink-0 px-6 py-2.5 rounded-full text-sm font-bold transition-all relative`}
-              style={{
-                background: activeTab === tab ? 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' : 'rgba(255,255,255,0.8)',
-                color: activeTab === tab ? '#fff' : '#64748B',
-                border: activeTab === tab ? 'none' : '1px solid rgba(0,0,0,0.05)',
-                backdropFilter: 'blur(8px)',
-              }}>
-              {tab}
-            </button>
-          ))}
-        </div>
+      <div className="max-w-7xl mx-auto px-4 md:px-8 pb-32 md:pb-8 relative" style={{ zIndex: 1 }}>
 
         {loading && (
           <div className="flex flex-col gap-6">
@@ -306,9 +321,9 @@ export default function CoursesPage() {
                     <div className="flex items-center gap-4 mb-6">
                       <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl overflow-hidden border border-slate-100/50 shadow-sm bg-white" style={{ background: style.bg, color: style.color }}>
                         {typeof collegeGroup.emoji === 'string' && (collegeGroup.emoji.startsWith('http://') || collegeGroup.emoji.startsWith('https://') || collegeGroup.emoji.startsWith('/')) ? (
-                          <img 
-                            src={collegeGroup.emoji} 
-                            alt={collegeGroup.collegeName} 
+                          <img
+                            src={collegeGroup.emoji}
+                            alt={collegeGroup.collegeName}
                             className="w-full h-full object-contain p-1"
                           />
                         ) : (
@@ -362,10 +377,10 @@ export default function CoursesPage() {
                               key={item.course._id || pIdx}
                               onClick={() => {
                                 updateCardState(collegeGroup.collegeName, { courseId: item.course._id });
-                                setGlobalSelected({ 
-                                  collegeName: collegeGroup.collegeName, 
-                                  category: item.categoryName || state.category, 
-                                  courseId: item.course._id 
+                                setGlobalSelected({
+                                  collegeName: collegeGroup.collegeName,
+                                  category: item.categoryName || state.category,
+                                  courseId: item.course._id
                                 });
                               }}
                               className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left ${isSelected ? 'border-indigo-500 bg-indigo-50/50' : 'border-transparent bg-slate-50 hover:bg-slate-100'}`}

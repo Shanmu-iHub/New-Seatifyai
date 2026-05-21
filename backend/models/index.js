@@ -60,7 +60,7 @@ const applicationSchema = new mongoose.Schema({
   email: String, mobile: String,
   physicalApplicationNo: String,
   street: String, city: String, state: String, pin: String,
-  nationality: String, religion: String, community: String, aadhar: String,
+  nationality: String, religion: String, community: String, communityOther: String, aadhar: String,
   // Academic
   prevSchool: String, qualification: String, board: String,
   yearOfPassing: String, percentage: String,

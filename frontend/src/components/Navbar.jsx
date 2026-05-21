@@ -42,6 +42,9 @@ export default function Navbar() {
                   <Link to="/courses" className={`text-sm font-medium transition-colors ${location.pathname === '/courses' || location.pathname === '/' ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-900'}`}>
                     Courses
                   </Link>
+                  <Link to="/admissions" className={`text-sm font-medium transition-colors ${location.pathname === '/admissions' ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-900'}`}>
+                    Admissions
+                  </Link>
                   <Link to="/profile" className={`text-sm font-medium transition-colors ${location.pathname === '/profile' ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-900'}`}>
                     Profile
                   </Link>
@@ -84,7 +87,10 @@ export default function Navbar() {
           <div className="md:hidden py-4 border-t animate-fade-up" style={{ borderColor: 'var(--card-border)' }}>
             <div className="flex flex-col gap-4 px-2">
               {!hasIncompleteProfile && (
-                <Link to="/courses" onClick={() => setMenuOpen(false)} className="text-gray-600 font-medium py-2">Courses</Link>
+                <>
+                  <Link to="/courses" onClick={() => setMenuOpen(false)} className="text-gray-600 font-medium py-2">Courses</Link>
+                  <Link to="/admissions" onClick={() => setMenuOpen(false)} className="text-gray-600 font-medium py-2">Admissions</Link>
+                </>
               )}
               {user ? (
                 <>
@@ -138,6 +144,11 @@ export default function Navbar() {
               <span className="text-[10px] font-semibold uppercase tracking-wider">Courses</span>
             </Link>
             
+            <Link to="/admissions" className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${location.pathname === '/admissions' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-gray-900'}`}>
+              <BookOpen size={20} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider">Admit</span>
+            </Link>
+
             {user ? (
               <>
                 <Link to="/profile" className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${location.pathname === '/profile' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-gray-900'}`}>

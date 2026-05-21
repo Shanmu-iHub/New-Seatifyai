@@ -437,4 +437,33 @@ router.delete('/:id/documents/:docKey', auth, async (req, res) => {
   }
 });
 
+// POST /api/applications/:id/pay-later — mark application as pay later
+router.post('/:id/pay-later', auth, async (req, res) => {
+  try {
+    const app = await Application.findOne({ applicationId: req.params.id, student: req.user._id });
+    if (!app) return res.status(404).json({ message: 'Application not found' });
+
+    if (app.paymentStatus === 'completed') {
+      return res.status(400).json({ message: 'Payment already completed for this application' });
+    }
+
+    app.paymentStatus = 'pay_later';
+    await app.save();
+
+    res.json({ message: 'Application marked as pay later', application: app });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/applications/my/admissions — get all student applications (admissions)
+router.get('/my/admissions', auth, async (req, res) => {
+  try {
+    const apps = await Application.find({ student: req.user._id }).sort({ createdAt: -1 });
+    res.json(apps);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;

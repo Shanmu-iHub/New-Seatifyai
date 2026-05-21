@@ -75,7 +75,7 @@ const applicationSchema = new mongoose.Schema({
   folderUrl: String,
   gradeLevel: String,
   // Payment
-  paymentStatus: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
+  paymentStatus: { type: String, enum: ['pending', 'completed', 'failed', 'pay_later'], default: 'pending' },
   paymentId: String,
   razorpayOrderId: String,
   status: { type: String, enum: ['submitted', 'confirmed', 'rejected', 'pending', 'cancelled'], default: 'pending' },

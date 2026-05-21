@@ -45,9 +45,9 @@ const MOCK_COURSES = [
   {
     _id: '1', name: 'AI & Data Science', type: 'B.E./B.Tech', category: 'Engineering & Tech', collegeName: 'SNS Institutions',
     programs: [
-      { name: 'Artificial Intelligence & Data Science', fee: 120000, seats: 45, _id: 'p1' },
-      { name: 'Artificial Intelligence & Machine Learning', fee: 115000, seats: 30, _id: 'p2' },
-      { name: 'Data Science *', fee: 110000, seats: 60, _id: 'p3' },
+      { name: 'Artificial Intelligence & Data Science', fee: 120000, seats: 45, _id: 'p1', minimumQualification: '12th Standard' },
+      { name: 'Artificial Intelligence & Machine Learning', fee: 115000, seats: 30, _id: 'p2', minimumQualification: '12th Standard' },
+      { name: 'Data Science *', fee: 110000, seats: 60, _id: 'p3', minimumQualification: '12th Standard' },
     ]
   }
 ];
@@ -88,7 +88,7 @@ export default function CoursesPage() {
 
   const fetchCourses = async () => {
     try {
-      const res = await axios.get(`${config.API_URL}/api/courses?t=${Date.now()}`);
+      const res = await axios.get(`${config.API_URL}/api/courses?refresh=true&t=${Date.now()}`);
       setCourses(res.data);
     } catch (err) {
       console.error('Frontend Fetch Error:', err);

@@ -30,6 +30,7 @@ const programSchema = new mongoose.Schema({
   fee: { type: Number, required: true },
   seats: { type: Number, default: 60 },
   seatsAvailable: { type: Number },
+  minimumQualification: String,
 });
 programSchema.pre('save', function(next) {
   if (this.seatsAvailable === undefined) this.seatsAvailable = this.seats;

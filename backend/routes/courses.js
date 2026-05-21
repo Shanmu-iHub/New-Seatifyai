@@ -144,6 +144,20 @@ const processSheetRows = (rows) => {
     Object.keys(row).forEach(k => {
       cleanRow[k.toLowerCase().trim()] = row[k];
     });
+    const getRowValue = (...keys) => {
+      for (const key of keys) {
+        const value = cleanRow[key.toLowerCase().trim()];
+        if (value !== undefined && value !== null && String(value).trim() !== '') {
+          return value;
+        }
+      }
+
+      const qualificationKey = Object.keys(cleanRow).find(key => {
+        const compact = key.replace(/[^a-z]/g, '');
+        return compact.includes('qualification') && (compact.includes('minimum') || compact.includes('minmum'));
+      });
+      return qualificationKey ? cleanRow[qualificationKey] : '';
+    };
 
     const status = String(cleanRow['status'] || '').trim().toLowerCase();
     if (status !== 'active') return;
@@ -160,6 +174,13 @@ const processSheetRows = (rows) => {
     const emoji = String(cleanRow['emoji'] || '📚').trim();
     const college = String(cleanRow['college name'] || 'SNS Institutions').trim();
     const type = String(cleanRow['course type'] || '').trim();
+    const minimumQualification = String(getRowValue(
+      'minmum qualification',
+      'minimum qualification',
+      'minimum qualifications',
+      'minmum qulaification',
+      'minimum qulaification'
+    )).trim();
 
     const key = `${cat}-${cName}`;
     if (!courseMap[key]) {
@@ -177,7 +198,8 @@ const processSheetRows = (rows) => {
       name: pName,
       fee: fee,
       seats: seatsAvail,
-      totalSeats: totalSeats
+      totalSeats: totalSeats,
+      minimumQualification: minimumQualification
     });
   });
 

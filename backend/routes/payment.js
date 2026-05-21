@@ -15,6 +15,8 @@ const getRazorpayInstance = () => {
   });
 };
 
+const hasAcceptedPolicy = (application) => Boolean(application?.policyAcceptance?.accepted);
+
 // POST /api/payment/create-order
 router.post('/create-order', auth, async (req, res) => {
   try {
@@ -28,6 +30,13 @@ router.post('/create-order', auth, async (req, res) => {
     const application = await Application.findOne({ applicationId });
     if (!application) {
       return res.status(404).json({ message: 'Application not found' });
+    }
+
+    if (!hasAcceptedPolicy(application)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Policy acceptance is required before proceeding.'
+      });
     }
 
     if (application.paymentStatus === 'completed') {
@@ -101,6 +110,18 @@ router.post('/create-order', auth, async (req, res) => {
 router.post('/verify', auth, async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, applicationId } = req.body;
+    const existingApplication = await Application.findOne({ applicationId });
+
+    if (!existingApplication) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
+
+    if (!hasAcceptedPolicy(existingApplication)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Policy acceptance is required before proceeding.'
+      });
+    }
 
     // Verify signature
     const secret = process.env.RAZORPAY_KEY_SECRET;

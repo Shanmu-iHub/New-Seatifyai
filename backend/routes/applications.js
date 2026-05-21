@@ -68,6 +68,41 @@ const docFields = [
   { name: 'doc_admissionForm', maxCount: 1 },
 ];
 
+const parsePolicyAcceptance = (rawPolicyAcceptance) => {
+  if (!rawPolicyAcceptance) return null;
+
+  if (typeof rawPolicyAcceptance === 'string') {
+    try {
+      return JSON.parse(rawPolicyAcceptance);
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof rawPolicyAcceptance === 'object') {
+    return rawPolicyAcceptance;
+  }
+
+  return null;
+};
+
+const getValidatedPolicyAcceptance = (rawPolicyAcceptance) => {
+  const parsedPolicyAcceptance = parsePolicyAcceptance(rawPolicyAcceptance);
+
+  if (!parsedPolicyAcceptance?.accepted) {
+    return null;
+  }
+
+  const acceptedAt = parsedPolicyAcceptance.acceptedAt ? new Date(parsedPolicyAcceptance.acceptedAt) : new Date();
+
+  return {
+    accepted: true,
+    acceptedAt: Number.isNaN(acceptedAt.getTime()) ? new Date() : acceptedAt,
+    policyVersion: parsedPolicyAcceptance.policyVersion || 'v1.0',
+    acceptedFrom: parsedPolicyAcceptance.acceptedFrom || 'application-confirmation-modal'
+  };
+};
+
 // POST /api/applications/:id/cancel
 router.post('/:id/cancel', auth, async (req, res) => {
   try {
@@ -108,6 +143,14 @@ router.post('/:id/cancel', auth, async (req, res) => {
 router.post('/', auth, upload.fields(docFields), async (req, res) => {
   try {
     const year = new Date().getFullYear();
+    const policyAcceptance = getValidatedPolicyAcceptance(req.body.policyAcceptance);
+
+    if (!policyAcceptance) {
+      return res.status(400).json({
+        success: false,
+        message: 'Policy acceptance is required before proceeding.'
+      });
+    }
 
     // One admission per year check
     const existing = await Application.findOne({
@@ -184,6 +227,7 @@ router.post('/', auth, upload.fields(docFields), async (req, res) => {
       docs,
       folderUrl: docs.driveFolder,
       fee: Number(req.body.fee),
+      policyAcceptance,
       applicationId: `SEATIFY-${year}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
     };
 
@@ -191,6 +235,7 @@ router.post('/', auth, upload.fields(docFields), async (req, res) => {
     res.status(201).json({
       applicationId: application.applicationId,
       _id: application._id,
+      application,
       message: 'Application submitted successfully',
     });
   } catch (err) {

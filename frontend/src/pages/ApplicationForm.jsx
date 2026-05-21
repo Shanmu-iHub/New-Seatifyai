@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { Upload, Check, ChevronRight, ChevronLeft, User, BookOpen, FileText } from 'lucide-react';
+import { Upload, Check, ChevronRight, ChevronLeft, User, BookOpen, FileText, AlertTriangle, ExternalLink } from 'lucide-react';
 
 const STEPS = [
   { id: 1, title: 'Personal Details', icon: User },
@@ -94,6 +94,22 @@ const DISTRICTS = [
   "Vellore", "Viluppuram", "Virudhunagar", "Other"
 ];
 
+const POLICY_VERSION = 'v1.0';
+
+const TERMS_POINTS = [
+  'Seat reservation is processed only after successful application submission and payment confirmation.',
+  'Applicants are responsible for reviewing personal details, selected course information, and uploaded documents before continuing.',
+  'Providing incorrect or incomplete information may delay verification or affect admission status.',
+  'Final admission remains subject to institutional verification, eligibility review, and seat availability.'
+];
+
+const REFUND_POINTS = [
+  'All pre-registration and application payments are strictly non-refundable.',
+  'Refunds will not be issued for duplicate submissions, change of mind, incomplete documentation, or eligibility-related outcomes.',
+  'Only gateway-confirmed successful transactions will be considered valid payments.',
+  'Applicants should contact the admissions or support team before making payment if they need clarification.'
+];
+
 const GridRadioField = ({ label, name, options, value, onChange, required }) => (
   <div className="sm:col-span-2">
     <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>
@@ -148,6 +164,8 @@ export default function ApplicationForm() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [policyAccepted, setPolicyAccepted] = useState(false);
+  const [activePolicyTab, setActivePolicyTab] = useState('terms');
   const [existingDocs, setExistingDocs] = useState({});
   const [formData, setFormData] = useState({
     fullName: user?.name || '',
@@ -212,6 +230,17 @@ export default function ApplicationForm() {
       }
     }
   }, [formData, editId, user]);
+
+  useEffect(() => {
+    if (!showConfirm) return undefined;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [showConfirm]);
 
   // Fetch data if editing
   useEffect(() => {
@@ -392,13 +421,33 @@ export default function ApplicationForm() {
     }
     
     if (!editId) {
+      setPolicyAccepted(false);
+      setActivePolicyTab('terms');
       setShowConfirm(true);
     } else {
       processSubmission();
     }
   };
 
+  const closeConfirmationModal = () => {
+    setShowConfirm(false);
+    setPolicyAccepted(false);
+    setActivePolicyTab('terms');
+  };
+
   const processSubmission = async () => {
+    if (!editId && !policyAccepted) {
+      toast.error('Please accept the policy acknowledgement before proceeding.');
+      return;
+    }
+
+    const policyAcceptance = {
+      accepted: true,
+      acceptedAt: new Date().toISOString(),
+      policyVersion: POLICY_VERSION,
+      acceptedFrom: 'application-confirmation-modal'
+    };
+
     setShowConfirm(false);
     setLoading(true);
     try {
@@ -411,6 +460,7 @@ export default function ApplicationForm() {
         Object.entries(formData.docs).forEach(([k, v]) => {
           if (v) fd.append(`doc_${k}`, v);
         });
+        fd.append('policyAcceptance', JSON.stringify(policyAcceptance));
 
         const res = await axios.put(`/api/applications/${editId}`, fd, {
           headers: { 'Content-Type': 'multipart/form-data' }
@@ -437,6 +487,7 @@ export default function ApplicationForm() {
         fd.append('programId', program?._id);
         fd.append('programName', program?.name);
         fd.append('fee', program?.fee);
+        fd.append('policyAcceptance', JSON.stringify(policyAcceptance));
 
         const res = await axios.post('/api/applications', fd, {
           headers: { 'Content-Type': 'multipart/form-data' }
@@ -448,7 +499,7 @@ export default function ApplicationForm() {
 
         toast.success('Application submitted! Proceeding to payment...');
         navigate(`/payment/${res.data.applicationId}`, {
-          state: { application: res.data, course, program },
+          state: { application: res.data.application || res.data, course, program },
           replace: true
         });
       }
@@ -670,7 +721,7 @@ export default function ApplicationForm() {
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm"
               style={{ background: 'var(--primary)', color: '#fff', opacity: loading ? 0.7 : 1 }}>
               {loading ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{editId ? 'Saving...' : 'Submitting...'}</>
-                : <><span>{editId ? 'Save Changes' : 'Submit & Pay'}</span><ChevronRight size={16} /></>}
+                : <><span>{editId ? 'Save Changes' : 'Review & Pay'}</span><ChevronRight size={16} /></>}
             </button>
           )}
         </div>
@@ -678,6 +729,158 @@ export default function ApplicationForm() {
 
       {/* Confirmation Popup */}
       {showConfirm && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-[rgba(15,23,42,0.52)] backdrop-blur-md animate-fade-in">
+          <div
+            className="w-full max-w-5xl rounded-[1.75rem] sm:rounded-[2rem] overflow-hidden shadow-[0_30px_90px_rgba(15,23,42,0.28)] border animate-fade-up max-h-[94vh] sm:max-h-[92vh] flex flex-col"
+            style={{ background: 'var(--card)', borderColor: 'rgba(148,163,184,0.18)' }}
+          >
+            <div className="grid lg:grid-cols-[1.05fr_1.2fr] overflow-y-auto">
+              <div
+                className="relative p-5 sm:p-8 lg:p-10 border-b lg:border-b-0 lg:border-r"
+                style={{
+                  borderColor: 'rgba(148,163,184,0.14)',
+                  background: 'linear-gradient(180deg, rgba(79,70,229,0.12) 0%, rgba(255,255,255,0.96) 100%)'
+                }}
+              >
+                <div className="absolute top-0 right-0 h-28 w-28 sm:h-40 sm:w-40 rounded-full blur-3xl opacity-40 pointer-events-none" style={{ background: 'rgba(59,130,246,0.18)' }} />
+                <div className="relative">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mb-4 sm:mb-5 shadow-sm" style={{ background: 'rgba(245,158,11,0.14)', color: '#D97706' }}>
+                    <AlertTriangle size={28} />
+                  </div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold mb-3 sm:mb-4" style={{ background: 'rgba(79,70,229,0.09)', color: 'var(--primary)' }}>
+                    Final Confirmation
+                  </div>
+                  <h3 className="text-[1.65rem] leading-tight sm:text-3xl font-bold text-slate-900 mb-2 sm:mb-3" style={{ fontFamily: 'Clash Display' }}>
+                    Review Before Payment
+                  </h3>
+                  <p className="text-[13px] sm:text-[15px] leading-6 sm:leading-7 text-slate-600 mb-5 sm:mb-6">
+                    You are about to submit your application and continue to the payment gateway. Please review the policy details and confirm your acknowledgement to proceed.
+                  </p>
+
+                  <div className="rounded-[1.4rem] sm:rounded-3xl border p-4 sm:p-5 mb-4 sm:mb-5" style={{ borderColor: 'rgba(245,158,11,0.28)', background: 'linear-gradient(180deg, rgba(255,251,235,1) 0%, rgba(255,247,237,1) 100%)' }}>
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(245,158,11,0.14)' }}>
+                        <AlertTriangle size={18} className="text-amber-600" />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-bold text-amber-950">All pre-registration and application payments are strictly non-refundable.</p>
+                        <p className="text-sm leading-6 text-amber-900/80">Please review all entered details and uploaded documents carefully before continuing.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-[1.4rem] sm:rounded-3xl border p-4 sm:p-5" style={{ borderColor: 'rgba(148,163,184,0.18)', background: 'rgba(255,255,255,0.74)' }}>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 mb-3">Quick Summary</p>
+                    <div className="space-y-3 text-sm text-slate-600">
+                      <p>Seat reservation starts only after successful payment confirmation.</p>
+                      <p>Your submitted application details will be used for verification and admission processing.</p>
+                      <div className="flex items-center justify-between gap-4 pt-2 border-t" style={{ borderColor: 'rgba(148,163,184,0.14)' }}>
+                        <span className="text-slate-500">Policy version</span>
+                        <span className="font-semibold text-slate-900">{POLICY_VERSION}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 sm:p-6 lg:p-8 flex flex-col min-h-[420px] sm:min-h-[460px]">
+                <div className="rounded-[1.2rem] sm:rounded-2xl p-1 mb-4 sm:mb-5" style={{ background: 'rgba(15,23,42,0.04)' }}>
+                  <div className="grid grid-cols-2 gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setActivePolicyTab('terms')}
+                      className="px-2.5 sm:px-4 py-3 rounded-[0.95rem] sm:rounded-[1rem] text-[11px] sm:text-sm font-semibold transition-all flex items-center justify-center gap-1 sm:gap-2 min-h-[52px] sm:min-h-0"
+                      style={{
+                        background: activePolicyTab === 'terms' ? 'linear-gradient(135deg, #4F46E5 0%, #2563EB 100%)' : 'transparent',
+                        color: activePolicyTab === 'terms' ? '#fff' : '#475569',
+                        boxShadow: activePolicyTab === 'terms' ? '0 12px 24px rgba(79,70,229,0.22)' : 'none'
+                      }}
+                    >
+                      <ExternalLink size={16} />
+                      <span className="text-center leading-4">Terms & Conditions</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActivePolicyTab('refund')}
+                      className="px-2.5 sm:px-4 py-3 rounded-[0.95rem] sm:rounded-[1rem] text-[11px] sm:text-sm font-semibold transition-all flex items-center justify-center gap-1 sm:gap-2 min-h-[52px] sm:min-h-0"
+                      style={{
+                        background: activePolicyTab === 'refund' ? 'linear-gradient(135deg, #4F46E5 0%, #2563EB 100%)' : 'transparent',
+                        color: activePolicyTab === 'refund' ? '#fff' : '#475569',
+                        boxShadow: activePolicyTab === 'refund' ? '0 12px 24px rgba(79,70,229,0.22)' : 'none'
+                      }}
+                    >
+                      <ExternalLink size={16} />
+                      <span className="text-center leading-4">Refund Policy</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-[1.35rem] sm:rounded-[1.75rem] border overflow-hidden mb-4 sm:mb-5" style={{ borderColor: 'rgba(148,163,184,0.16)', background: 'rgba(248,250,252,0.72)' }}>
+                  <div className="px-4 sm:px-6 py-4 border-b" style={{ borderColor: 'rgba(148,163,184,0.14)', background: 'rgba(255,255,255,0.76)' }}>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--primary)' }}>
+                      {activePolicyTab === 'terms' ? 'Terms & Conditions' : 'Refund Policy'}
+                    </p>
+                    <p className="text-sm text-slate-500 mt-1">
+                      {activePolicyTab === 'terms'
+                        ? 'Please read the admission and submission terms carefully.'
+                        : 'Please review the no-refund rules before you continue.'}
+                    </p>
+                  </div>
+
+                  <div className="h-[220px] sm:h-[340px] overflow-y-auto px-4 sm:px-6 py-4 sm:py-5">
+                    <div className="space-y-3 min-h-full">
+                      {(activePolicyTab === 'terms' ? TERMS_POINTS : REFUND_POINTS).map((point, index) => (
+                        <div key={`${activePolicyTab}-${index}`} className="flex items-start gap-3 rounded-[1rem] sm:rounded-2xl p-3" style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(148,163,184,0.12)' }}>
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: 'rgba(79,70,229,0.1)', color: 'var(--primary)' }}>
+                            {index + 1}
+                          </div>
+                          <p className="text-[13px] sm:text-sm leading-6 text-slate-600">{point}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <label className="flex items-start gap-3 rounded-[1.2rem] sm:rounded-[1.5rem] border p-4 sm:p-5 mb-4 sm:mb-5 cursor-pointer" style={{ borderColor: policyAccepted ? 'rgba(79,70,229,0.28)' : 'rgba(148,163,184,0.18)', background: policyAccepted ? 'rgba(79,70,229,0.05)' : 'rgba(255,255,255,0.85)' }}>
+                  <input
+                    type="checkbox"
+                    checked={policyAccepted}
+                    onChange={e => setPolicyAccepted(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-[13px] sm:text-sm leading-6 text-slate-700">
+                    I have read and understood the Terms & Conditions and No Refund Policy, and I agree to continue with this non-refundable payment.
+                  </span>
+                </label>
+
+                <div className="flex flex-col-reverse sm:flex-row gap-3 mt-auto pt-1 sm:pt-0 sticky bottom-0 bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.94)_18%,rgba(255,255,255,0.98)_100%)] sm:bg-none">
+                  <button
+                    onClick={closeConfirmationModal}
+                    className="flex-1 py-3.5 rounded-[1.1rem] sm:rounded-2xl font-bold text-sm transition-all"
+                    style={{ background: 'rgba(15,23,42,0.05)', color: '#334155', border: '1px solid rgba(148,163,184,0.16)' }}
+                  >
+                    Go Back
+                  </button>
+                  <button
+                    onClick={processSubmission}
+                    disabled={!policyAccepted || loading}
+                    className="flex-1 py-3.5 rounded-[1.1rem] sm:rounded-2xl font-bold text-sm text-white transition-all"
+                    style={{
+                      background: !policyAccepted || loading ? 'linear-gradient(135deg, #94A3B8 0%, #CBD5E1 100%)' : 'linear-gradient(135deg, #4F46E5 0%, #2563EB 100%)',
+                      boxShadow: !policyAccepted || loading ? 'none' : '0 18px 36px rgba(79,70,229,0.26)',
+                      opacity: !policyAccepted || loading ? 0.82 : 1,
+                      cursor: !policyAccepted || loading ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    Accept & Continue to Payment
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {false && showConfirm && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl relative animate-fade-up">
             <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">

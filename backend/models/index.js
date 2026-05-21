@@ -74,6 +74,24 @@ const applicationSchema = new mongoose.Schema({
   },
   folderUrl: String,
   gradeLevel: String,
+  policyAcceptance: {
+    accepted: {
+      type: Boolean,
+      default: false
+    },
+    acceptedAt: {
+      type: Date,
+      default: null
+    },
+    policyVersion: {
+      type: String,
+      default: 'v1.0'
+    },
+    acceptedFrom: {
+      type: String,
+      default: 'application-confirmation-modal'
+    }
+  },
   // Payment
   paymentStatus: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
   paymentId: String,

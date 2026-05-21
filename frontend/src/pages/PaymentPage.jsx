@@ -61,7 +61,11 @@ export default function PaymentPage() {
         return;
       }
 
-      const res = await axios.post('/api/payment/create-order', { amount: fee, applicationId });
+      const res = await axios.post('/api/payment/create-order', {
+        amount: fee,
+        applicationId,
+        policyAcceptance: application?.policyAcceptance
+      });
       const orderId = res.data.orderId;
       const razorpayKeyId = res.data.keyId;
       const razorpayTitle = res.data.title;
@@ -83,7 +87,11 @@ export default function PaymentPage() {
         handler: async (response) => {
           setLoading(true);
           try {
-            await axios.post('/api/payment/verify', { ...response, applicationId });
+            await axios.post('/api/payment/verify', {
+              ...response,
+              applicationId,
+              policyAcceptance: application?.policyAcceptance
+            });
             toast.success('Payment successful!');
             navigate(`/confirmation/${applicationId}`, { replace: true, state: { paymentId: response.razorpay_payment_id, application, course, program } });
           } catch {

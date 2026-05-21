@@ -1,5 +1,5 @@
   import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { XCircle, Home, FileX } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axios from 'axios';
@@ -8,18 +8,14 @@ import { useAuth } from '../context/AuthContext';
 export default function CancelPage() {
   const { applicationId } = useParams();
   const { user } = useAuth();
-  const { state } = useLocation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [cancelStatus, setCancelStatus] = useState('processing');
-
-  const application = state?.application;
-  const course = state?.course;
-  const program = state?.program;
-  const paymentId = state?.paymentId;
+  const [application, setApplication] = useState(null);
+  const [course, setCourse] = useState(null);
+  const [program, setProgram] = useState(null);
 
   useEffect(() => {
-    const cancelApplication = async () => {
+    const loadApplication = async () => {
       if (application?.status === 'cancelled') {
         setCancelStatus('success');
         setLoading(false);
@@ -27,21 +23,37 @@ export default function CancelPage() {
       }
 
       try {
-        await axios.post(`/api/applications/${applicationId}/cancel`);
-        setCancelStatus('success');
+        const res = await axios.get(`/api/applications/${applicationId}`);
+        const app = res.data;
+        setApplication(app);
+
+        if (app.status !== 'cancelled') {
+          toast.error('This application is not in a cancelled state.');
+          navigate(`/confirmation/${applicationId}`, { replace: true });
+          return;
+        }
+
+        if (app.courseId) {
+          try {
+            const courseRes = await axios.get(`/api/courses/${app.courseId}`);
+            setCourse(courseRes.data);
+            const matchedProgram = courseRes.data.programs.find(p => p._id === app.programId);
+            if (matchedProgram) setProgram(matchedProgram);
+          } catch (courseErr) {
+            console.warn('Could not load course details for cancelled application');
+          }
+        }
       } catch (err) {
-        console.error('Error cancelling application:', err);
-        // It might already be cancelled, or we might just show success anyway for the UI flow
-        // depending on the backend response. Let's assume it works or is already cancelled.
-        setCancelStatus('success');
-        toast.success('Booking cancelled.');
+        console.error('Error loading cancelled application:', err);
+        toast.error('Could not load cancelled application details.');
+        navigate('/admissions', { replace: true });
       } finally {
         setLoading(false);
       }
     };
 
-    cancelApplication();
-  }, [applicationId]);
+    loadApplication();
+  }, [applicationId, navigate]);
 
   const details = [
     ['Application ID', applicationId],

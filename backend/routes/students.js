@@ -3,6 +3,19 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const { Application } = require('../models');
 
+const maskReference = (value, visibleCount = 5) => {
+  if (!value || typeof value !== 'string') return value;
+
+  const separatorIndex = value.indexOf('_');
+  if (separatorIndex === -1) return value;
+
+  const prefix = value.slice(0, separatorIndex + 1);
+  const suffix = value.slice(-visibleCount);
+  const hiddenLength = Math.max(0, value.length - prefix.length - suffix.length);
+
+  return `${prefix}${'*'.repeat(hiddenLength)}${suffix}`;
+};
+
 // GET /api/students/check-email
 router.get('/check-email', auth, async (req, res) => {
   try {
@@ -103,7 +116,7 @@ router.get('/profile', auth, async (req, res) => {
         category: a.category,
         docs: a.docs,
         fee: a.fee,
-        paymentId: a.paymentId,
+        paymentId: maskReference(a.paymentId, 5),
         status: a.status,
         createdAt: a.createdAt,
       })),

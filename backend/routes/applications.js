@@ -103,11 +103,54 @@ const getValidatedPolicyAcceptance = (rawPolicyAcceptance) => {
   };
 };
 
+const maskReference = (value, visibleCount = 5) => {
+  if (!value || typeof value !== 'string') return value;
+
+  const separatorIndex = value.indexOf('_');
+  if (separatorIndex === -1) return value;
+
+  const prefix = value.slice(0, separatorIndex + 1);
+  const suffix = value.slice(-visibleCount);
+  const hiddenLength = Math.max(0, value.length - prefix.length - suffix.length);
+
+  return `${prefix}${'*'.repeat(hiddenLength)}${suffix}`;
+};
+
+const serializeApplication = (applicationDoc) => {
+  if (!applicationDoc) return applicationDoc;
+
+  const application = typeof applicationDoc.toObject === 'function'
+    ? applicationDoc.toObject()
+    : { ...applicationDoc };
+
+  if (application.paymentId) {
+    application.paymentId = maskReference(application.paymentId, 5);
+  }
+
+  if (application.razorpayOrderId) {
+    application.razorpayOrderId = maskReference(application.razorpayOrderId, 5);
+  }
+
+  return application;
+};
+
+const isTerminalApplicationState = (app) => (
+  app?.status === 'cancelled' || app?.paymentStatus === 'completed' || app?.status === 'confirmed'
+);
+
 // POST /api/applications/:id/cancel
 router.post('/:id/cancel', auth, async (req, res) => {
   try {
     const app = await Application.findOne({ applicationId: req.params.id, student: req.user._id });
     if (!app) return res.status(404).json({ message: 'Application not found' });
+
+    if (app.status === 'cancelled') {
+      return res.status(400).json({ message: 'Application already cancelled.' });
+    }
+
+    if (app.paymentStatus === 'completed' || app.status === 'confirmed') {
+      return res.status(400).json({ message: 'Completed admissions cannot be cancelled.' });
+    }
 
     const previousStatus = app.status;
     app.status = 'cancelled';
@@ -235,7 +278,7 @@ router.post('/', auth, upload.fields(docFields), async (req, res) => {
     res.status(201).json({
       applicationId: application.applicationId,
       _id: application._id,
-      application,
+      application: serializeApplication(application),
       message: 'Application submitted successfully',
     });
   } catch (err) {
@@ -248,7 +291,7 @@ router.post('/', auth, upload.fields(docFields), async (req, res) => {
 router.get('/my', auth, async (req, res) => {
   try {
     const apps = await Application.find({ student: req.user._id }).sort({ createdAt: -1 });
-    res.json(apps);
+    res.json(apps.map(serializeApplication));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -259,7 +302,23 @@ router.get('/:id', auth, async (req, res) => {
   try {
     const app = await Application.findOne({ applicationId: req.params.id, student: req.user._id });
     if (!app) return res.status(404).json({ message: 'Application not found' });
-    res.json(app);
+    res.json(serializeApplication(app));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/applications/:id/payment-reference
+router.get('/:id/payment-reference', auth, async (req, res) => {
+  try {
+    const app = await Application.findOne({ applicationId: req.params.id, student: req.user._id });
+    if (!app) return res.status(404).json({ message: 'Application not found' });
+
+    res.json({
+      applicationId: app.applicationId,
+      paymentId: app.paymentId || null,
+      razorpayOrderId: app.razorpayOrderId || null
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -270,6 +329,14 @@ router.put('/:id', auth, upload.fields(docFields), async (req, res) => {
   try {
     const app = await Application.findOne({ applicationId: req.params.id, student: req.user._id });
     if (!app) return res.status(404).json({ message: 'Application not found' });
+
+    if (app.status === 'cancelled') {
+      return res.status(400).json({ message: 'Cancelled applications cannot be edited.' });
+    }
+
+    if (app.paymentStatus === 'completed' || app.status === 'confirmed') {
+      return res.status(400).json({ message: 'Completed admissions cannot be edited.' });
+    }
 
     // 1 hour check
     const createdAt = new Date(app.createdAt);
@@ -363,7 +430,7 @@ router.put('/:id', auth, upload.fields(docFields), async (req, res) => {
 
     res.json({
       message: 'Details updated successfully',
-      application: updatedApp
+      application: serializeApplication(updatedApp)
     });
   } catch (err) {
     console.error('Edit Error:', err);
@@ -456,9 +523,9 @@ router.post('/:id/documents', auth, upload.fields(docFields), async (req, res) =
         { new: true }
       );
       if (!updatedApp) return res.status(404).json({ message: 'Application lost during update' });
-      res.json({ message: 'Documents uploaded successfully', application: updatedApp });
+      res.json({ message: 'Documents uploaded successfully', application: serializeApplication(updatedApp) });
     } else {
-      res.json({ message: 'No documents uploaded', application: app });
+      res.json({ message: 'No documents uploaded', application: serializeApplication(app) });
     }
   } catch (err) {
     console.error('Document Upload Error:', err);
@@ -492,8 +559,12 @@ router.post('/:id/pay-later', auth, async (req, res) => {
       return res.status(400).json({ message: 'This application is not active.' });
     }
 
-    if (app.paymentStatus === 'completed') {
-      return res.status(400).json({ message: 'Payment already completed for this application' });
+    if (app.status === 'cancelled') {
+      return res.status(400).json({ message: 'Cancelled applications cannot be moved to pay later.' });
+    }
+
+    if (isTerminalApplicationState(app)) {
+      return res.status(400).json({ message: 'This application is no longer eligible for payment updates.' });
     }
 
     app.paymentStatus = 'pay_later';

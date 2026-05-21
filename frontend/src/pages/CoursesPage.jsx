@@ -58,6 +58,18 @@ const formatFullFee = (fee) => {
   return `₹${num.toLocaleString('en-IN')}`;
 };
 
+const getSelectionGridClass = (count) => {
+  if (count <= 1) return 'grid grid-cols-1 gap-3 animate-fade-in';
+  if (count === 2) return 'grid grid-cols-1 sm:grid-cols-2 gap-3 animate-fade-in';
+  if (count === 3) return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 animate-fade-in';
+  return 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 animate-fade-in';
+};
+
+const getCollegeCardSpanClass = ({ itemCount, stateStep, showDirectCourses }) => {
+  if (stateStep === 2 || showDirectCourses) return 'xl:col-span-2';
+  return itemCount >= 3 ? 'xl:col-span-2' : 'xl:col-span-1';
+};
+
 export default function CoursesPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('All');
@@ -306,7 +318,7 @@ export default function CoursesPage() {
         )}
 
         {!loading && (
-          <div className="flex flex-col gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
             {(() => {
               const activeCollege = paginatedGroups.find(g => cardStates[g.collegeName]?.step === 2);
               const groupsToRender = activeCollege ? [activeCollege] : paginatedGroups;
@@ -315,10 +327,23 @@ export default function CoursesPage() {
                 const style = getIconStyle(collegeGroup.collegeName);
                 const state = cardStates[collegeGroup.collegeName] || { step: 1, category: null, courseId: null };
                 const showDirectCourses = searchQuery.trim() !== '';
+                const categoryNames = Object.keys(collegeGroup.categories);
+                const itemCount = showDirectCourses
+                  ? Object.values(collegeGroup.categories).flat().length
+                  : state.step === 1
+                    ? categoryNames.length
+                    : (collegeGroup.categories[state.category] || []).length;
+                const cardSpanClass = getCollegeCardSpanClass({
+                  itemCount,
+                  stateStep: state.step,
+                  showDirectCourses
+                });
+                const categoryGridClass = getSelectionGridClass(categoryNames.length);
+                const programGridClass = getSelectionGridClass(itemCount);
 
                 return (
-                  <div key={collegeGroup.collegeName || idx} className="rounded-2xl p-6 bg-white border border-slate-100 shadow-sm animate-fade-up">
-                    <div className="flex items-center gap-4 mb-6">
+                  <div key={collegeGroup.collegeName || idx} className={`rounded-[1.75rem] p-6 bg-white border border-slate-100 shadow-sm animate-fade-up ${cardSpanClass}`}>
+                    <div className="flex items-start gap-4 mb-6">
                       <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl overflow-hidden border border-slate-100/50 shadow-sm bg-white" style={{ background: style.bg, color: style.color }}>
                         {typeof collegeGroup.emoji === 'string' && (collegeGroup.emoji.startsWith('http://') || collegeGroup.emoji.startsWith('https://') || collegeGroup.emoji.startsWith('/')) ? (
                           <img
@@ -332,6 +357,14 @@ export default function CoursesPage() {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-bold text-lg leading-tight" style={{ color: style.color || '#000' }}>{collegeGroup.collegeName}</h3>
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-[0.16em]" style={{ background: 'rgba(79,70,229,0.08)', color: 'var(--primary)' }}>
+                            {showDirectCourses ? `${itemCount} programs` : `${categoryNames.length} categories`}
+                          </span>
+                          {state.step === 1 && !showDirectCourses && itemCount <= 2 && (
+                            <span className="text-xs font-medium text-slate-400">Compact view</span>
+                          )}
+                        </div>
                         {state.step === 2 && !showDirectCourses && (
                           <p className="text-sm font-medium text-slate-500 mt-1">{state.category}</p>
                         )}
@@ -351,13 +384,13 @@ export default function CoursesPage() {
                     </div>
 
                     {state.step === 1 && !showDirectCourses ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-in">
-                        {Object.keys(collegeGroup.categories).map((catName) => {
+                      <div className={categoryGridClass}>
+                        {categoryNames.map((catName) => {
                           return (
                             <button
                               key={catName}
                               onClick={() => updateCardState(collegeGroup.collegeName, { category: catName, step: 2 })}
-                              className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left border-transparent bg-slate-50 hover:bg-slate-100`}
+                              className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all text-left border-transparent bg-slate-50 hover:bg-slate-100 hover:shadow-sm`}
                             >
                               <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 border-slate-300`}>
                               </div>
@@ -369,7 +402,7 @@ export default function CoursesPage() {
                         })}
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-in">
+                      <div className={programGridClass}>
                         {(showDirectCourses ? Object.values(collegeGroup.categories).flat() : collegeGroup.categories[state.category])?.map((item, pIdx) => {
                           const isSelected = globalSelected?.collegeName === collegeGroup.collegeName && globalSelected?.courseId === item.course._id;
                           return (
@@ -383,7 +416,7 @@ export default function CoursesPage() {
                                   courseId: item.course._id
                                 });
                               }}
-                              className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left ${isSelected ? 'border-indigo-500 bg-indigo-50/50' : 'border-transparent bg-slate-50 hover:bg-slate-100'}`}
+                              className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all text-left ${isSelected ? 'border-indigo-500 bg-indigo-50/50 shadow-sm' : 'border-transparent bg-slate-50 hover:bg-slate-100 hover:shadow-sm'}`}
                             >
                               <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-indigo-500' : 'border-slate-300'}`}>
                                 {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />}

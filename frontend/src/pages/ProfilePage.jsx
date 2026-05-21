@@ -38,7 +38,7 @@ const getDocumentRequirements = (courseName, category) => {
 
 export default function ProfilePage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('Overview');
+  const [activeTab, setActiveTab] = useState('Personal Information');
   const [profile, setProfile] = useState(null);
   const [admissions, setAdmissions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -167,7 +167,7 @@ export default function ProfilePage() {
     }
   });
 
-  const tabsList = ['Overview', 'Admissions'];
+  const tabsList = ['Personal Information'];
   if (confirmedAdmissions.length > 0) {
     tabsList.push('Documents');
   }
@@ -182,7 +182,7 @@ export default function ProfilePage() {
       }
     } else {
       if (activeTab === 'Documents') {
-        setActiveTab('Overview');
+        setActiveTab('Personal Information');
       }
     }
   }, [admissions, hasPendingDocs]);
@@ -534,7 +534,7 @@ export default function ProfilePage() {
 
         {/* Tab Content */}
         <div className="rounded-2xl p-6" style={{ background: 'var(--card)', border: '1px solid var(--card-border)' }}>
-          {activeTab === 'Overview' && (
+          {activeTab === 'Personal Information' && (
             <>
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-lg font-bold flex items-center gap-2" style={{ fontFamily: 'Clash Display' }}>

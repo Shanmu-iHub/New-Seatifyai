@@ -188,7 +188,7 @@ export default function ConfirmationPage() {
       
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8.5);
-      doc.text("This receipt confirms your seat reservation and initial fee payment in our system.", 65, finalY + 25);
+      doc.text("This receipt confirms that your seat reservation and initial fee payment have been recorded in our system.", 65, finalY + 25);
 
       // 6. Policy Note (FIXED SPACING)
       doc.setFillColor(254, 252, 232); // Light yellow

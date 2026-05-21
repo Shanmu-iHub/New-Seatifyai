@@ -109,12 +109,17 @@ export default function CoursesPage() {
 
   const fetchCourses = async () => {
     try {
-      const res = await axios.get(`${config.API_URL}/api/courses?refresh=true&t=${Date.now()}`);
-      setCourses(res.data);
+      // 1. Fetch from fast cache (loads instantly)
+      const cachedRes = await axios.get(`${config.API_URL}/api/courses`);
+      setCourses(cachedRes.data);
+      setLoading(false);
+
+      // 2. Silently fetch live data from Google Sheets in the background
+      const liveRes = await axios.get(`${config.API_URL}/api/courses?refresh=true&t=${Date.now()}`);
+      setCourses(liveRes.data);
     } catch (err) {
       console.error('Frontend Fetch Error:', err);
       setCourses(MOCK_COURSES);
-    } finally {
       setLoading(false);
     }
   };
@@ -294,7 +299,15 @@ export default function CoursesPage() {
               {CATEGORIES.map(tab => (
                 <button
                   key={tab}
-                  onClick={() => { setActiveTab(tab); setCurrentPage(1); }}
+                  onClick={() => { 
+                    setActiveTab(tab); 
+                    setCurrentPage(1); 
+                    const grid = document.getElementById('courses-grid');
+                    if (grid) {
+                      const y = grid.getBoundingClientRect().top + window.scrollY - 200;
+                      window.scrollTo({ top: y, behavior: 'smooth' });
+                    }
+                  }}
                   className={`flex-shrink-0 px-6 py-2.5 rounded-full text-sm font-bold transition-all relative shadow-sm hover:shadow-md hover:-translate-y-0.5`}
                   style={{
                     background: activeTab === tab ? 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' : '#fff',
@@ -309,7 +322,7 @@ export default function CoursesPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 pb-32 md:pb-8 relative" style={{ zIndex: 1 }}>
+      <div id="courses-grid" className="max-w-7xl mx-auto px-4 md:px-8 pb-32 md:pb-8 relative" style={{ zIndex: 1 }}>
 
         {loading && (
           <div className="flex flex-col gap-6">

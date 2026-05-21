@@ -113,8 +113,8 @@ const getOTPHtml = (otp) => {
 const getEmailAttachments = () => {
   return [
     {
-      filename: 'logo.webp',
-      path: path.join(__dirname, '../../frontend/public/logo.webp'),
+      filename: 'White_Version_Logo.webp',
+      path: path.join(__dirname, '../../frontend/src/assets/White_Version_Logo.webp'),
       cid: 'seatifyLogo'
     }
   ];

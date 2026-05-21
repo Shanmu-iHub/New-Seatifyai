@@ -40,7 +40,7 @@ export default function Footer() {
             <ul className="space-y-3 text-sm text-slate-500">
               <li className="flex items-center gap-2">
                 <Phone size={14} className="text-slate-400" />
-                <span>+91 9600940618</span>
+                <span>+91 96009 40618</span>
               </li>
               <li className="flex items-center gap-2">
                 <Mail size={14} className="text-slate-400" />
@@ -50,20 +50,21 @@ export default function Footer() {
                 <MapPin size={14} className="text-slate-400" />
                 <span>Tamil Nadu, India</span>
               </li>
+              <li className="pt-2">
+                <a href="https://www.linkedin.com/company/seatifyai/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-[#0A66C2] transition-colors group">
+                  <Linkedin size={16} className="text-slate-400 group-hover:text-[#0A66C2] transition-colors" />
+                  <span>LinkedIn</span>
+                </a>
+              </li>
             </ul>
           </div>
 
         </div>
         
-        <div className="mt-12 pt-8 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-slate-400">
+        <div className="mt-12 pt-8 border-t border-slate-100 flex items-center justify-center">
+          <p className="text-xs text-slate-400 text-center">
             © {new Date().getFullYear()} SeatifyAI. All rights reserved.
           </p>
-          <div className="flex items-center gap-4 text-slate-400">
-            <a href="https://www.linkedin.com/company/seatifyai/" target="_blank" rel="noopener noreferrer" className="hover:text-indigo-500 transition-colors">
-              <Linkedin size={18} />
-            </a>
-          </div>
         </div>
       </div>
     </footer>

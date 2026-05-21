@@ -282,7 +282,7 @@ const SEED_COURSES = [
 // --- Caching Layer for Google Sheets Data ---
 let cachedCourses = null;
 let lastFetchTime = null;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache TTL
+const CACHE_TTL = 10 * 1000; // 10 seconds cache TTL
 let isFetching = false;
 
 const updateCache = async () => {

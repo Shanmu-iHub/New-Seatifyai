@@ -23,7 +23,7 @@ export default function Navbar() {
   return (
     <>
       <nav style={{ background: 'rgba(255,255,255,0.85)', borderBottom: '1px solid var(--card-border)', backdropFilter: 'blur(16px)' }}
-        className="sticky top-0 z-40 px-4 md:px-8">
+        className="sticky top-0 z-[60] px-4 md:px-8">
         <div className="max-w-7xl mx-auto flex items-center justify-between h-16">
           {/* Logo */}
           <Link to={hasIncompleteProfile ? "/profile-setup" : "/courses"} className="flex items-center gap-2">
@@ -84,7 +84,7 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         {menuOpen && (
-          <div className="md:hidden py-4 border-t animate-fade-up" style={{ borderColor: 'var(--card-border)' }}>
+          <div className="md:hidden py-4 border-t animate-fade-up bg-white/95 backdrop-blur-xl" style={{ borderColor: 'var(--card-border)' }}>
             <div className="flex flex-col gap-4 px-2">
               {!hasIncompleteProfile && (
                 <>

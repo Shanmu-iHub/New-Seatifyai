@@ -299,7 +299,15 @@ export default function CoursesPage() {
               {CATEGORIES.map(tab => (
                 <button
                   key={tab}
-                  onClick={() => { setActiveTab(tab); setCurrentPage(1); }}
+                  onClick={() => { 
+                    setActiveTab(tab); 
+                    setCurrentPage(1); 
+                    const grid = document.getElementById('courses-grid');
+                    if (grid) {
+                      const y = grid.getBoundingClientRect().top + window.scrollY - 200;
+                      window.scrollTo({ top: y, behavior: 'smooth' });
+                    }
+                  }}
                   className={`flex-shrink-0 px-6 py-2.5 rounded-full text-sm font-bold transition-all relative shadow-sm hover:shadow-md hover:-translate-y-0.5`}
                   style={{
                     background: activeTab === tab ? 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' : '#fff',
@@ -314,7 +322,7 @@ export default function CoursesPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 pb-32 md:pb-8 relative" style={{ zIndex: 1 }}>
+      <div id="courses-grid" className="max-w-7xl mx-auto px-4 md:px-8 pb-32 md:pb-8 relative" style={{ zIndex: 1 }}>
 
         {loading && (
           <div className="flex flex-col gap-6">

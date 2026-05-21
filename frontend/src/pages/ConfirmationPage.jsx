@@ -307,8 +307,14 @@ export default function ConfirmationPage() {
             <h2 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">
               Admission Receipt
             </h2>
-            <div className="px-3 py-1 rounded-full bg-green-50 text-green-600 text-[10px] font-black uppercase tracking-wider border border-green-100">
-              Paid
+            <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+              application?.paymentStatus === 'completed'
+                ? 'bg-green-50 text-green-600 border-green-100'
+                : application?.paymentStatus === 'pay_later'
+                ? 'bg-yellow-50 text-yellow-600 border-yellow-100'
+                : 'bg-blue-50 text-blue-600 border-blue-100'
+            }`}>
+              {application?.paymentStatus === 'completed' ? 'Paid' : application?.paymentStatus === 'pay_later' ? 'Pay Later' : 'Pending'}
             </div>
           </div>
           
@@ -353,6 +359,14 @@ export default function ConfirmationPage() {
 
         {/* New Action Buttons */}
         <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 transition-all duration-1000 delay-500 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+          {application?.paymentStatus !== 'completed' && (
+            <button
+              onClick={() => navigate(`/payment/${application.applicationId}`, { state: { application, course, program } })}
+              className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm bg-green-500 text-white hover:bg-green-600 transition-all shadow-md"
+            >
+              💳 Pay Now
+            </button>
+          )}
           <button
             onClick={() => {
               if (!canEdit) return toast.error('Edit time has expired.');

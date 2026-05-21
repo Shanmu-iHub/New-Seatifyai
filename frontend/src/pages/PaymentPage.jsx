@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { ShieldCheck, CreditCard, Smartphone, Building2, Wallet } from 'lucide-react';
+import { ShieldCheck, CreditCard, Smartphone, Building2, Wallet, AlertTriangle } from 'lucide-react';
+import Dialog from '../components/Dialog';
 
 const loadRazorpay = () => new Promise(resolve => {
   if (window.Razorpay) return resolve(true);
@@ -16,10 +17,14 @@ const loadRazorpay = () => new Promise(resolve => {
 
 export default function PaymentPage() {
   const { applicationId } = useParams();
-  const { state } = useLocation();
+  const location = useLocation();
+  const { state } = location;
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showNavigationWarning, setShowNavigationWarning] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState(null);
+  const hasPaymentHistoryGuard = useRef(false);
 
   const [application, setApplication] = useState(state?.application);
   const [course, setCourse] = useState(state?.course);
@@ -33,6 +38,104 @@ export default function PaymentPage() {
   useEffect(() => {
     fetchApplication();
   }, [applicationId]);
+
+  // Prevent navigation when on payment page with unsaved payment
+  useEffect(() => {
+    if (application?.paymentStatus === 'completed') {
+      return;
+    }
+
+    // Handle beforeunload (tab close, refresh)
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    if (!hasPaymentHistoryGuard.current) {
+      window.history.pushState(
+        { ...window.history.state, paymentNavigationGuard: true },
+        '',
+        window.location.href
+      );
+      hasPaymentHistoryGuard.current = true;
+    }
+
+    // Handle browser back button. The guard entry keeps this page mounted so the dialog can render.
+    const handlePopState = (e) => {
+      setShowNavigationWarning(true);
+      setPendingNavigation(null);
+      window.history.pushState(
+        { ...e.state, paymentNavigationGuard: true },
+        '',
+        window.location.href
+      );
+    };
+    window.addEventListener('popstate', handlePopState);
+
+    // Handle link clicks - intercept all navigation
+    const handleClickCapture = (e) => {
+      // Only intercept anchor tags (links)
+      let target = e.target.closest('a');
+      
+      if (target) {
+        const href = target.getAttribute('href');
+        // Only intercept internal navigation (starting with /)
+        if (href && href.startsWith('/') && href !== location.pathname) {
+          e.preventDefault();
+          e.stopPropagation();
+          setPendingNavigation(href);
+          setShowNavigationWarning(true);
+        }
+      }
+    };
+    document.addEventListener('click', handleClickCapture, true);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+      document.removeEventListener('click', handleClickCapture, true);
+    };
+  }, [application, location.pathname]);
+
+  const handlePayLater = async () => {
+    try {
+      await axios.post(`/api/applications/${applicationId}/pay-later`);
+      toast.success('Application marked as Pay Later. You can pay anytime from Admissions section.');
+      setShowNavigationWarning(false);
+      setPendingNavigation(null);
+      navigate('/admissions', { replace: true });
+    } catch (err) {
+      toast.error('Failed to save pay later status');
+    }
+  };
+
+  const handleCancelPayment = async () => {
+    if (window.confirm('Are you sure you want to cancel this application? This action cannot be undone.')) {
+      try {
+        await axios.post(`/api/applications/${applicationId}/cancel`);
+        toast.success('Application cancelled');
+        setShowNavigationWarning(false);
+        setPendingNavigation(null);
+        navigate('/courses', { replace: true });
+      } catch (err) {
+        toast.error('Failed to cancel application');
+      }
+    }
+  };
+
+  const handleContinuePayment = () => {
+    setShowNavigationWarning(false);
+    setPendingNavigation(null);
+  };
+
+  const handleProceedNavigation = () => {
+    setShowNavigationWarning(false);
+    setPendingNavigation(null);
+    if (pendingNavigation) {
+      navigate(pendingNavigation);
+    }
+  };
 
   const fetchApplication = async () => {
     setLoading(true);
@@ -194,19 +297,7 @@ export default function PaymentPage() {
           </button>
 
           <button
-            onClick={async () => {
-              if (window.confirm("Are you sure you want to cancel this application?")) {
-                setLoading(true);
-                try {
-                  await axios.post(`/api/applications/${applicationId}/cancel`);
-                  toast.success("Application cancelled");
-                  navigate('/courses');
-                } catch (err) {
-                  toast.error("Failed to cancel application");
-                  setLoading(false);
-                }
-              }
-            }}
+            onClick={handleCancelPayment}
             disabled={loading}
             className="w-full py-3 rounded-xl font-bold text-sm text-red-500 hover:bg-red-50 transition-all border border-red-100"
           >
@@ -220,7 +311,50 @@ export default function PaymentPage() {
           <span>256-bit SSL Encrypted · 100% Secure · No data stored</span>
         </div>
 
+        <Dialog
+          isOpen={showNavigationWarning}
+          onClose={handleContinuePayment}
+          title="Unsaved Payment"
+          description="Your seat is not confirmed until payment is successful. What would you like to do?"
+          icon={
+            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.1)' }}>
+              <AlertTriangle size={24} className="text-red-500" />
+            </div>
+          }
+        >
+          <div className="space-y-3">
+            <button
+              onClick={handleContinuePayment}
+              className="w-full py-3 rounded-xl font-bold text-sm transition-all"
+              style={{
+                background: 'var(--primary)',
+                color: '#fff',
+                boxShadow: '0 4px 20px rgba(79,70,229,0.3)'
+              }}
+            >
+              Continue Payment
+            </button>
 
+            <button
+              onClick={handlePayLater}
+              className="w-full py-3 rounded-xl font-bold text-sm transition-all"
+              style={{
+                background: 'rgba(79,70,229,0.1)',
+                color: 'var(--primary)',
+                border: '1px solid rgba(79,70,229,0.25)'
+              }}
+            >
+              Pay Later
+            </button>
+
+            <button
+              onClick={handleCancelPayment}
+              className="w-full py-3 rounded-xl font-bold text-sm text-red-500 transition-all border border-red-200 hover:bg-red-50"
+            >
+              Cancel Payment
+            </button>
+          </div>
+        </Dialog>
       </div>
     </div>
   );

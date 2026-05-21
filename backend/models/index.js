@@ -30,6 +30,7 @@ const programSchema = new mongoose.Schema({
   fee: { type: Number, required: true },
   seats: { type: Number, default: 60 },
   seatsAvailable: { type: Number },
+  minimumQualification: String,
 });
 programSchema.pre('save', function(next) {
   if (this.seatsAvailable === undefined) this.seatsAvailable = this.seats;
@@ -93,7 +94,7 @@ const applicationSchema = new mongoose.Schema({
     }
   },
   // Payment
-  paymentStatus: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
+  paymentStatus: { type: String, enum: ['pending', 'completed', 'failed', 'pay_later'], default: 'pending' },
   paymentId: String,
   razorpayOrderId: String,
   status: { type: String, enum: ['submitted', 'confirmed', 'rejected', 'pending', 'cancelled'], default: 'pending' },

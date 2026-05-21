@@ -12,6 +12,7 @@ import ProfilePage from './pages/ProfilePage';
 import ProfileSetupPage from './pages/ProfileSetupPage';
 import CancelPage from './pages/CancelPage';
 import SupportPage from './pages/SupportPage';
+import AdmissionsPage from './pages/AdmissionsPage';
 import WhatsAppButton from './components/WhatsAppButton';
 import SupportButton from './components/SupportButton';
 import AdminLayout from './pages/admin/AdminLayout';
@@ -84,6 +85,7 @@ const AppRoutes = () => {
         <Route path="/payment/:applicationId" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
         <Route path="/confirmation/:applicationId" element={<ProtectedRoute><ConfirmationPage /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        <Route path="/admissions" element={<ProtectedRoute><AdmissionsPage /></ProtectedRoute>} />
         <Route path="/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
         <Route path="/profile-setup" element={<ProfileSetupRoute><ProfileSetupPage /></ProfileSetupRoute>} />
         <Route path="/cancel-booking/:applicationId" element={<ProtectedRoute><CancelPage /></ProtectedRoute>} />

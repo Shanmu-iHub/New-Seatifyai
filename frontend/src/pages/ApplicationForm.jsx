@@ -152,6 +152,41 @@ const GridRadioField = ({ label, name, options, value, onChange, required }) => 
   </div>
 );
 
+const MinimumQualificationAgreement = ({ qualification, checked, onChange, required }) => (
+  <div className="sm:col-span-2">
+    <div
+      className="rounded-xl border p-4"
+      style={{ background: '#fff', borderColor: 'var(--card-border)' }}
+    >
+      <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-muted)' }}>
+        Minimum Qualification {required && <span style={{ color: '#EF4444' }}>*</span>}
+      </label>
+      <p className="text-sm font-bold mb-4" style={{ color: 'var(--text)' }}>
+        {qualification || 'Minimum qualification required for this program'}
+      </p>
+
+      <label
+        className="flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all"
+        style={{
+          background: checked ? 'rgba(79,70,229,0.06)' : 'rgba(248,250,252,0.9)',
+          border: checked ? '2px solid var(--primary)' : '1px solid var(--card-border)',
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          required={required}
+          className="mt-1 h-4 w-4 rounded"
+        />
+        <span className="text-sm font-medium leading-6" style={{ color: checked ? 'var(--primary)' : 'var(--text)' }}>
+          I agree I have the minimum qualification for this program.
+        </span>
+      </label>
+    </div>
+  </div>
+);
+
 export default function ApplicationForm() {
   const { state } = useLocation();
   const { user } = useAuth();
@@ -160,6 +195,13 @@ export default function ApplicationForm() {
   const editId = searchParams.get('editId');
   const [course, setCourse] = useState(state?.course || null);
   const [program, setProgram] = useState(state?.program || null);
+  const minimumQualification = (
+    program?.minimumQualification ||
+    program?.minmumQualification ||
+    course?.minimumQualification ||
+    course?.minmumQualification ||
+    ''
+  ).trim();
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -181,6 +223,7 @@ export default function ApplicationForm() {
     district: '',
     districtOther: '',
     currentQualification: '',
+    minimumQualificationAgreed: false,
     aadhar: '',
     physicalApplicationNo: '',
     docs: { aadhar: null, previousSchoolTC: null, community: null, birthCertificate: null, marksheet10: null, marksheet12: null, diplomaCertificate: null, admissionForm: null }
@@ -188,6 +231,19 @@ export default function ApplicationForm() {
 
   const update = (field, val) => setFormData(prev => ({ ...prev, [field]: val }));
   const updateDoc = (field, file) => setFormData(prev => ({ ...prev, docs: { ...prev.docs, [field]: file } }));
+  const updateMinimumQualificationAgreement = (checked) => {
+    setFormData(prev => ({
+      ...prev,
+      minimumQualificationAgreed: checked,
+      currentQualification: checked ? (minimumQualification || 'Minimum qualification confirmed') : '',
+    }));
+  };
+
+  useEffect(() => {
+    if (formData.minimumQualificationAgreed && minimumQualification && formData.currentQualification !== minimumQualification) {
+      setFormData(prev => ({ ...prev, currentQualification: minimumQualification }));
+    }
+  }, [minimumQualification, formData.minimumQualificationAgreed, formData.currentQualification]);
 
   // Load draft from localStorage on mount (only for new applications, not edit modes)
   useEffect(() => {
@@ -269,6 +325,7 @@ export default function ApplicationForm() {
             district: app.district || '',
             districtOther: app.districtOther || '',
             currentQualification: app.currentQualification || '',
+            minimumQualificationAgreed: Boolean(app.currentQualification),
             aadhar: app.aadhar || '',
             physicalApplicationNo: app.physicalApplicationNo || '',
           }));
@@ -279,11 +336,13 @@ export default function ApplicationForm() {
           setCourse({
             name: app.courseName,
             category: app.category,
-            collegeName: app.collegeName
+            collegeName: app.collegeName,
+            minimumQualification: app.currentQualification || ''
           });
           setProgram({
             name: app.programName,
-            fee: app.fee
+            fee: app.fee,
+            minimumQualification: app.currentQualification || ''
           });
 
           // Then try to fetch live course/program info for richer banner details if possible
@@ -331,12 +390,16 @@ export default function ApplicationForm() {
         'parentMobile', 
         'homeTown', 
         'district', 
-        'currentQualification', 
         'aadhar'
       ];
       const missing = requiredFields.filter(f => !formData[f]);
       if (missing.length > 0) {
         toast.error('Please fill all required fields');
+        return;
+      }
+
+      if (!formData.minimumQualificationAgreed || !formData.currentQualification) {
+        toast.error('Please confirm that you have the minimum qualification');
         return;
       }
 
@@ -638,13 +701,11 @@ export default function ApplicationForm() {
                 </div>
               )}
               
-              <RadioField 
-                label="Current Qualification" 
-                name="currentQualification" 
-                options={['12th Standard', 'UG (Degree Completed / Pursuing)', 'Lateral Entry (Diploma)']} 
-                value={formData.currentQualification} 
-                onChange={val => update('currentQualification', val)} 
-                required 
+              <MinimumQualificationAgreement
+                qualification={minimumQualification}
+                checked={formData.minimumQualificationAgreed}
+                onChange={updateMinimumQualificationAgreement}
+                required
               />
               
               <InputField label="Aadhar Number" type="text" value={formData.aadhar} onChange={e => update('aadhar', e.target.value.replace(/[^0-9]/g, '').slice(0, 12))} required pattern="[0-9]{12}" maxLength={12} placeholder="12-digit number" />

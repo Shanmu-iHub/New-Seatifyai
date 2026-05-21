@@ -343,7 +343,7 @@ export default function CoursesPage() {
 
                 return (
                   <div key={collegeGroup.collegeName || idx} className={`rounded-[1.75rem] p-6 bg-white border border-slate-100 shadow-sm animate-fade-up ${cardSpanClass}`}>
-                    <div className="flex items-start gap-4 mb-6">
+                    <div className="flex items-center gap-4 mb-6">
                       <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl overflow-hidden border border-slate-100/50 shadow-sm bg-white" style={{ background: style.bg, color: style.color }}>
                         {typeof collegeGroup.emoji === 'string' && (collegeGroup.emoji.startsWith('http://') || collegeGroup.emoji.startsWith('https://') || collegeGroup.emoji.startsWith('/')) ? (
                           <img
@@ -357,14 +357,6 @@ export default function CoursesPage() {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-bold text-lg leading-tight" style={{ color: style.color || '#000' }}>{collegeGroup.collegeName}</h3>
-                        <div className="flex flex-wrap items-center gap-2 mt-2">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-[0.16em]" style={{ background: 'rgba(79,70,229,0.08)', color: 'var(--primary)' }}>
-                            {showDirectCourses ? `${itemCount} programs` : `${categoryNames.length} categories`}
-                          </span>
-                          {state.step === 1 && !showDirectCourses && itemCount <= 2 && (
-                            <span className="text-xs font-medium text-slate-400">Compact view</span>
-                          )}
-                        </div>
                         {state.step === 2 && !showDirectCourses && (
                           <p className="text-sm font-medium text-slate-500 mt-1">{state.category}</p>
                         )}

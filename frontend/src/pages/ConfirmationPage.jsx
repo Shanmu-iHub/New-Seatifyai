@@ -108,34 +108,59 @@ export default function ConfirmationPage() {
       
       // 1. Sidebar Accent (Yellow)
       doc.setFillColor(252, 211, 77); 
-      doc.rect(0, 0, 5, 297, 'F');
+      const dateStr = application?.createdAt ? new Date(application.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      const timeStr = application?.createdAt ? new Date(application.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+      // 1. Sidebar Accent (Yellow) - full custom page height
+      doc.setFillColor(252, 211, 77);
+      doc.rect(0, 0, 5, 340, 'F');
 
       // 2. Header Block (Black)
-      doc.setFillColor(0, 0, 0); 
+      doc.setFillColor(0, 0, 0);
       doc.rect(5, 10, 200, 35, 'F');
       
-      // --- Logo Only (White Version) ---
+      // --- Logo Processing (Dynamic Aspect Ratio & PNG Conversion) ---
+      const processLogo = (base64Str) => new Promise((resolve) => {
+        const img = new Image();
+        img.src = base64Str.startsWith('data:') ? base64Str : 'data:image/webp;base64,' + base64Str;
+        img.onload = () => {
+          const cv = document.createElement('canvas');
+          cv.width = img.naturalWidth;
+          cv.height = img.naturalHeight;
+          const ctx = cv.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          resolve({
+            data: cv.toDataURL('image/png'),
+            width: img.naturalWidth,
+            height: img.naturalHeight
+          });
+        };
+        img.onerror = () => resolve(null);
+      });
+
       if (logoBase64) {
-        doc.addImage(logoBase64, 'WEBP', 15, 16, 46, 23);
+        const logo = await processLogo(logoBase64);
+        if (logo) {
+          const targetHeight = 18; // Desired height in mm
+          const aspect = logo.width / logo.height;
+          const targetWidth = targetHeight * aspect;
+          doc.addImage(logo.data, 'PNG', 15, 18, targetWidth, targetHeight);
+        }
       }
-      
+
       doc.setFontSize(20);
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
       doc.text("OFFICIAL RECEIPT", 135, 30);
       
       // 3. Info Section
-      doc.setFontSize(9);
-      doc.setTextColor(75, 85, 99); 
-      doc.text(`ISSUED ON: ${dateStr || 'N/A'} at ${timeStr || 'N/A'}`, 15, 55);
-      
-      // Fixed Application ID Alignment (Moved left to prevent cut-off)
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
       doc.setFont("helvetica", "bold");
-      doc.text("APPLICATION ID:", 115, 55);
+      doc.text(`ISSUED ON: `, 15, 55);
       doc.setFont("helvetica", "normal");
-      doc.text(`${applicationId || 'N/A'}`, 145, 55);
+      doc.text(`${dateStr} at ${timeStr}`, 40, 55);
       
-      // 4. Data Table (RE-ORDERED AS REQUESTED)
       const tableData = [
         ['INSTITUTION NAME', (application?.collegeName || course?.collegeName || 'SNS Institutions').toUpperCase()],
         ['APPLICATION ID', applicationId || 'N/A'],
@@ -144,73 +169,139 @@ export default function ConfirmationPage() {
         ['COURSE', (course?.name || application?.courseName || 'N/A').toUpperCase()],
         ['AMOUNT PAID', `INR ${(application?.fee || program?.fee || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
         ['PAYMENT ID', paymentId || application?.paymentId || 'N/A'],
-        ['DATE & TIME', `${dateStr || 'N/A'} at ${timeStr || 'N/A'}`],
+        ['DATE & TIME', `${dateStr} at ${timeStr}`],
         ['STATUS', 'PRE REGISTRATION CONFIRMED']
       ];
-      
+
       autoTable(doc, {
         startY: 65,
         head: [['DESCRIPTION', 'DETAILS']],
         body: tableData,
         theme: 'grid',
         headStyles: { 
-          fillColor: [31, 41, 55], 
-          textColor: [252, 211, 77], 
+          fillColor: [0, 0, 0], 
+          textColor: [255, 204, 0], 
           fontSize: 10, 
-          fontStyle: 'bold',
-          halign: 'left'
+          fontStyle: 'bold' 
         },
-        bodyStyles: { 
-          fontSize: 9, 
-          cellPadding: 5,
-          textColor: [31, 41, 55]
-        },
+        bodyStyles: { fontSize: 9, cellPadding: 5, textColor: [0, 0, 0] },
         columnStyles: {
-          0: { cellWidth: 55, fontStyle: 'bold', fillColor: [249, 250, 251] },
-          1: { cellWidth: 'auto' }
+          0: { cellWidth: 55, fontStyle: 'bold', fillColor: [250, 250, 250] }
         },
-        styles: {
-          lineColor: [229, 231, 235],
-          lineWidth: 0.1
+        didParseCell: function (data) {
+          if (data.section === 'body' && data.column.index === 1 && data.row.index === 8) {
+             data.cell.styles.textColor = [0, 153, 51]; // Green status
+             data.cell.styles.fontStyle = 'bold';
+          }
         }
       });
       
-      const finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) || 180;
+      // All content fits on one custom-height page (210x340mm)
+      const y = (doc.lastAutoTable && doc.lastAutoTable.finalY) || 160;
+
+      // ── Helper: SVG string to high-res PNG Promise ──
+      const makeSvgIcon = (svgStr) => new Promise((resolve) => {
+        const img = new Image();
+        img.src = 'data:image/svg+xml;base64,' + btoa(svgStr);
+        img.onload = () => {
+          const cv = document.createElement('canvas');
+          cv.width = 512; cv.height = 512;
+          const ctx = cv.getContext('2d');
+          ctx.drawImage(img, 0, 0, 512, 512);
+          resolve(cv.toDataURL('image/png'));
+        };
+        img.onerror = () => resolve(null);
+      });
+
+      // A. Shield / Checkmark
+      const iconCheck = await makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01" stroke="#16a34a" stroke-width="3"></polyline></svg>`);
       
-      // 5. Verification Badge (FIXED OVERLAP)
-      doc.setFillColor(245, 245, 245);
-      doc.rect(15, finalY + 10, 180, 25, 'F');
-      
+      // B. Calendar
+      const iconCal = await makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" fill="#ffffff"></rect><rect width="18" height="6" x="3" y="4" rx="2" ry="2" fill="#444444" stroke="none"></rect><circle cx="8" cy="14" r="1.5" fill="#444444" stroke="none"/><circle cx="12" cy="14" r="1.5" fill="#444444" stroke="none"/><circle cx="16" cy="14" r="1.5" fill="#444444" stroke="none"/><circle cx="8" cy="18" r="1.5" fill="#444444" stroke="none"/><circle cx="12" cy="18" r="1.5" fill="#444444" stroke="none"/><circle cx="21" cy="21" r="5" fill="#f59e0b" stroke="none"/><text x="21" y="23.5" fill="#ffffff" font-size="8" font-family="sans-serif" font-weight="bold" stroke="none" text-anchor="middle">!</text></svg>`);
+
+      // C. Headset / Icons
+      const iconMail = await makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#444444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>`);
+      const iconPhone = await makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#444444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect><path d="M12 18h.01"></path></svg>`);
+      const iconGlobe = await makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#444444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" x2="22" y1="12" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`);
+
+      // A. Verified Enrollment Block
+      doc.setFillColor(245, 249, 246);
+      doc.setDrawColor(230, 240, 230);
+      doc.roundedRect(15, y + 10, 180, 22, 3, 3, 'FD');
+      doc.addImage(iconCheck, 'PNG', 19, y + 12, 18, 18);
       doc.setFontSize(10);
-      doc.setTextColor(31, 41, 55);
+      doc.setTextColor(0, 0, 0);
       doc.setFont("helvetica", "bold");
-      doc.text("VERIFIED ENROLLMENT", 20, finalY + 25);
-      
+      doc.text("VERIFIED ENROLLMENT", 42, y + 18);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8.5);
-      doc.text("This receipt confirms that your seat reservation and initial fee payment have been recorded in our system.", 65, finalY + 25);
+      doc.text("This receipt confirms your seat reservation and initial fee payment in our system.", 42, y + 26);
 
-      // 6. Policy Note (FIXED SPACING)
-      doc.setFillColor(254, 252, 232); // Light yellow
-      doc.setDrawColor(252, 211, 77); // Yellow border
-      doc.rect(15, finalY + 45, 180, 25, 'FD');
-      
-      doc.setFontSize(9);
-      doc.setTextColor(31, 41, 55);
+      // B. Note Block
+      doc.setFillColor(255, 248, 240);
+      doc.setDrawColor(255, 235, 204);
+      doc.roundedRect(15, y + 36, 180, 28, 3, 3, 'FD');
+      doc.addImage(iconCal, 'PNG', 18, y + 38, 20, 20);
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
       doc.setFont("helvetica", "bold");
-      doc.text("NOTE:", 20, finalY + 58);
-      
+      doc.text("NOTE:", 42, y + 45);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8.5);
-      const noteText = "This is a temporary seat confirmation only. Students are required to visit the college campus directly to verify and confirm their course admission.";
-      const splitNote = doc.splitTextToSize(noteText, 145);
-      doc.text(splitNote, 38, finalY + 58);
+      doc.text("This is a temporary seat confirmation only. Students are required to visit the college campus", 42, y + 51);
+      doc.text("directly to verify and confirm their course admission.", 42, y + 57);
 
-      // 7. Footer (One Line)
+      // C. Need Help Block
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "bold");
+      doc.text("Need Help?", 17, y + 74);
+      
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "normal");
+      
+      doc.addImage(iconMail, 'PNG', 17, y + 78, 6, 5);
+      doc.setTextColor(30, 30, 30);
+      doc.text("support@seatifyai.com", 26, y + 82);
+      
+      doc.setTextColor(180, 180, 180);
+      doc.text("|", 78, y + 82);
+      
+      doc.addImage(iconPhone, 'PNG', 82, y + 77.5, 5, 6);
+      doc.setTextColor(30, 30, 30);
+      doc.text("9600940618", 90, y + 82);
+      
+      doc.setTextColor(180, 180, 180);
+      doc.text("|", 123, y + 82);
+      
+      doc.addImage(iconGlobe, 'PNG', 127, y + 77.5, 6, 6);
+      doc.setTextColor(0, 102, 204);
+      doc.text("www.seatifyai.com", 136, y + 82);
+
+      // D. Tagline
+      doc.setDrawColor(255, 180, 0);
+      doc.setLineWidth(0.8);
+      doc.line(82, y + 93, 99, y + 93);
+      doc.line(111, y + 93, 128, y + 93);
+      doc.setFillColor(255, 180, 0);
+      doc.setDrawColor(255, 180, 0);
+      doc.circle(105, y + 93, 1.5, 'FD');
+
+      doc.setTextColor(0, 0, 120);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("Take the first step today with Seatify", 105, y + 102, { align: 'center' });
+      doc.text("towards a successful future.", 105, y + 109, { align: 'center' });
+
+      // Footer
+      doc.setDrawColor(210, 210, 210);
+      doc.setLineWidth(0.3);
+      doc.line(15, y + 116, 195, y + 116);
       doc.setFontSize(8);
-      doc.setTextColor(156, 163, 175);
-      const footerY = Math.max(280, finalY + 80);
-      doc.text("This is a digital receipt issued by SeatifyAI Admission System.  www.seatifyai.com  |  Page 1 of 1", 105, footerY, { align: 'center' });
+      doc.setTextColor(150, 150, 150);
+      doc.setFont("helvetica", "normal");
+      const footerY = y + 123;
+      doc.text("This is a digital receipt issued by SeatifyAI Admission System. www.seatifyai.com | Page 1 of 1", 105, footerY, { align: 'center' });
       
       doc.save(`Seatify_Receipt_${applicationId || 'Admission'}.pdf`);
       toast.success("Receipt generated!");

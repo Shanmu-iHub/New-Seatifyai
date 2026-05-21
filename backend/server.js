@@ -121,8 +121,28 @@ if (!process.env.VERCEL) {
     if (err.code === 'EADDRINUSE') {
       console.error(`❌ Port ${PORT} in use. Attempting to kill occupant...`);
       const { execSync } = require('child_process');
+      const platform = process.platform;
       try {
-        execSync(`lsof -ti :${PORT} | xargs kill -9`);
+        if (platform === 'win32') {
+          const output = execSync(`netstat -ano | findstr :${PORT}`).toString();
+          const lines = output.trim().split('\n');
+          const pids = new Set();
+          for (const line of lines) {
+            const parts = line.trim().split(/\s+/);
+            if (parts.length >= 5) {
+              const pid = parts[parts.length - 1];
+              if (pid && pid !== '0' && !isNaN(pid)) {
+                pids.add(pid.trim());
+              }
+            }
+          }
+          for (const pid of pids) {
+            console.log(`Killing process ${pid}...`);
+            execSync(`taskkill /F /PID ${pid}`);
+          }
+        } else {
+          execSync(`lsof -ti :${PORT} | xargs kill -9`);
+        }
         console.log(`✅ Killed process on port ${PORT}. Retrying in 1 second...`);
         setTimeout(() => {
           server.listen(PORT);

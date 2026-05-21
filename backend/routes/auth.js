@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const { OTP, User } = require('../models');
 const axios = require('axios');
+const { getOTPHtml, getEmailAttachments } = require('../utils/emailTemplates');
 
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -34,14 +35,8 @@ const sendEmailOTP = async (email, otp) => {
     from: process.env.MAIL_FROM || 'Seatifyai <noreply@seatifyai.com>',
     to: email,
     subject: `${otp} — Your Seatifyai Login OTP`,
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#1A1A24;border-radius:16px;color:#fff">
-        <h2 style="color:#4F46E5;margin-bottom:8px">Your OTP Code</h2>
-        <p style="color:#9CA3AF;margin-bottom:24px">Use this code to sign in to Seatifyai</p>
-        <div style="background:#0F0F13;border-radius:12px;padding:24px;text-align:center;font-size:36px;font-weight:bold;letter-spacing:12px;color:#4F46E5;margin-bottom:24px">${otp}</div>
-        <p style="color:#9CA3AF;font-size:13px">This OTP expires in 10 minutes. Do not share this with anyone.</p>
-      </div>
-    `,
+    html: getOTPHtml(otp),
+    attachments: getEmailAttachments(),
   };
 
   try {

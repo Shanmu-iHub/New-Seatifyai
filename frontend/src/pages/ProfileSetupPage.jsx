@@ -14,6 +14,73 @@ export default function ProfileSetupPage() {
   const [mobile, setMobile] = useState('');
   const [dob, setDob] = useState('');
   const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [emailChecking, setEmailChecking] = useState(false);
+  const [mobileError, setMobileError] = useState('');
+  const [mobileChecking, setMobileChecking] = useState(false);
+
+  useEffect(() => {
+    if (!email.trim() || !email.includes('@')) {
+      setEmailError('');
+      return;
+    }
+
+    // Skip checking if it is the user's current email
+    if (user && email.trim().toLowerCase() === (user.email || '').toLowerCase()) {
+      setEmailError('');
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setEmailChecking(true);
+      try {
+        const res = await axios.get(`/api/students/check-email?email=${encodeURIComponent(email.trim())}`);
+        if (res.data.exists) {
+          setEmailError('Email already exists');
+        } else {
+          setEmailError('');
+        }
+      } catch (err) {
+        console.error('Error checking email availability:', err);
+      } finally {
+        setEmailChecking(false);
+      }
+    }, 600);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [email, user]);
+
+  useEffect(() => {
+    const cleanMobile = mobile.replace(/\D/g, '');
+    if (cleanMobile.length !== 10) {
+      setMobileError('');
+      return;
+    }
+
+    // Skip checking if it is the user's current mobile number
+    if (user && cleanMobile === (user.mobile || '')) {
+      setMobileError('');
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setMobileChecking(true);
+      try {
+        const res = await axios.get(`/api/students/check-mobile?mobile=${cleanMobile}`);
+        if (res.data.exists) {
+          setMobileError('Mobile number already exists');
+        } else {
+          setMobileError('');
+        }
+      } catch (err) {
+        console.error('Error checking mobile availability:', err);
+      } finally {
+        setMobileChecking(false);
+      }
+    }, 600);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [mobile, user]);
 
   useEffect(() => {
     if (user) {
@@ -28,6 +95,8 @@ export default function ProfileSetupPage() {
     e.preventDefault();
     if (!name.trim()) return toast.error('Please enter your full name');
     if (!email.trim() || !email.includes('@')) return toast.error('Please enter a valid email address');
+    if (emailError) return toast.error(emailError);
+    if (mobileError) return toast.error(mobileError);
     if (!mobile.trim() || mobile.replace(/\D/g, '').length !== 10) return toast.error('Please enter a valid 10-digit mobile number');
     if (!dob) return toast.error('Please select your date of birth');
 
@@ -122,10 +191,24 @@ export default function ProfileSetupPage() {
                   onChange={e => setEmail(e.target.value)}
                   placeholder="john@example.com"
                   className="w-full rounded-xl pl-10 pr-4 py-3 text-sm focus:ring-4 focus:ring-blue-50 transition-all outline-none"
-                  style={{ background: '#fff', border: '1px solid var(--card-border)', color: 'var(--text)' }}
+                  style={{ 
+                    background: '#fff', 
+                    border: emailError ? '1px solid #ef4444' : '1px solid var(--card-border)', 
+                    color: 'var(--text)' 
+                  }}
                   required
                 />
               </div>
+              {emailChecking && (
+                <p className="mt-1 text-xs text-indigo-500 animate-pulse">
+                  Checking email availability...
+                </p>
+              )}
+              {emailError && (
+                <p className="mt-1 text-xs text-red-500 font-medium">
+                  {emailError}
+                </p>
+              )}
             </div>
 
             {/* Mobile Number */}
@@ -144,10 +227,24 @@ export default function ProfileSetupPage() {
                   placeholder="9876543210"
                   maxLength={10}
                   className="w-full rounded-xl pl-10 pr-4 py-3 text-sm focus:ring-4 focus:ring-blue-50 transition-all outline-none"
-                  style={{ background: '#fff', border: '1px solid var(--card-border)', color: 'var(--text)' }}
+                  style={{ 
+                    background: '#fff', 
+                    border: mobileError ? '1px solid #ef4444' : '1px solid var(--card-border)', 
+                    color: 'var(--text)' 
+                  }}
                   required
                 />
               </div>
+              {mobileChecking && (
+                <p className="mt-1 text-xs text-indigo-500 animate-pulse">
+                  Checking mobile availability...
+                </p>
+              )}
+              {mobileError && (
+                <p className="mt-1 text-xs text-red-500 font-medium">
+                  {mobileError}
+                </p>
+              )}
             </div>
 
             {/* Date of Birth */}

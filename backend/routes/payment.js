@@ -16,6 +16,12 @@ const getRazorpayInstance = () => {
 };
 
 const hasAcceptedPolicy = (application) => Boolean(application?.policyAcceptance?.accepted);
+const isPaymentLocked = (application) => (
+  !application ||
+  application.status === 'cancelled' ||
+  application.paymentStatus === 'completed' ||
+  application.status === 'confirmed'
+);
 
 // POST /api/payment/create-order
 router.post('/create-order', auth, async (req, res) => {
@@ -27,7 +33,7 @@ router.post('/create-order', auth, async (req, res) => {
       return res.status(503).json({ message: 'Payment gateway not configured' });
     }
 
-    const application = await Application.findOne({ applicationId });
+    const application = await Application.findOne({ applicationId, student: req.user._id });
     if (!application) {
       return res.status(404).json({ message: 'Application not found' });
     }
@@ -39,8 +45,8 @@ router.post('/create-order', auth, async (req, res) => {
       });
     }
 
-    if (application.paymentStatus === 'completed') {
-      return res.status(400).json({ message: 'Payment already completed for this application' });
+    if (isPaymentLocked(application)) {
+      return res.status(400).json({ message: 'This application is not eligible for payment.' });
     }
 
     const orderPayload = {
@@ -110,7 +116,7 @@ router.post('/create-order', auth, async (req, res) => {
 router.post('/verify', auth, async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, applicationId } = req.body;
-    const existingApplication = await Application.findOne({ applicationId });
+    const existingApplication = await Application.findOne({ applicationId, student: req.user._id });
 
     if (!existingApplication) {
       return res.status(404).json({ message: 'Application not found' });
@@ -121,6 +127,10 @@ router.post('/verify', auth, async (req, res) => {
         success: false,
         message: 'Policy acceptance is required before proceeding.'
       });
+    }
+
+    if (isPaymentLocked(existingApplication)) {
+      return res.status(400).json({ message: 'This application is not eligible for payment verification.' });
     }
 
     // Verify signature
@@ -138,7 +148,7 @@ router.post('/verify', auth, async (req, res) => {
 
     // Update application
     const application = await Application.findOneAndUpdate(
-      { applicationId },
+      { applicationId, student: req.user._id },
       {
         paymentStatus: 'completed',
         paymentId: razorpay_payment_id,

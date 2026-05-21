@@ -25,6 +25,7 @@ export default function PaymentPage() {
   const [showNavigationWarning, setShowNavigationWarning] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState(null);
   const hasPaymentHistoryGuard = useRef(false);
+  const [applicationReady, setApplicationReady] = useState(false);
 
   const [application, setApplication] = useState(state?.application);
   const [course, setCourse] = useState(state?.course);
@@ -41,7 +42,7 @@ export default function PaymentPage() {
 
   // Prevent navigation when on payment page with unsaved payment
   useEffect(() => {
-    if (application?.paymentStatus === 'completed') {
+    if (!applicationReady || application?.paymentStatus === 'completed' || application?.status === 'cancelled') {
       return;
     }
 
@@ -96,7 +97,7 @@ export default function PaymentPage() {
       window.removeEventListener('popstate', handlePopState);
       document.removeEventListener('click', handleClickCapture, true);
     };
-  }, [application, location.pathname]);
+  }, [application, applicationReady, location.pathname]);
 
   const handlePayLater = async () => {
     try {
@@ -141,15 +142,25 @@ export default function PaymentPage() {
     setLoading(true);
     try {
       const res = await axios.get(`/api/applications/${applicationId}`);
-      if (res.data.paymentStatus === 'completed') {
-        toast.error('Payment already completed for this application.');
-        navigate('/courses', { replace: true });
+      const app = res.data;
+      setApplication(app);
+
+      if (app.status === 'cancelled') {
+        toast.error('This application has been cancelled.');
+        navigate(`/cancel-booking/${applicationId}`, { replace: true });
         return;
       }
-      setApplication(res.data);
+
+      if (app.paymentStatus === 'completed' || app.status === 'confirmed') {
+        toast.error('Payment already completed for this application.');
+        navigate(`/confirmation/${applicationId}`, { replace: true });
+        return;
+      }
     } catch (err) {
       toast.error('Could not load application details');
+      navigate('/admissions', { replace: true });
     } finally {
+      setApplicationReady(true);
       setLoading(false);
     }
   };

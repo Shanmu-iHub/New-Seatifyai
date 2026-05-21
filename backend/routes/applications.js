@@ -134,11 +134,23 @@ const serializeApplication = (applicationDoc) => {
   return application;
 };
 
+const isTerminalApplicationState = (app) => (
+  app?.status === 'cancelled' || app?.paymentStatus === 'completed' || app?.status === 'confirmed'
+);
+
 // POST /api/applications/:id/cancel
 router.post('/:id/cancel', auth, async (req, res) => {
   try {
     const app = await Application.findOne({ applicationId: req.params.id, student: req.user._id });
     if (!app) return res.status(404).json({ message: 'Application not found' });
+
+    if (app.status === 'cancelled') {
+      return res.status(400).json({ message: 'Application already cancelled.' });
+    }
+
+    if (app.paymentStatus === 'completed' || app.status === 'confirmed') {
+      return res.status(400).json({ message: 'Completed admissions cannot be cancelled.' });
+    }
 
     const previousStatus = app.status;
     app.status = 'cancelled';
@@ -317,6 +329,14 @@ router.put('/:id', auth, upload.fields(docFields), async (req, res) => {
   try {
     const app = await Application.findOne({ applicationId: req.params.id, student: req.user._id });
     if (!app) return res.status(404).json({ message: 'Application not found' });
+
+    if (app.status === 'cancelled') {
+      return res.status(400).json({ message: 'Cancelled applications cannot be edited.' });
+    }
+
+    if (app.paymentStatus === 'completed' || app.status === 'confirmed') {
+      return res.status(400).json({ message: 'Completed admissions cannot be edited.' });
+    }
 
     // 1 hour check
     const createdAt = new Date(app.createdAt);
@@ -535,8 +555,12 @@ router.post('/:id/pay-later', auth, async (req, res) => {
     const app = await Application.findOne({ applicationId: req.params.id, student: req.user._id });
     if (!app) return res.status(404).json({ message: 'Application not found' });
 
-    if (app.paymentStatus === 'completed') {
-      return res.status(400).json({ message: 'Payment already completed for this application' });
+    if (app.status === 'cancelled') {
+      return res.status(400).json({ message: 'Cancelled applications cannot be moved to pay later.' });
+    }
+
+    if (isTerminalApplicationState(app)) {
+      return res.status(400).json({ message: 'This application is no longer eligible for payment updates.' });
     }
 
     app.paymentStatus = 'pay_later';

@@ -45,6 +45,7 @@ export default function ProfilePage() {
   const [activeDocSubTab, setActiveDocSubTab] = useState('Pending Documents');
   const [uploadProgress, setUploadProgress] = useState({}); // { [docId]: percent }
   const [confirmDelete, setConfirmDelete] = useState(null); // { applicationId, docKey, label }
+  const [confirmCancel, setConfirmCancel] = useState(null); // adm object
   const [isEditing, setIsEditing] = useState(false);
   const [saveStatus, setSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved' | 'error'
   const [editForm, setEditForm] = useState({
@@ -185,10 +186,12 @@ export default function ProfilePage() {
       }
     }
   }, [admissions, hasPendingDocs]);
-  const handleCancelAdmission = async (adm) => {
-    if (!window.confirm("Are you sure you want to cancel this admission? This action cannot be undone.")) return;
+  const handleCancelAdmission = async () => {
+    if (!confirmCancel) return;
+    const adm = confirmCancel;
     
     setLoading(true);
+    setConfirmCancel(null);
     try {
       await axios.post(`/api/applications/${adm.applicationId}/cancel`);
       toast.success("Admission cancelled successfully. You can now book another course.");
@@ -242,24 +245,49 @@ export default function ProfilePage() {
     }
   };
 
-  const handleDownloadReceipt = (adm) => {
+  const handleDownloadReceipt = async (adm) => {
+    const toastId = toast.loading("Generating receipt...");
     try {
-      const doc = new jsPDF();
+      const doc = new jsPDF({ format: [210, 340] });
       const studentName = profile?.fullName || user?.name || 'Student';
       const dateStr = new Date(adm.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
       const timeStr = new Date(adm.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
 
-      // 1. Sidebar Accent (Yellow)
+      // 1. Sidebar Accent (Yellow) - full custom page height
       doc.setFillColor(252, 211, 77);
-      doc.rect(0, 0, 5, 297, 'F');
+      doc.rect(0, 0, 5, 340, 'F');
 
       // 2. Header Block (Black)
       doc.setFillColor(0, 0, 0);
       doc.rect(5, 10, 200, 35, 'F');
       
-      // --- Logo Only (White Version) ---
+      // --- Logo Processing (Dynamic Aspect Ratio & PNG Conversion) ---
+      const processLogo = (base64Str) => new Promise((resolve) => {
+        const img = new Image();
+        img.src = base64Str.startsWith('data:') ? base64Str : 'data:image/webp;base64,' + base64Str;
+        img.onload = () => {
+          const cv = document.createElement('canvas');
+          cv.width = img.naturalWidth;
+          cv.height = img.naturalHeight;
+          const ctx = cv.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          resolve({
+            data: cv.toDataURL('image/png'),
+            width: img.naturalWidth,
+            height: img.naturalHeight
+          });
+        };
+        img.onerror = () => resolve(null);
+      });
+
       if (logoBase64) {
-        doc.addImage(logoBase64, 'WEBP', 15, 16, 46, 23);
+        const logo = await processLogo(logoBase64);
+        if (logo) {
+          const targetHeight = 18; // Desired height in mm
+          const aspect = logo.width / logo.height;
+          const targetWidth = targetHeight * aspect;
+          doc.addImage(logo.data, 'PNG', 15, 18, targetWidth, targetHeight);
+        }
       }
 
       doc.setFontSize(20);
@@ -269,14 +297,11 @@ export default function ProfilePage() {
       
       // 3. Info Section
       doc.setFontSize(10);
-      doc.setTextColor(75, 85, 99);
-      doc.text(`ISSUED ON: ${dateStr} at ${timeStr}`, 15, 55);
-      
-      // Fixed Application ID Alignment (Moved left to prevent cut-off)
+      doc.setTextColor(0, 0, 0);
       doc.setFont("helvetica", "bold");
-      doc.text("APPLICATION ID:", 115, 55);
+      doc.text(`ISSUED ON: `, 15, 55);
       doc.setFont("helvetica", "normal");
-      doc.text(`${adm.applicationId}`, 145, 55);
+      doc.text(`${dateStr} at ${timeStr}`, 40, 55);
       
       const tableData = [
         ['INSTITUTION NAME', adm.collegeName || 'SNS Institutions'],
@@ -296,54 +321,150 @@ export default function ProfilePage() {
         body: tableData,
         theme: 'grid',
         headStyles: { 
-          fillColor: [31, 41, 45], 
-          textColor: [252, 211, 77], 
+          fillColor: [0, 0, 0], 
+          textColor: [255, 204, 0], 
           fontSize: 10, 
           fontStyle: 'bold' 
         },
-        bodyStyles: { fontSize: 9, cellPadding: 6 },
+        bodyStyles: { fontSize: 9, cellPadding: 5, textColor: [0, 0, 0] },
         columnStyles: {
-          0: { cellWidth: 55, fontStyle: 'bold', fillColor: [249, 250, 251] }
+          0: { cellWidth: 55, fontStyle: 'bold', fillColor: [250, 250, 250] }
+        },
+        didParseCell: function (data) {
+          if (data.section === 'body' && data.column.index === 1 && data.row.index === 8) {
+             data.cell.styles.textColor = [0, 153, 51]; // Green status
+             data.cell.styles.fontStyle = 'bold';
+          }
         }
       });
       
-      const finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) || 150;
+      // All content fits on one custom-height page (210x340mm)
+      const y = (doc.lastAutoTable && doc.lastAutoTable.finalY) || 160;
+
+      // ── Helper: SVG string to high-res PNG Promise ──
+      const makeSvgIcon = (svgStr) => new Promise((resolve) => {
+        const img = new Image();
+        img.src = 'data:image/svg+xml;base64,' + btoa(svgStr);
+        img.onload = () => {
+          const cv = document.createElement('canvas');
+          cv.width = 512; cv.height = 512;
+          const ctx = cv.getContext('2d');
+          ctx.drawImage(img, 0, 0, 512, 512);
+          resolve(cv.toDataURL('image/png'));
+        };
+        img.onerror = () => resolve(null);
+      });
+
+      // A. Shield / Checkmark (Lucide: CheckCircle modified)
+      const iconCheck = await makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01" stroke="#16a34a" stroke-width="3"></polyline></svg>`);
       
-      doc.setFillColor(245, 245, 245);
-      doc.rect(15, finalY + 10, 180, 25, 'F');
+      // B. Calendar (Lucide: Calendar modified)
+      const iconCal = await makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" fill="#ffffff"></rect><rect width="18" height="6" x="3" y="4" rx="2" ry="2" fill="#444444" stroke="none"></rect><circle cx="8" cy="14" r="1.5" fill="#444444" stroke="none"/><circle cx="12" cy="14" r="1.5" fill="#444444" stroke="none"/><circle cx="16" cy="14" r="1.5" fill="#444444" stroke="none"/><circle cx="8" cy="18" r="1.5" fill="#444444" stroke="none"/><circle cx="12" cy="18" r="1.5" fill="#444444" stroke="none"/><circle cx="21" cy="21" r="5" fill="#f59e0b" stroke="none"/><text x="21" y="23.5" fill="#ffffff" font-size="8" font-family="sans-serif" font-weight="bold" stroke="none" text-anchor="middle">!</text></svg>`);
+
+      // C. Headset (Lucide: Headphones modified)
+      const iconHead = await makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="11" stroke="#222" stroke-width="1.5"/><path d="M5 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7a9 9 0 0 1 14 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3" stroke="#222" stroke-width="2"/><circle cx="18" cy="19" r="2.5" fill="#f59e0b" stroke="none"/></svg>`);
+
+      // D. Envelope (Lucide: Mail)
+      const iconMail = await makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#444444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>`);
+
+      // E. Phone (Lucide: Smartphone)
+      const iconPhone = await makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#444444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect><path d="M12 18h.01"></path></svg>`);
+
+      // F. Globe (Lucide: Globe)
+      const iconGlobe = await makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#444444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" x2="22" y1="12" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`);
+
+
+      // A. Verified Enrollment Block
+      doc.setFillColor(245, 249, 246);
+      doc.setDrawColor(230, 240, 230);
+      doc.roundedRect(15, y + 10, 180, 22, 3, 3, 'FD');
+      doc.addImage(iconCheck, 'PNG', 19, y + 12, 18, 18);
       doc.setFontSize(10);
-      doc.setTextColor(31, 41, 55);
+      doc.setTextColor(0, 0, 0);
       doc.setFont("helvetica", "bold");
-      doc.text("VERIFIED ENROLLMENT", 20, finalY + 25);
+      doc.text("VERIFIED ENROLLMENT", 42, y + 18);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8.5);
-      doc.text("This receipt confirms your seat reservation and initial fee payment in our system.", 65, finalY + 25);
+      doc.text("This receipt confirms your seat reservation and initial fee payment in our system.", 42, y + 26);
 
-      // Policy Note
-      doc.setFillColor(254, 252, 232);
-      doc.setDrawColor(252, 211, 77);
-      doc.rect(15, finalY + 45, 180, 25, 'FD');
-      doc.setFontSize(9);
-      doc.setTextColor(31, 41, 55);
+      // B. Note Block
+      doc.setFillColor(255, 248, 240);
+      doc.setDrawColor(255, 235, 204);
+      doc.roundedRect(15, y + 36, 180, 28, 3, 3, 'FD');
+      doc.addImage(iconCal, 'PNG', 18, y + 38, 20, 20);
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
       doc.setFont("helvetica", "bold");
-      doc.text("NOTE:", 20, finalY + 58);
+      doc.text("NOTE:", 42, y + 45);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8.5);
-      const noteText = "This is a temporary seat confirmation only. Students are required to visit the college campus directly to verify and confirm their course admission.";
-      const splitNote = doc.splitTextToSize(noteText, 145);
-      doc.text(splitNote, 38, finalY + 58);
+      doc.text("This is a temporary seat confirmation only. Students are required to visit the college campus", 42, y + 51);
+      doc.text("directly to verify and confirm their course admission.", 42, y + 57);
 
-      // Footer (One Line)
+      // C. Need Help Block
+      // Headset icon removed as requested.
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "bold");
+      doc.text("Need Help?", 17, y + 74);
+      
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "normal");
+      
+      // Email with canvas icon
+      doc.addImage(iconMail, 'PNG', 17, y + 78, 6, 5);
+      doc.setTextColor(30, 30, 30);
+      doc.text("support@seatifyai.com", 26, y + 82);
+      
+      doc.setTextColor(180, 180, 180);
+      doc.text("|", 78, y + 82);
+      
+      // Phone with canvas icon
+      doc.addImage(iconPhone, 'PNG', 82, y + 77.5, 5, 6);
+      doc.setTextColor(30, 30, 30);
+      doc.text("9600940618", 90, y + 82);
+      
+      doc.setTextColor(180, 180, 180);
+      doc.text("|", 123, y + 82);
+      
+      // Globe with canvas icon
+      doc.addImage(iconGlobe, 'PNG', 127, y + 77.5, 6, 6);
+      doc.setTextColor(0, 102, 204);
+      doc.text("www.seatifyai.com", 136, y + 82);
+
+      // D. Tagline — use only ASCII-safe drawn lines + bullet
+      doc.setDrawColor(255, 180, 0);
+      doc.setLineWidth(0.8);
+      doc.line(82, y + 93, 99, y + 93);
+      doc.line(111, y + 93, 128, y + 93);
+      // Center dot
+      doc.setFillColor(255, 180, 0);
+      doc.setDrawColor(255, 180, 0);
+      doc.circle(105, y + 93, 1.5, 'FD');
+
+      doc.setTextColor(0, 0, 120);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("Take the first step today with Seatify", 105, y + 102, { align: 'center' });
+      doc.text("towards a successful future.", 105, y + 109, { align: 'center' });
+
+      // Footer separator line
+      doc.setDrawColor(210, 210, 210);
+      doc.setLineWidth(0.3);
+      doc.line(15, y + 116, 195, y + 116);
+
+      // Footer text
       doc.setFontSize(8);
-      doc.setTextColor(156, 163, 175);
-      const footerY = Math.max(280, finalY + 80);
-      doc.text("This is a digital receipt issued by SeatifyAI Admission System.  www.seatifyai.com  |  Page 1 of 1", 105, footerY, { align: 'center' });
+      doc.setTextColor(150, 150, 150);
+      doc.setFont("helvetica", "normal");
+      const footerY = y + 123;
+      doc.text("This is a digital receipt issued by SeatifyAI Admission System. www.seatifyai.com | Page 1 of 1", 105, footerY, { align: 'center' });
       
       doc.save(`Seatify_Receipt_${adm.applicationId}.pdf`);
-      toast.success("Receipt downloaded!");
+      toast.success("Receipt downloaded!", { id: toastId });
     } catch (err) {
       console.error("PDF Error:", err);
-      toast.error("Receipt generation failed.");
+      toast.error("Receipt generation failed.", { id: toastId });
     }
   };
 
@@ -697,8 +818,8 @@ export default function ProfilePage() {
                           </button>
                           {adm.status !== 'rejected' && adm.status !== 'cancelled' && (
                             <button
-                              onClick={() => handleCancelAdmission(adm)}
-                              className="px-4 py-2.5 rounded-xl text-xs font-bold border border-red-100 text-red-500 hover:bg-red-50 transition-all"
+                              onClick={() => setConfirmCancel(adm)}
+                              className="px-4 py-2.5 rounded-xl text-xs font-bold border border-red-100 text-red-500 hover:bg-red-50 transition-all cursor-pointer"
                             >
                               Cancel
                             </button>
@@ -866,6 +987,45 @@ export default function ProfilePage() {
                 className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-rose-600 text-white hover:bg-rose-700 transition-all cursor-pointer text-center shadow-sm"
               >
                 Yes, Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Admission Modal */}
+      {confirmCancel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md bg-white rounded-2xl border border-slate-100 p-6 shadow-xl animate-scale-up">
+            <div className="flex items-center gap-3 mb-4 text-rose-600">
+              <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 flex-shrink-0">
+                <AlertCircle size={24} />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg text-slate-900">Cancel Admission</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Application ID: {confirmCancel.applicationId}</p>
+              </div>
+            </div>
+            
+            <div className="bg-red-50 border border-red-100 rounded-xl p-4 mb-6">
+              <p className="text-sm font-semibold text-red-800 mb-1">Warning: No Refund Policy</p>
+              <p className="text-xs text-red-600 leading-relaxed">
+                By proceeding with this cancellation, you acknowledge that the pre-registration fee is <strong className="font-bold">strictly non-refundable</strong>. This action will permanently release your secured seat and cannot be undone.
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setConfirmCancel(null)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold border border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 hover:text-slate-900 transition-all cursor-pointer text-center animate-fade-in"
+              >
+                Keep Seat
+              </button>
+              <button
+                onClick={handleCancelAdmission}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-rose-600 text-white hover:bg-rose-700 transition-all cursor-pointer text-center shadow-sm"
+              >
+                Yes, Cancel Seat
               </button>
             </div>
           </div>

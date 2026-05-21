@@ -10,9 +10,9 @@ const getDocumentRequirements = (courseName, category) => {
     { id: 'birthCertificate', label: 'Birth Certificate' },
     { id: 'community', label: 'Community Certificate' },
   ];
-  
+
   const name = courseName.toLowerCase();
-  
+
   if (category === 'K-12') {
     if (name.includes('grade 11') || name.includes('grade 12')) {
       docs.push({ id: 'marksheet10', label: '10th Mark Sheet' });
@@ -25,7 +25,7 @@ const getDocumentRequirements = (courseName, category) => {
     docs.push({ id: 'marksheet12', label: '12th Mark Sheet / Diploma Certificate' });
   }
   docs.push({ id: 'admissionForm', label: 'Admission Form' });
-  
+
   return docs;
 };
 
@@ -33,7 +33,7 @@ const sendReminderEmails = async () => {
   console.log('[Cron] Checking for pending documents...');
   try {
     const apps = await Application.find({ status: { $nin: ['cancelled', 'rejected'] } });
-    
+
     const port = Number(process.env.SES_SMTP_PORT || process.env.MAIL_PORT) || 587;
     const secure = process.env.MAIL_SECURE !== undefined ? process.env.MAIL_SECURE === 'true' : port === 465;
     const transporter = nodemailer.createTransport({
@@ -58,12 +58,12 @@ const sendReminderEmails = async () => {
       if (missingDocs.length > 0) {
         // Check if 2 days have passed since creation
         const daysSinceCreation = Math.floor((now - app.createdAt) / (1000 * 60 * 60 * 24));
-        
+
         // Check if it's a multiple of 2 days (e.g. 2, 4, 6...)
         // To avoid spamming, we could also track lastReminderSentAt, but for simplicity we'll just check modulo
         if (daysSinceCreation > 0 && daysSinceCreation % 2 === 0) {
           console.log(`[Cron] Sending reminder to ${app.email} for application ${app.applicationId}`);
-          
+
           const missingListHtml = missingDocs.map(d => `<li>${d.label}</li>`).join('');
 
           try {
@@ -91,13 +91,13 @@ const sendReminderEmails = async () => {
                 </div>
               `
             });
-          } catch(err) {
+          } catch (err) {
             console.error(`[Cron] Failed to send email to ${app.email}:`, err.message);
           }
         }
       }
     }
-  } catch(err) {
+  } catch (err) {
     console.error('[Cron] Error checking pending documents:', err);
   }
 };

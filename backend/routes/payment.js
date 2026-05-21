@@ -30,6 +30,10 @@ router.post('/create-order', auth, async (req, res) => {
       return res.status(404).json({ message: 'Application not found' });
     }
 
+    if (application.paymentStatus === 'completed') {
+      return res.status(400).json({ message: 'Payment already completed for this application' });
+    }
+
     const orderPayload = {
       amount: Math.round(amount * 100), // paise
       currency: 'INR',

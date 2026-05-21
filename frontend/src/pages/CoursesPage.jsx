@@ -109,12 +109,17 @@ export default function CoursesPage() {
 
   const fetchCourses = async () => {
     try {
-      const res = await axios.get(`${config.API_URL}/api/courses?refresh=true&t=${Date.now()}`);
-      setCourses(res.data);
+      // 1. Fetch from fast cache (loads instantly)
+      const cachedRes = await axios.get(`${config.API_URL}/api/courses`);
+      setCourses(cachedRes.data);
+      setLoading(false);
+
+      // 2. Silently fetch live data from Google Sheets in the background
+      const liveRes = await axios.get(`${config.API_URL}/api/courses?refresh=true&t=${Date.now()}`);
+      setCourses(liveRes.data);
     } catch (err) {
       console.error('Frontend Fetch Error:', err);
       setCourses(MOCK_COURSES);
-    } finally {
       setLoading(false);
     }
   };

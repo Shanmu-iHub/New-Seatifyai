@@ -305,7 +305,10 @@ export default function DashboardOverview() {
               <h3 className="text-lg font-black text-slate-800">{stats.admissionIntelligence.failedPayments}</h3>
             </div>
           </div>
-          <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex items-center gap-4">
+          <div 
+            className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex items-center gap-4 cursor-pointer hover:bg-slate-50 transition-colors"
+            onClick={() => navigate('/admin/admissions?payment=completed&status=pending')}
+          >
             <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center"><FileWarning size={18} /></div>
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase">Docs Pending</p>

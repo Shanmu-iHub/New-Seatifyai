@@ -9,8 +9,8 @@ export default function AdminAdmissions() {
   const [loading, setLoading] = useState(true);
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(searchParams.get('district') || '');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [paymentFilter, setPaymentFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all');
+  const [paymentFilter, setPaymentFilter] = useState(searchParams.get('payment') || 'all');
 
   useEffect(() => {
     fetchAdmissions();

@@ -844,7 +844,7 @@ export default function ApplicationForm() {
                 </div>
               </div>
 
-              <div className="p-4 sm:p-6 lg:p-8 flex flex-col min-h-[420px] sm:min-h-[460px]">
+              <div className="p-4 sm:p-6 lg:p-8 flex flex-col min-h-[420px] sm:min-h-[460px] min-h-0">
                 <div className="rounded-[1.2rem] sm:rounded-2xl p-1 mb-4 sm:mb-5" style={{ background: 'rgba(15,23,42,0.04)' }}>
                   <div className="grid grid-cols-2 gap-1">
                     <button
@@ -876,8 +876,11 @@ export default function ApplicationForm() {
                   </div>
                 </div>
 
-                <div className="rounded-[1.35rem] sm:rounded-[1.75rem] border overflow-hidden mb-4 sm:mb-5" style={{ borderColor: 'rgba(148,163,184,0.16)', background: 'rgba(248,250,252,0.72)' }}>
-                  <div className="px-4 sm:px-6 py-4 border-b" style={{ borderColor: 'rgba(148,163,184,0.14)', background: 'rgba(255,255,255,0.76)' }}>
+                <div
+                  className="rounded-[1.35rem] sm:rounded-[1.75rem] border overflow-hidden mb-4 sm:mb-5 flex flex-col flex-shrink-0 min-h-[260px] sm:min-h-[340px]"
+                  style={{ borderColor: 'rgba(148,163,184,0.16)', background: 'rgba(248,250,252,0.72)' }}
+                >
+                  <div className="px-4 sm:px-6 py-4 border-b flex-shrink-0" style={{ borderColor: 'rgba(148,163,184,0.14)', background: 'rgba(255,255,255,0.76)' }}>
                     <p className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--primary)' }}>
                       {activePolicyTab === 'terms' ? 'Terms & Conditions' : 'Refund Policy'}
                     </p>
@@ -888,8 +891,11 @@ export default function ApplicationForm() {
                     </p>
                   </div>
 
-                  <div className="h-[220px] sm:h-[340px] overflow-y-auto px-4 sm:px-6 py-4 sm:py-5">
-                    <div className="space-y-3 min-h-full">
+                  <div
+                    className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-6 py-4 sm:py-5"
+                    style={{ WebkitOverflowScrolling: 'touch' }}
+                  >
+                    <div className="space-y-3">
                       {(activePolicyTab === 'terms' ? TERMS_POINTS : REFUND_POINTS).map((point, index) => (
                         <div key={`${activePolicyTab}-${index}`} className="flex items-start gap-3 rounded-[1rem] sm:rounded-2xl p-3" style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(148,163,184,0.12)' }}>
                           <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: 'rgba(79,70,229,0.1)', color: 'var(--primary)' }}>
@@ -914,7 +920,7 @@ export default function ApplicationForm() {
                   </span>
                 </label>
 
-                <div className="flex flex-col-reverse sm:flex-row gap-3 mt-auto pt-1 sm:pt-0 sticky bottom-0 bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.94)_18%,rgba(255,255,255,0.98)_100%)] sm:bg-none">
+                <div className="flex flex-col-reverse sm:flex-row gap-3 mt-auto pt-1 sm:pt-0 sm:sticky sm:bottom-0 bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.94)_18%,rgba(255,255,255,0.98)_100%)] sm:bg-none">
                   <button
                     onClick={closeConfirmationModal}
                     className="flex-1 py-3.5 rounded-[1.1rem] sm:rounded-2xl font-bold text-sm transition-all"

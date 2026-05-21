@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { CheckCircle, Download, User, Home, Sparkles } from 'lucide-react';
+import { CheckCircle, Download, User, Home, Sparkles, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import jsPDF from 'jspdf';
@@ -18,6 +18,9 @@ export default function ConfirmationPage() {
   const [showCancelPopup, setShowCancelPopup] = useState(false);
   const [editTimeLeft, setEditTimeLeft] = useState('');
   const [canEdit, setCanEdit] = useState(true);
+  const [fullPaymentId, setFullPaymentId] = useState(state?.paymentId || state?.application?.paymentId || null);
+  const [showFullPaymentId, setShowFullPaymentId] = useState(false);
+  const [loadingFullPaymentId, setLoadingFullPaymentId] = useState(false);
 
   const [application, setApplication] = useState(state?.application || null);
   const [course, setCourse] = useState(state?.course || null);
@@ -100,6 +103,32 @@ export default function ConfirmationPage() {
     ['Date & Time', `${dateStr} at ${timeStr}`],
     ['Status', 'Pre Registration Confirmed'],
   ];
+
+  const handleTogglePaymentId = async () => {
+    if (showFullPaymentId) {
+      setShowFullPaymentId(false);
+      return;
+    }
+
+    if (fullPaymentId && fullPaymentId === (paymentId || application?.paymentId || null) && String(fullPaymentId).includes('*')) {
+      setFullPaymentId(null);
+    }
+
+    if (!fullPaymentId) {
+      try {
+        setLoadingFullPaymentId(true);
+        const res = await axios.get(`/api/applications/${applicationId}/payment-reference`);
+        setFullPaymentId(res.data.paymentId || null);
+      } catch (err) {
+        toast.error('Could not load the full payment ID');
+        return;
+      } finally {
+        setLoadingFullPaymentId(false);
+      }
+    }
+
+    setShowFullPaymentId(true);
+  };
 
   const handleDownloadReceipt = async () => {
     try {
@@ -322,9 +351,22 @@ export default function ConfirmationPage() {
             {details.map(([label, val]) => (
               <div key={label} className="flex justify-between items-start gap-4 pb-3 border-b border-gray-50 last:border-0 last:pb-0">
                 <span className="text-sm font-medium text-gray-400">{label}</span>
-                <span className={`text-sm font-bold text-right ${label === 'Status' ? 'text-green-500' : 'text-gray-900'} ${label === 'Application ID' ? 'font-mono text-blue-600' : ''}`}>
-                  {val}
-                </span>
+                <div className="flex items-center justify-end gap-2 text-right">
+                  <span className={`text-sm font-bold ${label === 'Status' ? 'text-green-500' : 'text-gray-900'} ${label === 'Application ID' ? 'font-mono text-blue-600' : ''}`}>
+                    {label === 'Payment ID' && showFullPaymentId && fullPaymentId ? fullPaymentId : val}
+                  </span>
+                  {label === 'Payment ID' && val !== 'N/A' && (
+                    <button
+                      type="button"
+                      onClick={handleTogglePaymentId}
+                      disabled={loadingFullPaymentId}
+                      className="w-8 h-8 rounded-full border border-gray-100 bg-gray-50 text-gray-500 hover:text-indigo-600 hover:border-indigo-100 hover:bg-indigo-50 transition-all flex items-center justify-center"
+                      title={showFullPaymentId ? 'Hide payment ID' : 'View payment ID'}
+                    >
+                      {showFullPaymentId ? <Eye size={14} /> : <EyeOff size={14} />}
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

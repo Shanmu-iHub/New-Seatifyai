@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { Search, Download, Eye, XCircle, CheckCircle, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -6,7 +7,8 @@ import toast from 'react-hot-toast';
 export default function AdminAdmissions() {
   const [admissions, setAdmissions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('district') || '');
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
 
@@ -36,7 +38,8 @@ export default function AdminAdmissions() {
   const filtered = admissions.filter(a => {
     const matchesSearch = a.applicationId?.toLowerCase().includes(searchTerm.toLowerCase()) || 
       a.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      a.collegeName?.toLowerCase().includes(searchTerm.toLowerCase());
+      a.collegeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      a.district?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || a.status === statusFilter;
     const matchesPayment = paymentFilter === 'all' || a.paymentStatus === paymentFilter;
@@ -79,7 +82,7 @@ export default function AdminAdmissions() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
               type="text" 
-              placeholder="Search ID, Name, College..." 
+              placeholder="Search ID, Name, College, District..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-full sm:w-64"

@@ -31,9 +31,7 @@ export default function PaymentPage() {
   const fee = parseFloat((baseFee + platformFee + gstAmount).toFixed(2));
 
   useEffect(() => {
-    if (!application) {
-      fetchApplication();
-    }
+    fetchApplication();
   }, [applicationId]);
 
   const fetchApplication = async () => {

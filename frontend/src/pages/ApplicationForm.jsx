@@ -147,6 +147,7 @@ export default function ApplicationForm() {
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [existingDocs, setExistingDocs] = useState({});
   const [formData, setFormData] = useState({
     fullName: user?.name || '',
@@ -154,6 +155,7 @@ export default function ApplicationForm() {
     admissionType: 'Regular',
     email: user?.email || '', mobile: user?.mobile || '',
     community: '',
+    communityOther: '',
     parentName: '',
     parentOccupation: '',
     parentMobile: '',
@@ -230,6 +232,7 @@ export default function ApplicationForm() {
             email: app.email || '',
             mobile: app.mobile || '',
             community: app.community || '',
+            communityOther: app.communityOther || '',
             parentName: app.parentName || '',
             parentOccupation: app.parentOccupation || '',
             parentMobile: app.parentMobile || '',
@@ -314,6 +317,12 @@ export default function ApplicationForm() {
         return;
       }
 
+      // If other community, must specify
+      if (formData.community === 'Others' && !formData.communityOther?.trim()) {
+        toast.error('Please specify your community name');
+        return;
+      }
+
       // Validate student mobile number - must be 10 digits only
       const mobileRegex = /^[0-9]{10}$/;
       if (!mobileRegex.test(formData.mobile)) {
@@ -371,7 +380,7 @@ export default function ApplicationForm() {
     return docs;
   };
 
-  const handleSubmit = async () => {
+  const handlePreSubmit = () => {
     // Validate Admission Form Group (Optional)
 
     const requiredDocs = getDocumentRequirements().filter(d => d.required);
@@ -381,6 +390,16 @@ export default function ApplicationForm() {
       toast.error(`Please upload: ${missing.map(m => m.label.replace(' *', '')).join(', ')}`);
       return;
     }
+    
+    if (!editId) {
+      setShowConfirm(true);
+    } else {
+      processSubmission();
+    }
+  };
+
+  const processSubmission = async () => {
+    setShowConfirm(false);
     setLoading(true);
     try {
       if (editId) {
@@ -399,7 +418,8 @@ export default function ApplicationForm() {
         toast.success('Details updated successfully!');
         // Redirect back to confirmation page to see updated details and download receipt
         navigate(`/confirmation/${editId}`, {
-          state: { application: res.data.application, course, program }
+          state: { application: res.data.application, course, program },
+          replace: true
         });
       } else {
         // Handle New submission
@@ -428,7 +448,8 @@ export default function ApplicationForm() {
 
         toast.success('Application submitted! Proceeding to payment...');
         navigate(`/payment/${res.data.applicationId}`, {
-          state: { application: res.data, course, program }
+          state: { application: res.data, course, program },
+          replace: true
         });
       }
     } catch (err) {
@@ -525,9 +546,21 @@ export default function ApplicationForm() {
                 label="Community" 
                 value={formData.community} 
                 onChange={e => update('community', e.target.value)} 
-                options={['OC', 'BC', 'BCM', 'MBC', 'DNC', 'SC', 'ST']} 
+                options={['OC', 'BC', 'BCM', 'MBC', 'DNC', 'SC', 'ST', 'Others']} 
                 required 
               />
+              
+              {formData.community === 'Others' && (
+                <div className="sm:col-span-2">
+                  <InputField 
+                    label="Please specify Community" 
+                    value={formData.communityOther} 
+                    onChange={e => update('communityOther', e.target.value)} 
+                    required 
+                    placeholder="Enter community name"
+                  />
+                </div>
+              )}
               
               <InputField label="Parent name" value={formData.parentName} onChange={e => update('parentName', e.target.value)} required />
               <InputField label="Parent occupation" value={formData.parentOccupation} onChange={e => update('parentOccupation', e.target.value)} required />
@@ -633,7 +666,7 @@ export default function ApplicationForm() {
               Next Step <ChevronRight size={16} />
             </button>
           ) : (
-            <button onClick={handleSubmit} disabled={loading}
+            <button onClick={handlePreSubmit} disabled={loading}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm"
               style={{ background: 'var(--primary)', color: '#fff', opacity: loading ? 0.7 : 1 }}>
               {loading ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{editId ? 'Saving...' : 'Submitting...'}</>
@@ -642,6 +675,35 @@ export default function ApplicationForm() {
           )}
         </div>
       </div>
+
+      {/* Confirmation Popup */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl relative animate-fade-up">
+            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">⚠️</span>
+            </div>
+            <h3 className="text-xl font-bold text-center text-gray-900 mb-2">Proceed to Payment?</h3>
+            <p className="text-center text-gray-500 text-sm mb-6">
+              You are about to submit your application and proceed to the payment gateway. Please acknowledge that the pre-registration fee is <span className="font-bold text-red-500">NON-REFUNDABLE</span> under any circumstances.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 py-3 rounded-xl font-bold text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all"
+              >
+                Go Back
+              </button>
+              <button
+                onClick={processSubmission}
+                className="flex-1 py-3 rounded-xl font-bold text-sm bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
+              >
+                I Agree, Proceed
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

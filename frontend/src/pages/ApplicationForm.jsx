@@ -676,7 +676,7 @@ export default function ApplicationForm() {
                 </div>
               )}
               
-              <InputField label="Parent name" value={formData.parentName} onChange={e => update('parentName', e.target.value)} required />
+              <InputField label="Parent name" value={formData.parentName} onChange={e => update('parentName', e.target.value.replace(/[^A-Za-z\s]/g, ''))} required />
               <InputField label="Parent occupation" value={formData.parentOccupation} onChange={e => update('parentOccupation', e.target.value)} required />
               <InputField label="Parent contact number" type="tel" value={formData.parentMobile} onChange={e => update('parentMobile', e.target.value.replace(/[^0-9]/g, '').slice(0, 10))} required pattern="[0-9]{10}" maxLength={10} />
               <InputField label="Home Town" value={formData.homeTown} onChange={e => update('homeTown', e.target.value)} required />
